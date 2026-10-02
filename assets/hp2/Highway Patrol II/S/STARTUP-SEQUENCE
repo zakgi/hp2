@@ -1,0 +1,4 @@
+s/type s/quartex_speaks!
+s/wait 3
+DF0:HP.PRG
+

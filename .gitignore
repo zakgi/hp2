@@ -1,0 +1,14 @@
+build*/
+work/
+/target/
+
+.DS_Store
+.cache
+ghidra/*.lock
+ghidra/*.lock~
+
+__pycache__
+.venv/
+.ruff_cache/
+*.egg-info/
+.claude/settings.local.json
