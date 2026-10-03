@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hp2-tools"
+version = "0.0.1"
+description = "Reverse-engineering and asset tools for Highway Patrol II (Amiga)"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2",
+    "pillow>=10.1",
+    "pypng>=0.20220715.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24",
+    "mypy>=1.10",
+    "pytest>=8",
+    "ruff>=0.6",
+]
+
+[tool.setuptools]
+package-dir = {"" = "scripts"}
+
+[tool.setuptools.packages.find]
+where = ["scripts"]
+include = ["hp2lib*"]
+namespaces = false
+
+[tool.black]
+line-length = 120
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint.isort]
+known-first-party = ["hp2lib"]

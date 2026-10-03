@@ -1,0 +1,56 @@
+# No CompilationDatabase pin: clangd finds the repo-root
+# compile_commands.json symlink, which every CMake configure refreshes to
+# point at its own build tree (see the root CMakeLists.txt).  The
+# last-configured build is the one clangd resolves against.
+CompileFlags:
+  Add: [-std=c++23]
+
+# General settings
+InlayHints:
+  ParameterNames: Yes # Enable inlay hints for parameter names
+  DeducedTypes: Yes   # Enable inlay hints for deduced types
+
+Completion:
+  AllScopes: Yes
+  ArgumentLists: FullPlaceholders
+  HeaderInsertion:  Never
+  CodePatterns: All
+
+
+# Diagnostics and warnings
+Diagnostics:
+  UnusedIncludes: Strict # Report unused includes strictly
+  MissingIncludes: None # Report missing includes strictly
+
+
+  ClangTidy:
+    Add:
+      - bugprone-*
+      - cert-*
+      - modernize-*
+      - performance-*
+      - readability-*
+    Remove:
+      - bugprone-easily-swappable-parameters
+      - modernize-use-trailing-return-type
+      - readability-magic-numbers
+
+---
+# Embedded target: when the root compile_commands.json symlink points at
+# a board build, its database encodes the right -mcpu / -isystem / -D
+# flags for the cross toolchain.  clangd learns arm-none-eabi-g++'s own
+# include paths and builtins through --query-driver (.vscode/settings.json),
+# so no clang-style --target or hard-coded toolchain paths live here: those
+# conflict with the gcc-discovered settings.
+If:
+  PathMatch:
+    - src/target/rp2350/.*
+    - src/boards/.*
+
+Diagnostics:
+  # The pico-sdk pulls in a lot of macros the host clangd doesn't have
+  # visibility into; strict unused-include and missing-include reporting
+  # produces noise that doesn't reflect real build behaviour.  Override the
+  # global settings here.
+  UnusedIncludes: None
+  MissingIncludes: None

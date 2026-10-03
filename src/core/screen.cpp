@@ -1,0 +1,123 @@
+#include "core/screen.hpp"
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <span>
+
+namespace hp2 {
+
+void Screen::EnableSplit(std::uint16_t split_row) {
+  split_row_ = split_row > 0 and split_row < kHeight ? split_row : std::uint16_t{0};
+  selected_ = Viewport::kUpper;
+}
+
+void Screen::DisableSplit() {
+  split_row_ = 0;
+  selected_ = Viewport::kUpper;
+}
+
+void Screen::SetViewport(Viewport viewport) {
+  if (split_row_ != 0) {
+    selected_ = viewport;
+  }
+}
+
+std::uint16_t Screen::FirstRow(Viewport viewport) const {
+  return viewport == Viewport::kLower ? split_row_ : std::uint16_t{0};
+}
+
+std::uint16_t Screen::Rows(Viewport viewport) const {
+  auto rows = kHeight;
+  if (split_row_ != 0) {
+    rows = viewport == Viewport::kUpper ? split_row_ : static_cast<std::uint16_t>(kHeight - split_row_);
+  } else if (viewport == Viewport::kLower) {
+    rows = 0;
+  }
+  return rows;
+}
+
+std::span<std::uint8_t, Screen::kWidth> Screen::Row(std::uint16_t row) {
+  const auto screen_row = std::size_t{FirstRow(selected_)} + row;
+  return std::span<std::uint8_t, kWidth>{pixels_.data() + (std::min<std::size_t>(screen_row, kHeight - 1) * kWidth),
+                                         kWidth};
+}
+
+std::span<const std::uint8_t, Screen::kWidth> Screen::ScreenRow(std::uint16_t row) const {
+  return std::span<const std::uint8_t, kWidth>{pixels_.data() + (std::min<std::size_t>(row, kHeight - 1) * kWidth),
+                                               kWidth};
+}
+
+void Screen::Clear(std::uint8_t index) {
+  const auto first = std::size_t{FirstRow(selected_)} * kWidth;
+  std::fill_n(pixels_.begin() + static_cast<std::ptrdiff_t>(first), std::size_t{Rows(selected_)} * kWidth, index);
+}
+
+template <typename Combine>
+void Screen::BlitWith(const ImageView& image, Point origin, Combine combine) {
+  // Clip in 32-bit arithmetic: origin plus image size may exceed int16.
+  const auto left = std::max<std::int32_t>(origin.x, 0);
+  const auto top = std::max<std::int32_t>(origin.y, 0);
+  const auto right = std::min<std::int32_t>(origin.x + std::int32_t{image.width}, kWidth);
+  const auto bottom = std::min<std::int32_t>(origin.y + std::int32_t{image.height}, Rows(selected_));
+  const auto complete = image.pixels.size() >= std::size_t{image.width} * image.height;
+  if (complete and right > left and bottom > top) {
+    for (auto row = top; row < bottom; ++row) {
+      const auto source =
+          image.Row(static_cast<std::uint16_t>(row - origin.y))
+              .subspan(static_cast<std::size_t>(left - origin.x), static_cast<std::size_t>(right - left));
+      const auto destination = Row(static_cast<std::uint16_t>(row)).subspan(static_cast<std::size_t>(left));
+      std::ranges::transform(source, destination, destination.begin(), combine);
+    }
+  }
+}
+
+void Screen::Blit(const ImageView& image, Point origin, std::uint8_t index_offset) {
+  BlitWith(image, origin, [index_offset](std::uint8_t index, std::uint8_t /*pixel*/) {
+    return static_cast<std::uint8_t>(index + index_offset);
+  });
+}
+
+void Screen::BlitMasked(const ImageView& image, Point origin, std::uint8_t index_offset) {
+  BlitWith(image, origin, [index_offset](std::uint8_t index, std::uint8_t pixel) {
+    return index == 0 ? pixel : static_cast<std::uint8_t>(index + index_offset);
+  });
+}
+
+void Screen::Copy(Point source, Point destination, std::uint16_t width, std::uint16_t height) {
+  // The columns and rows where both the source and the destination are inside the viewport.
+  const auto rows = std::int32_t{Rows(selected_)};
+  const auto first_column = std::max({std::int32_t{0}, -std::int32_t{source.x}, -std::int32_t{destination.x}});
+  const auto last_column = std::min({std::int32_t{width}, kWidth - std::int32_t{source.x}, kWidth - destination.x});
+  const auto first_row = std::max({std::int32_t{0}, -std::int32_t{source.y}, -std::int32_t{destination.y}});
+  const auto last_row = std::min({std::int32_t{height}, rows - source.y, rows - destination.y});
+  if (last_column > first_column and last_row > first_row) {
+    // Rows go in the direction that reads every source row before it is overwritten; each row
+    // goes through a buffer, so columns may overlap too.
+    const auto downwards = destination.y <= source.y;
+    const auto source_left = std::int32_t{source.x} + first_column;
+    const auto destination_left = std::int32_t{destination.x} + first_column;
+    const auto source_column = static_cast<std::size_t>(source_left);
+    const auto destination_column = static_cast<std::size_t>(destination_left);
+    const auto count = static_cast<std::size_t>(last_column - first_column);
+    auto buffer = std::array<std::uint8_t, kWidth>{};
+    for (auto step = first_row; step < last_row; ++step) {
+      const auto row = downwards ? step : last_row - 1 - (step - first_row);
+      std::ranges::copy(Row(static_cast<std::uint16_t>(source.y + row)).subspan(source_column, count), buffer.begin());
+      std::ranges::copy(std::span{buffer}.first(count),
+                        Row(static_cast<std::uint16_t>(destination.y + row)).subspan(destination_column).begin());
+    }
+  }
+}
+
+void Screen::XorScreen(std::uint32_t offset, std::span<const std::uint8_t> masks) {
+  if (offset < pixels_.size()) {
+    const auto count = std::min(masks.size(), pixels_.size() - offset);
+    const auto pixels = std::span{pixels_}.subspan(offset, count);
+    std::ranges::transform(pixels, masks.first(count), pixels.begin(), [](std::uint8_t pixel, std::uint8_t mask) {
+      return static_cast<std::uint8_t>(pixel ^ mask);
+    });
+  }
+}
+
+}  // namespace hp2

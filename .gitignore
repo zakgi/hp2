@@ -7,6 +7,8 @@ work/
 ghidra/*.lock
 ghidra/*.lock~
 
+compile_commands.json
+
 __pycache__
 .venv/
 .ruff_cache/
