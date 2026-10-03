@@ -19,7 +19,7 @@ class StationTest : public ::testing::Test {
     }
     ASSERT_TRUE(manager_.Load(test::DiskImage()));
     game_.fuel = 0.25F;
-    game_.tyres = 1;
+    game_.tires = 1;
   }
 
   ComponentType Press(Key key) {
@@ -46,10 +46,10 @@ TEST_F(StationTest, FillsUpAndRepairsOnce) {
   EXPECT_FALSE(station_.Available(Station::Item::kFillUp));
   EXPECT_EQ(Press(Key::kDown), ComponentType::kStation);
   EXPECT_EQ(Press(Key::kEnter), ComponentType::kStation);
-  EXPECT_EQ(game_.tyres, GameState::kFullTyres);
-  EXPECT_FALSE(station_.Available(Station::Item::kRepairTyre));
+  EXPECT_EQ(game_.tires, GameState::kFullTires);
+  EXPECT_FALSE(station_.Available(Station::Item::kRepairTire));
   EXPECT_EQ(Press(Key::kDown), ComponentType::kStation);
-  EXPECT_EQ(Press(Key::kSpace), ComponentType::kDriving);
+  EXPECT_EQ(Press(Key::kSpace), ComponentType::kHighway);
 }
 
 TEST_F(StationTest, DrawsTheCursorUnderTheItem) {
@@ -64,18 +64,18 @@ TEST_F(StationTest, ARobbedStationOffersNothing) {
   game_.station_robbed = true;
   station_.OnEnter();
   EXPECT_FALSE(station_.Available(Station::Item::kFillUp));
-  EXPECT_FALSE(station_.Available(Station::Item::kRepairTyre));
+  EXPECT_FALSE(station_.Available(Station::Item::kRepairTire));
   EXPECT_EQ(Press(Key::kUp), ComponentType::kStation);
   EXPECT_EQ(Press(Key::kUp), ComponentType::kStation);
   EXPECT_EQ(Press(Key::kSpace), ComponentType::kStation);
   EXPECT_FLOAT_EQ(game_.fuel, 0.25F);
 }
 
-TEST_F(StationTest, FullTyresNeedNoRepair) {
-  game_.tyres = GameState::kFullTyres;
+TEST_F(StationTest, FullTiresNeedNoRepair) {
+  game_.tires = GameState::kFullTires;
   station_.OnEnter();
   EXPECT_TRUE(station_.Available(Station::Item::kFillUp));
-  EXPECT_FALSE(station_.Available(Station::Item::kRepairTyre));
+  EXPECT_FALSE(station_.Available(Station::Item::kRepairTire));
 }
 
 }  // namespace

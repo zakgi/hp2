@@ -40,7 +40,7 @@ AudioEngine audio;
 GameState game;
 
 // Where the program starts and the game state it starts with: the station and the endings are
-// reached only from the driving view, which is not ported yet, so they can be opened directly.
+// reached only from the highway, which is not ported yet, so they can be opened directly.
 struct Options {
   std::filesystem::path disk_image;
   std::uint32_t scaling{};
@@ -82,7 +82,7 @@ int Run(const Options& options) {
     game.score = options.score;
     if (options.start == ComponentType::kStation) {
       // A car that needs both services.
-      game.tyres = 1;
+      game.tires = 1;
       game.fuel = 0.5F;
     }
     const auto& assets = asset_manager.Engine();
@@ -100,7 +100,7 @@ int Run(const Options& options) {
       const auto elapsed = clock.restart();
       running = engine.Step(elapsed.asSeconds()) and engine.Running();
       if (not running and engine.Running()) {
-        spdlog::info("The driving view is not ported yet");
+        spdlog::info("The highway is not ported yet");
       }
       audio.Step(static_cast<std::uint32_t>(elapsed.asMicroseconds()));
       ReportAudioGaps(audio_output);
@@ -128,12 +128,12 @@ int main(int argc, char* argv[]) try {
   const auto endings = std::unordered_map<std::string, hp2::EndReason>{
       {"out-of-fuel", hp2::EndReason::kOutOfFuel}, {"stations-robbed", hp2::EndReason::kStationsRobbed},
       {"overheated", hp2::EndReason::kOverheated}, {"wrecked", hp2::EndReason::kWrecked},
-      {"tyres-gone", hp2::EndReason::kTyresGone},  {"shot", hp2::EndReason::kShot},
+      {"tires-gone", hp2::EndReason::kTiresGone},  {"shot", hp2::EndReason::kShot},
       {"arrest", hp2::EndReason::kArrest},         {"bounty-gone", hp2::EndReason::kBountyGone}};
   auto ending = args::MapFlag<std::string, hp2::EndReason>{
       parser,
       "reason",
-      "With --start ending: out-of-fuel, stations-robbed, overheated, wrecked, tyres-gone, shot, arrest or bounty-gone",
+      "With --start ending: out-of-fuel, stations-robbed, overheated, wrecked, tires-gone, shot, arrest or bounty-gone",
       {"ending"},
       endings};
   auto robbed = args::Flag{parser, "robbed", "With --start station: the station has been robbed", {"robbed"}};

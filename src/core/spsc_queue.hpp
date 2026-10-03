@@ -31,7 +31,7 @@ consteval std::size_t MinQueueLog2(std::size_t min_capacity) {
 // all times, so the unsigned subtraction always yields the correct delta
 // regardless of how many times either cursor has wrapped. The only cost of
 // the wrap is that external observers cannot treat the raw cursor values
-// as strictly monotonic across a multi-day quiet period — a price we are
+// as strictly monotonic across a multi-day quiet period, a price we are
 // willing to pay for the embedded-target performance win.
 //
 // Consumer semantics are designed for zero-copy drains. Peek() returns a
@@ -40,7 +40,7 @@ consteval std::size_t MinQueueLog2(std::size_t min_capacity) {
 // seen as two successive Peek/Advance cycles. The consumer processes the
 // span, then calls Advance(n) to release those n slots back to the
 // producer. Until Advance is called, the producer is forbidden by the
-// fullness check from overwriting the region the span points at — this is
+// fullness check from overwriting the region the span points at; this is
 // what makes the zero-copy view safe under concurrent Push.
 //
 // Typical consumer idiom:
@@ -54,7 +54,7 @@ consteval std::size_t MinQueueLog2(std::size_t min_capacity) {
 //
 // The two atomic cursors and the storage array are each pinned to their
 // own cache line via alignas(64). This kills false sharing on hosts with
-// MESI-style caches — producer writes to `write_` or to `storage_[w]` do
+// MESI-style caches: producer writes to `write_` or to `storage_[w]` do
 // not invalidate the line holding `read_` on the consumer CPU (or vice
 // versa). On MCUs without cache coherency the alignment costs a little
 // padding and is otherwise a no-op.
@@ -70,7 +70,7 @@ class SpscQueue {
   // both rely on the slot being safely byte-copyable without running user
   // code (no copy ctor side effects, no throwing assignment, no destructor
   // ordering hazards on overwrite). Storage is value-initialized once at
-  // construction, after which slots are reused by overwrite -- a non-
+  // construction, after which slots are reused by overwrite; a non-
   // trivial T would expect destruction on every overwrite, which the queue
   // deliberately does not do. Embedded targets also benefit: trivially
   // copyable T survives memcpy, which is what a future bulk-push variant
@@ -84,9 +84,9 @@ class SpscQueue {
   // whether to drop, coalesce, or back off. Only the producer thread may
   // call this.
   bool Push(const T& value) {
-    // relaxed on our own cursor -- no other thread writes it.
+    // relaxed on our own cursor: no other thread writes it.
     const auto write = write_.load(std::memory_order_relaxed);
-    // acquire on the peer cursor -- pairs with the consumer's release in
+    // acquire on the peer cursor, which pairs with the consumer's release in
     // Advance() so anything the consumer released before updating read_
     // is visible, and, more importantly, so that the consumer's read of
     // any slot we are about to overwrite happens-before our write to it.
@@ -104,8 +104,8 @@ class SpscQueue {
   // queue currently has room for and publishes the batch with a single
   // release store of write_. The wrap across the physical end of the
   // storage array is handled internally with at most two element-wise
-  // copies, so a batch of N elements costs N copies plus 2 atomic ops
-  // -- compared to looping over Push() which would be N atomic ops on
+  // copies, so a batch of N elements costs N copies plus 2 atomic ops,
+  // compared to looping over Push() which would be N atomic ops on
   // each cursor and would also bounce the read_ cache line on every
   // iteration through the acquire load in Push. For audio sources that
   // produce frames in contiguous batches (a mixer, a resampler output
@@ -113,7 +113,7 @@ class SpscQueue {
   //
   // The copies use std::copy_n. T is statically constrained to be
   // trivially copyable, so libstdc++ / libc++ / MSVC all dispatch
-  // copy_n on contiguous iterators to memmove -- identical codegen to
+  // copy_n on contiguous iterators to memmove: identical codegen to
   // a hand-rolled memcpy, with no byte arithmetic at the call site.
   //
   // Returns the count actually accepted, in [0, values.size()]. A short
@@ -122,7 +122,7 @@ class SpscQueue {
   // call this.
   std::size_t PushBulk(std::span<const T> values) {
     const auto write = write_.load(std::memory_order_relaxed);
-    // acquire on read_: see the data-race argument in Push() -- the
+    // acquire on read_: see the data-race argument in Push(); the
     // synchronizes-with edge is what stops the producer from racing
     // with a consumer that is still reading a slot we are about to
     // overwrite.
@@ -144,7 +144,7 @@ class SpscQueue {
   // Producer. Returns a span of up to `count` contiguous free slots at the
   // write head, without advancing write_. The span stops at the physical
   // end of the storage array, so a logical reservation that crosses the
-  // wrap surfaces as two Reserve/Commit cycles -- the same shape as
+  // wrap surfaces as two Reserve/Commit cycles, the same shape as
   // Peek/Advance on the consumer side. An empty span means the queue is
   // full. After filling, the producer calls Commit(n) to publish n slots
   // with a single release store. Only the producer thread may call this.
@@ -174,11 +174,11 @@ class SpscQueue {
   }
 
   // Consumer. Returns a single element if available.
-  // Does NOT advance the read cursor -- the span remains
+  // Does NOT advance the read cursor; the span remains
   // valid until the consumer calls Advance.
   [[nodiscard]] std::span<const T> PeekOne() const {
     const auto read = read_.load(std::memory_order_relaxed);
-    // acquire pairs with the producer's release on write_ -- ensures the
+    // acquire pairs with the producer's release on write_, which ensures the
     // slot contents we're about to read are visible on this CPU.
     const auto write = write_.load(std::memory_order_acquire);
     const auto available = static_cast<std::size_t>(write - read);
@@ -192,11 +192,11 @@ class SpscQueue {
   // Consumer. Returns a contiguous span of readable elements stopping at
   // the physical end of the underlying array. A logical read that wraps
   // surfaces across two Peek/Advance cycles. An empty span means there is
-  // no data right now. Does NOT advance the read cursor — the span remains
+  // no data right now. Does NOT advance the read cursor; the span remains
   // valid until the consumer calls Advance.
   [[nodiscard]] std::span<const T> Peek() const {
     const auto read = read_.load(std::memory_order_relaxed);
-    // acquire pairs with the producer's release on write_ -- ensures the
+    // acquire pairs with the producer's release on write_, which ensures the
     // slot contents we're about to read are visible on this CPU.
     const auto write = write_.load(std::memory_order_acquire);
     const auto available = static_cast<std::size_t>(write - read);
@@ -217,7 +217,7 @@ class SpscQueue {
   // storage array is handled internally with at most two element-wise
   // copies, so the caller never has to drive the two-Peek/Advance
   // cycle that the zero-copy Peek path requires. A `dst` of size 1 is
-  // a degenerate single-element pop -- there is no separate PopOne.
+  // a degenerate single-element pop; there is no separate PopOne.
   //
   // Returns the prefix of `dst` that was actually filled. An empty
   // return means the queue was empty; a full-size return means the
@@ -261,7 +261,7 @@ class SpscQueue {
     read_.store(read + n, std::memory_order_release);
   }
 
-  // Total readable element count — write_ - read_. Safe to call from
+  // Total readable element count (write_ - read_). Safe to call from
   // either thread; intended mostly for diagnostics and tests. The value
   // is a momentary snapshot.
   std::size_t Count() const {

@@ -23,7 +23,7 @@ class MissionEndTest : public ::testing::Test {
     game_.missions_available[0] = false;
   }
 
-  // Runs a fade to its end, then presses Space; returns the component wanted afterwards.
+  // Runs a fade to its end, then presses Space; returns the component wanted afterward.
   ComponentType FadeThenPress() {
     EXPECT_EQ(end_.Step(1.0F), ComponentType::kMissionEnd);
     EXPECT_EQ(end_.Step(0.0F), ComponentType::kMissionEnd);
@@ -79,7 +79,7 @@ TEST_F(MissionEndTest, TheLastArrestEndsTheCareer) {
 
 TEST_F(MissionEndTest, EveryEndingHasItsPictureOrText) {
   EXPECT_EQ(MissionEnd::GetEnding(EndReason::kOutOfFuel).picture, EnginePicture::kOutOfFuel);
-  EXPECT_EQ(MissionEnd::GetEnding(EndReason::kTyresGone).picture, EnginePicture::kTyresGone);
+  EXPECT_EQ(MissionEnd::GetEnding(EndReason::kTiresGone).picture, EnginePicture::kTiresGone);
   EXPECT_FALSE(MissionEnd::GetEnding(EndReason::kStationsRobbed).text.empty());
   EXPECT_FALSE(MissionEnd::GetEnding(EndReason::kArrest).game_over);
   EXPECT_TRUE(MissionEnd::GetEnding(EndReason::kBountyGone).game_over);

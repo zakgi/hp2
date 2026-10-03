@@ -29,13 +29,13 @@ The port's `Title` (`src/core/title.cpp`) plays these stages on an action stack 
 
 ## The port's screens between missions
 
-The port's `Office`, `Station` and `MissionEnd` components (`src/core/`) share a `GameState`: the score, the posters left, the mission under way, how it ended, and the fuel, tyres and robbed flag the station reads.
+The port's `Office`, `Station` and `MissionEnd` components (`src/core/`) share a `GameState`: the score, the posters left, the mission under way, how it ended, and the fuel, tires and robbed flag the station reads.
 
 - **Office** (`office.cpp`): as the original (section 3 of the front-end notes): the desk under the dim palette, then lit; a pointer (BUREAU.IMG image 10) that the arrow keys move at the original's 2 pixels a frame; Space or Enter click. A click on a drawer, found by the desk's colour under the pointer (11, 12 or 4), slides its first poster up, or its other one when the drawer's poster is open; a taken poster gives way to its pair. A click on the open poster takes the mission. The lights hold for half a second each way instead of the original's busy wait of about 1.5 s.
 - **Station** (`station.cpp`): STATION.CPV under its own palette, no fade; the attendant (image 8 at 64,64) or, when robbed, the attendant tied up (image 1 at 256,96); the panel (image 2 at 160,4), FILL UP (image 3, greyed 6) at 168,13, REPAIR TYRE (4, greyed 7) at 168,26, EXIT (5) at 168,48; the cursor as two colour-11 lines per item (`stationCursorLines`, `0:39fe`), starting on EXIT. Up and Down move it one item per key press (the original repeats while the joystick is held); Space or Enter choose.
 - **Endings** (`mission_end.cpp`): the picture of the ending, if any, faded in under its own palette, held until Space or Enter, faded out; then the score screen under `scorePalette` (split at row 168): GAME OVER (GAME_SCO image 1 at 32,20) except after an arrest, SCORE : (image 2 at 55,100), five digits (images 3-12 at 172 + 19 i, 100), and the ending's text in LETTRE1 on the 8 x 8 grid. Fades step every 1/16 s, twice the original's pace. Left out: "QUARTEX 1990!", the crack's line at (13,24); "ALL THE STATION HAVE BEEN ROBBED..." reads STATIONS.
 
-The driving view is not ported yet; `build/hp2 --start station` or `--start ending --ending <reason>` open the other screens directly (`building.md`).
+The highway is not ported yet; `build/hp2 --start station` or `--start ending --ending <reason>` open the other screens directly (`building.md`).
 
 ## Missions
 
@@ -57,26 +57,26 @@ Arrest rules (`CheckArrest`, `0:4f14`; details in `vehicles.md` section 10):
 
 ## The criminal
 
-The target car (`1:3c7c`, AI record `1:3da8`) drives cell by cell (`PlanCellRoute`, `FollowCellPath` over `cellPathTables`) to the nearest station not yet robbed (`FindNearestStation`; Manhattan distance over `stationTable`, the 20 cells of types 11/12). It robs the station by stopping in the station lay-by while the player is more than one cell away (`stationsLeft` - 1), then heads for the next one. If the player is within one cell when it stops, it leaves without robbing; that branch writes both new target coordinates into the same field (`0:3100`), which may make it stop in a non-station cell later (*unverified* consequence). When `stationsLeft` reaches 0 the mission fails.
+The target car (`1:3c7c`, AI record `1:3da8`) drives cell by cell (`PlanCellRoute`, `FollowCellPath` over `cellPathTables`) to the nearest station not yet robbed (`FindNearestStation`; Manhattan distance over `stationTable`, the 20 cells of types 11/12). It robs the station by stopping in the station driveway while the player is more than one cell away (`stationsLeft` - 1), then heads for the next one. If the player is within one cell when it stops, it leaves without robbing; that branch writes both new target coordinates into the same field (`0:3100`), which may make it stop in a non-station cell later (*unverified* consequence). When `stationsLeft` reaches 0 the mission fails.
 
-A traffic car (`1:3e0c`, AI record `1:3f38`) is spawned by `UpdateTrafficCar` in a neighbouring open cell, usually ahead of the player, heading for the cell beyond the player; it gets a random colour scheme (1-7; the criminal's car is scheme 0, red) and a cruise speed of 200 + 32 x (scheme - 1).
+A traffic car (`1:3e0c`, AI record `1:3f38`) is spawned by `UpdateTrafficCar` in a neighboring open cell, usually ahead of the player, heading for the cell beyond the player; it gets a random colour scheme (1-7; the criminal's car is scheme 0, red) and a cruise speed of 200 + 32 x (scheme - 1).
 
 ## Player resources
 
-From the player record (`playerCar`, `1:3b50`; full field map in `vehicles.md`): fuel `+5a` (0xffff full, drops with speed squared), engine temperature `+6a` (rises while rpm >= 300), damage budget `+6c` (10000, reduced by impacts), tyres `+82` (2, one lost per spin-out).
+From the player record (`playerCar`, `1:3b50`; full field map in `vehicles.md`): fuel `+5a` (0xffff full, drops with speed squared), engine temperature `+6a` (rises while rpm >= 300), damage budget `+6c` (10000, reduced by impacts), tires `+82` (2, one lost per spin-out).
 
-Stopping inside a station lay-by opens the **station** scene (`StationScene`): FILL UP (fuel full), REPAIR TYRE (tyres back to 2), EXIT. Both are free and unavailable at a robbed station.
+Stopping inside a station driveway opens the **station** scene (`StationScene`): FILL UP (fuel full), REPAIR TYRE (tires back to 2), EXIT. Both are free and unavailable at a robbed station.
 
 ## Scenes and endings
 
 | Event | Picture | Code |
 |---|---|---|
-| Spin-out after leaving the road at speed (tyres left) | PAGE_F1.CPV, game continues | `UpdateImpacts` `0:4774` |
+| Spin-out after leaving the road at speed (tires left) | PAGE_F1.CPV, game continues | `UpdateImpacts` `0:4774` |
 | Out of fuel | PAGE_F3.CPV | reason 0x01 |
 | All stations robbed | text "ALL THE STATION HAVE BEEN ROBBED..." | reason 0x02 |
 | Engine overheated | PAGE_F4.CPV | reason 0x04 |
 | Car wrecked | PAGE_F5.CPV | reason 0x08 |
-| Tyres gone | PAGE_F2.CPV | reason 0x10 |
+| Tires gone | PAGE_F2.CPV | reason 0x10 |
 | Shot by the criminal | text "YOU HAVE BEEN SHOT..." | reason 0x20 |
 | Arrest | PAGE_F6.CPV; "YOUR MISSION IS OVER..." after the last poster | reason 0x40 |
 | Bounty at 0 (or ESC) | score only | reason 0x80 |

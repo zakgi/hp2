@@ -15,7 +15,7 @@ Conventions used in this file:
 - Position = cell (word cellX at +0x00, cellY at +0x02) + position inside the cell (word posX at +0x04, posY at +0x06), 0 <= pos < 0x4000. One cell is 0x4000 = 16384 units square. The global coordinate is `cell*0x4000 + pos`; 0:4a88 computes exactly this as a 32-bit value (0:4abc-0:4afa).
 - CARTE.BIN (4096 bytes) is a 64x64 byte grid, row-major, `type = map[cellY*64 + cellX]` (0:2bc6, 0:316e, 0:3412, 0:5516, 0:5ab2, 0:da46). Only 40x40 is used: 0:3e7e clamps cells to 0..0x27 (0:3ed8-0:3f00); the map content occupies cells 1..38 (checked on the file).
 - Cell types (byte): 0 = no road; 1..10 = road pieces; 11 (0xb) and 12 (0xc) = stations (road + station area). Exit bitmask per type (table 0:5eea, used by AI and traffic spawn): bit 1 = +x side, bit 2 = -x side, bit 4 = +y side, bit 8 = -y side:
-  `type: 0:0xf 1:0xc 2:0x3 3:0xa 4:0x9 5:0x5 6:0x6 7:0x7 8:0xb 9:0xd 10:0xf 11:0xc 12:0x3` (13:0x5 and 14:0xa are pseudo-types used only by the suspect, see 9.1). Verified consistent with neighbouring cells in CARTE.BIN (e.g. cells (1,1)=5 and (2,1)=6 connect on x, (2,1) connects to (2,2)=10 on +y).
+  `type: 0:0xf 1:0xc 2:0x3 3:0xa 4:0x9 5:0x5 6:0x6 7:0x7 8:0xb 9:0xd 10:0xf 11:0xc 12:0x3` (13:0x5 and 14:0xa are pseudo-types used only by the suspect, see 9.1). Verified consistent with neighboring cells in CARTE.BIN (e.g. cells (1,1)=5 and (2,1)=6 connect on x, (2,1) connects to (2,2)=10 on +y).
 - Heading: angle 0 = +x, 180 (90 deg) = +y; motion is `dx = v*cos(h)`, `dy = v*sin(h)` (0:1b56 via 0:1bd2). The HUD compass (0:e1b4, index `(h+45)/90` into table 0:e5b0, font index = ASCII-0x20) prints 0 = "E", 1 = "NE", 2 = "N", 3 = "NW", 4 = "W", 5 = "SW", 6 = "S", 7 = "SE". So +x = east, +y = north, angles counter-clockwise; map row index grows northward (a north-up drawing must flip CARTE.BIN rows: unverified, depends on the other renderers).
 - Cell-crossing code (0:3e7e 0:3ea0-0:3ed2): 1 = moved -x, 2 = moved +x, 4 = moved -y, 8 = moved +y. This equals the exit bit of the side through which the new cell was entered (moved +x = entered through the -x side = bit 2), which is how the AI uses it.
 - Camera/view frame: objects are translated by `-player.pos` (+cell delta*0x4000, 0:da56-0:da66) and rotated by `180 - heading18` (0:2452 0:2574-0:25aa). In that frame x' = lateral (positive = right of view), y' = forward depth. The same rotation is used for every "relative position" test below.
@@ -155,7 +155,7 @@ R = read, W = write. "AI" = car2/car3.
 | +0x7c | w | skid divisor (5) | init |
 | +0x7e | w | slip speed-scrub divisor (20) | init |
 | +0x80 | w | crash in progress (player, from off-road); yaw x4 | 0:3fa8, 0:4068 |
-| +0x82 | w | tyres (player, init 2); -1 per off-road crash; station "TO REPAIR TYRE" sets 2; 0 -> end bit 0x10 (PAGE_F2, burst tyre) | 0:3fa8, station 0:38ca, 0:6008 |
+| +0x82 | w | tires (player, init 2); -1 per off-road crash; station "TO REPAIR TYRE" sets 2; 0 -> end bit 0x10 (PAGE_F2, burst tire) | 0:3fa8, station 0:38ca, 0:6008 |
 | +0x84 | w | crash shake toggle | 0:3fa8, 0:4068 |
 | +0x86 | 8 x 6 | sensed objects {w type, w x (lateral), w y (forward)} in the car's view frame | 0:2452 / 0:2bb2 W; 0:49f8 R |
 | +0xb6..+0x12b | | unused | - |
@@ -223,7 +223,7 @@ AdvanceInCell(cell, pos, speed, +0x10); clamp cells 0..39; returns D0 = -1 and D
 
 ### 7.6 Stations (cell types 11/12)
 - 0:340a (A0 = vehicle): +0x50 = -1 when the car is inside the station rectangle of its cell: type 11: x in [0x2400,0x4000), y in [0x900,0x33e4); type 12: x in [0x900,0x33e4), y in [0,0x1c00) (OutCode box).
-- Player (0:31c8-0:3344): while +0x50, throttle = 0 and, unless a collision channel is active, `speed -= speed/5` (all of it if < 5). At speed 0: 0:349c (station screen; menu option 0 refuels +0x5a = 0xffff at 0:389a, option 1 repairs the tyres, +0x82 = 2 at 0:38ca), then all collision states, +0x6e, +0x80, +0x68, +0x6a cleared, +0x70 = 400, speed/steer/slip/+0x18 = 0, and the car is placed at the exit: type 11: posY < 0x2000 -> (0x2300,0x3500) heading 0x10e, else (0x2300,0x0b00) heading 0x1c2; type 12: posX < 0x2000 -> (0x3500,0x1d00) heading 0x5a, else (0x0b00,0x1d00) heading 0x10e. Then the loop restarts at 0:ba7c (stack popped).
+- Player (0:31c8-0:3344): while +0x50, throttle = 0 and, unless a collision channel is active, `speed -= speed/5` (all of it if < 5). At speed 0: 0:349c (station screen; menu option 0 refuels +0x5a = 0xffff at 0:389a, option 1 repairs the tires, +0x82 = 2 at 0:38ca), then all collision states, +0x6e, +0x80, +0x68, +0x6a cleared, +0x70 = 400, speed/steer/slip/+0x18 = 0, and the car is placed at the exit: type 11: posY < 0x2000 -> (0x2300,0x3500) heading 0x10e, else (0x2300,0x0b00) heading 0x1c2; type 12: posX < 0x2000 -> (0x3500,0x1d00) heading 0x5a, else (0x0b00,0x1d00) heading 0x10e. Then the loop restarts at 0:ba7c (stack popped).
 
 ## 8. Collisions and damage
 
@@ -241,7 +241,7 @@ Each channel: state 0 = idle; trigger seen -> state -0x100 (active); handler run
 - B, cactus (+0x22/+0x24/+0x38/+0x3a) and C, signs (+0x26/+0x28/+0x40/+0x42), same code: first frame: crash sound (1:2360), `+0x6c -= 2*speed`, push back `pos -= PolarToXY(2*speed+30, heading)`; if contact x >= 0: heading += 90, slip -= 90, state 0xff, else heading -= 90, slip += 90, state -0x100 (both wrapped mod 720). Each frame: with d7 = speed/8, d6 = speed/12: state 0xff -> slip -= d7, heading -= d6; else slip += d7, heading += d6. If speed >= 20: `speed -= speed/8`, +0x48 += or -= speed/10 alternately (shake). Else: speed = 0, heading += slip, slip = 0, channel state = 0 (not 0xff).
 - D, bush (+0x2e/+0x30/+0x46): 2 frames of `+0x6c -= speed`, steer += steer/2 (clamped +/-60).
 - E, car contact (+0x2a/+0x2c/+0x44/+0x72, side +0x76): first frame: crash sound, `+0x6c -= 4*speed`, 0:cdc8(0x20) (penalty, applied once per involved vehicle), 1:2348 = 0, 1:2344 = -1 (palette flash), push back as B, +/-90 turn by sign of +0x76. Each frame: slip +/-= speed/8 (heading unchanged), decay as B (speed/8, shake speed/10, 0:4906 ends the flash after 2 calls), end when speed < 20 (heading += slip).
-- Crash (+0x80 == -1, player only): each frame `+0x6c -= speed`, throttle 0, +0x48 +/-= speed/8 alternately, speed -= 4. At speed <= 0: +0x80 = +0x68 = speed = 0; if tyres +0x82 != 0 and no end sequence: show PAGE_F1.CPV, WaitFire, restart the loop (car not moved); if +0x82 == 0 the end check (0x10) fires.
+- Crash (+0x80 == -1, player only): each frame `+0x6c -= speed`, throttle 0, +0x48 +/-= speed/8 alternately, speed -= 4. At speed <= 0: +0x80 = +0x68 = speed = 0; if tires +0x82 != 0 and no end sequence: show PAGE_F1.CPV, WaitFire, restart the loop (car not moved); if +0x82 == 0 the end check (0x10) fires.
 
 ### 8.3 Car-car collision, 0:4a88 (player vs car2, only if 1:2354) and 0:4c10 (player vs car3, only if 0:5880)
 1. Clear +0x2c on both cars.
@@ -252,10 +252,10 @@ Each channel: state 0 = idle; trigger seen -> state -0x100 (active); handler run
 car2 and car3 never collide with each other.
 
 ### 8.4 Off-road test, 0:3fa8 (player, after the road is drawn, before objects)
-Reads plane 0 of backScreen at byte 0x1484 and 0x1498, bit 0x800 = pixels (100,131) and (260,131). Both set = on road: if +0x66 was set, +0x68 >>= 1 and +0x66 = 0. Otherwise, if not crashing: 0:403e (sound flag 0:13c4 on the first off-road frame at speed >= 100), +0x66 = -1, and if speed >= 100: +0x68 += 2; at 600: tyres -1, +0x80 = -1 (crash), crash sound, steer x4, +0x84 = +0x68 = 0. A port needs an equivalent "road under the two wheel probes" test (the meaning of plane-0 colours is unverified).
+Reads plane 0 of backScreen at byte 0x1484 and 0x1498, bit 0x800 = pixels (100,131) and (260,131). Both set = on road: if +0x66 was set, +0x68 >>= 1 and +0x66 = 0. Otherwise, if not crashing: 0:403e (sound flag 0:13c4 on the first off-road frame at speed >= 100), +0x66 = -1, and if speed >= 100: +0x68 += 2; at 600: tires -1, +0x80 = -1 (crash), crash sound, steer x4, +0x84 = +0x68 = 0. A port needs an equivalent "road under the two wheel probes" test (the meaning of plane-0 colours is unverified).
 
 ### 8.5 End-of-mission reasons (head of 0:6008, 0:600e-0:60da), 1:2356 bits
-1: fuel +0x5a == 0; 2: no waypoint left (1:23de == 0); 4: temperature +0x6a == 0xffff; 8: damage +0x6c < 0; 0x10: tyres +0x82 == 0; 0x80: BCD counter 1:236a == 0; 0x40: 1:235a (arrest success); 0x20: 1:2358 (player shot). Then both cars lose throttle, car2 copies the player's speed, both slow by 4/frame until the player stops (unless crashing) and the page for the lowest set bit is shown.
+1: fuel +0x5a == 0; 2: no waypoint left (1:23de == 0); 4: temperature +0x6a == 0xffff; 8: damage +0x6c < 0; 0x10: tires +0x82 == 0; 0x80: BCD counter 1:236a == 0; 0x40: 1:235a (arrest success); 0x20: 1:2358 (player shot). Then both cars lose throttle, car2 copies the player's speed, both slow by 4/frame until the player stops (unless crashing) and the page for the lowest set bit is shown.
 
 ## 9. AI
 
@@ -287,7 +287,7 @@ Path data (24 paths, 0:9b40-0:a51f): word n, then n segments of 5 words {x0, y0,
 - 256 <= lateral < 512 (in lane): if arrived and segment >= aux +0x10: D0 = 0, D1 = -1, D2 = -1 and speed -= 10. Else error = -(heading - angle), fine steer, speed target aux +0x0c.
 - (heading - angle) is wrapped only from above (>= 360 -> -720); errors below -360 are not wrapped (quirk).
 - Throttle: +1 if speed < target, -1 if above, 0 if equal.
-- Lane: the band 256..512 left of the polyline puts northbound cars at x 0x2000..0x2100 (east of the cell centre), i.e. right-hand traffic.
+- Lane: the band 256..512 left of the polyline puts northbound cars at x 0x2000..0x2100 (east of the cell center), i.e. right-hand traffic.
 
 ### 9.4 Steering controller, 0:5e92 (D1 = heading error, D4 = 0 coarse / -1 fine)
 `s* = (err<<9)/speed`, then >>1 (fine) or >>2 (coarse). D0 = 0 if steer == s*, +1 (steer right) if steer > s*, else -1. D2 = -1 if |steer - s*| >= +0x56 + +0x58. Speed 0 -> D0 = D2 = 0. The AI then goes through the same 0:3a2e as the player (car2: +10/frame accel, -10 brake, steer 2/6; car3: +7, -10).
@@ -298,7 +298,7 @@ Path data (24 paths, 0:9b40-0:a51f): word n, then n segments of 5 words {x0, y0,
 - Near an active car3: when car3 reaches its target cell, new target = clamp(2*player.cell - car2.cell, 1..38); replan.
 - Otherwise spawn (every frame until it succeeds):
   - quadrant q = ((player.h + 90) mod 720)/180, facing side bit = {1,4,2,8}[q] (0:5888). Player cell type 0 -> no spawn.
-  - candidates = exits[type] & ~1:2340 (side the player entered by); one bit -> that neighbour; else `&= facing bit`; else `&= 0xa`; else `&= 2`; fallback +x. Bit 1 -> cellX+1, 2 -> cellX-1, 4 -> cellY+1, 8 -> cellY-1.
+  - candidates = exits[type] & ~1:2340 (side the player entered by); one bit -> that neighbor; else `&= facing bit`; else `&= 0xa`; else `&= 2`; fallback +x. Bit 1 -> cellX+1, 2 -> cellX-1, 4 -> cellY+1, 8 -> cellY-1.
   - car3: that cell, speed 200, steer/slip/+0x18 = 0; {posX, posY, heading, aux +0x16} = 0:58a2[L*0x68 + spawnCellType*8], L = {0,0,2,0,1,0,0,0,3}[facing bit] (0:5890). Four entry kinds: (0x2100,0x03e8,0xb4,8) northbound, (0x3c18,0x2100,0x168,1) westbound, (0x1f00,0x3c18,0x21c,4) southbound, (0x03e8,0x1f00,0,2) eastbound.
   - Abort (0:5880 = 0) if the in-cell distance along the player's axis is >= 8000 (|dy| for odd q, |dx| for even q; cell difference ignored).
   - Clear collision states; target = clamp(2*player.cell - car3.cell, 1..38) (past the player); aux +0x0a = 100, +0x0c = 200; active; colour 1:2342 = rnd 1..7; aux +0x1a = 200 + 32*(colour-1).

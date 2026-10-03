@@ -22,9 +22,9 @@ enum class EnginePicture : std::uint8_t {
   kLogo,        // LOGO.CPV, the publisher's logo
   kTitle,       // PRESENT.CPV
   kOffice,      // bureau.cpv, where the missions are chosen
-  kStation,     // STATION.CPV, the petrol station
+  kStation,     // STATION.CPV, the gas station
   kSpinOut,     // PAGE_F1.CPV: spun out after leaving the road, the game goes on
-  kTyresGone,   // PAGE_F2.CPV
+  kTiresGone,   // PAGE_F2.CPV
   kOutOfFuel,   // PAGE_F3.CPV
   kOverheated,  // PAGE_F4.CPV
   kWrecked,     // PAGE_F5.CPV
@@ -38,7 +38,7 @@ enum class EnginePalette : std::uint8_t {
   kLogo,
   kStation,
   kSpinOut,
-  kTyresGone,
+  kTiresGone,
   kOutOfFuel,
   kOverheated,
   kWrecked,

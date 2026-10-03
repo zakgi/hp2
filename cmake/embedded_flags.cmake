@@ -1,4 +1,4 @@
-# Embedded (rp2350) compile-flag pass. Directory-scoped so FetchContent libraries added afterwards
+# Embedded (rp2350) compile-flag pass. Directory-scoped so FetchContent libraries added afterward
 # inherit it; call after pico_sdk_init().
 #
 #   -fno-unwind-tables, -fno-asynchronous-unwind-tables: no unwinder is linked.

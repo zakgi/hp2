@@ -24,8 +24,8 @@ bool Station::Available(Item item) const {
   auto available = true;
   if (item == Item::kFillUp) {
     available = not game_.station_robbed and not fill_up_used_;
-  } else if (item == Item::kRepairTyre) {
-    available = not game_.station_robbed and not repair_used_ and game_.tyres < GameState::kFullTyres;
+  } else if (item == Item::kRepairTire) {
+    available = not game_.station_robbed and not repair_used_ and game_.tires < GameState::kFullTires;
   }
   return available;
 }
@@ -51,7 +51,7 @@ ComponentType Station::Step([[maybe_unused]] float delta_seconds) {
   if (quit) {
     next = ComponentType::kQuit;
   } else if (leaving_) {
-    next = ComponentType::kDriving;
+    next = ComponentType::kHighway;
   }
   return next;
 }
@@ -63,8 +63,8 @@ void Station::Choose() {
         game_.fuel = 1.0F;
         fill_up_used_ = true;
         break;
-      case Item::kRepairTyre:
-        game_.tyres = GameState::kFullTyres;
+      case Item::kRepairTire:
+        game_.tires = GameState::kFullTires;
         repair_used_ = true;
         break;
       case Item::kExit:
@@ -86,10 +86,10 @@ void Station::Compose() {
   const auto item_image = [this](Item item, std::size_t image, std::size_t grey_image) {
     return Available(item) ? image : grey_image;
   };
-  screen_.BlitMasked(bank.GetImage(item_image(Item::kFillUp, kFillUpImage, kFillUpGreyImage)),
+  screen_.BlitMasked(bank.GetImage(item_image(Item::kFillUp, kFillUpImage, kFillUpGrayImage)),
                      kItemsAt[std::to_underlying(Item::kFillUp)]);
-  screen_.BlitMasked(bank.GetImage(item_image(Item::kRepairTyre, kRepairTyreImage, kRepairTyreGreyImage)),
-                     kItemsAt[std::to_underlying(Item::kRepairTyre)]);
+  screen_.BlitMasked(bank.GetImage(item_image(Item::kRepairTire, kRepairTireImage, kRepairTireGrayImage)),
+                     kItemsAt[std::to_underlying(Item::kRepairTire)]);
   screen_.BlitMasked(bank.GetImage(kExitImage), kItemsAt[std::to_underlying(Item::kExit)]);
   for (const auto& line : kCursorLines[std::to_underlying(cursor_)]) {
     screen_.DrawHorizontalLine(line.left, line.right, line.row, kCursorColor);

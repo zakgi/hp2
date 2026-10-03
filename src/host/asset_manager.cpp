@@ -59,7 +59,7 @@ constexpr auto kPaletteSources = std::to_array<PaletteSource>({
     FromPicture(EnginePicture::kLogo),
     FromPicture(EnginePicture::kStation),
     FromPicture(EnginePicture::kSpinOut),
-    FromPicture(EnginePicture::kTyresGone),
+    FromPicture(EnginePicture::kTiresGone),
     FromPicture(EnginePicture::kOutOfFuel),
     FromPicture(EnginePicture::kOverheated),
     FromPicture(EnginePicture::kWrecked),
@@ -313,8 +313,8 @@ bool AssetManager::LoadScenery(const AdfImageManager& disk) {
   if (placement) {
     for (auto type = std::size_t{0}; type < kRoadCellTypeCount; ++type) {
       const auto& objects = placement->cell_types[type];
-      scenery_ranges_[type] = ObjectRange{.first = static_cast<std::uint32_t>(scenery_objects_.size()),
-                                          .count = static_cast<std::uint32_t>(objects.size())};
+      scenery_ranges_[type] = IndexRange{.first = static_cast<std::uint32_t>(scenery_objects_.size()),
+                                         .count = static_cast<std::uint32_t>(objects.size())};
       scenery_objects_.insert(scenery_objects_.end(), objects.begin(), objects.end());
     }
   }

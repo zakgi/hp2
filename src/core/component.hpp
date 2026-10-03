@@ -10,11 +10,11 @@
 namespace hp2 {
 
 // Top-level application states, after the original's program flow (docs/game.md): title, office
-// (mission choice), driving, station stop, mission end. kQuit ends the engine loop.
+// (mission choice), the highway, station stop, mission end. kQuit ends the engine loop.
 enum class ComponentType : std::uint8_t {
   kTitle,
   kOffice,
-  kDriving,
+  kHighway,
   kStation,
   kMissionEnd,
   kQuit,

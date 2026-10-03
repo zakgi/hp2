@@ -35,7 +35,7 @@ Evidence: Ghidra `hp2` / `hp.prg`; routine names and plates are in the Ghidra pr
 ## Disk
 
 - `LoadFile(name, buffer, size)`: buffer -1 allocates chip memory, size -1 takes the size from `Examine`. Returns D0 = size, A0 = buffer, D1 = error.
-- Before each load it reads the root block of DF0 through trackdisk and checks the volume name starts with "Highway Patrol"; otherwise it shows an INSERT DISK picture (`loadDiskPrompt`, 16 bytes x 29 rows) in the screen centre, waits for space and retries. The motor is switched off after the load.
+- Before each load it reads the root block of DF0 through trackdisk and checks the volume name starts with "Highway Patrol"; otherwise it shows an INSERT DISK picture (`loadDiskPrompt`, 16 bytes x 29 rows) in the screen center, waits for space and retries. The motor is switched off after the load.
 - Filename records in hunk 1: the string, then a long buffer pointer and a long size.
 
 ## Music

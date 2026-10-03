@@ -74,7 +74,7 @@ class AssetManager {
   MusicFile title_music_;
   RoadMap road_map_;
   std::vector<PlacedObject> scenery_objects_;
-  std::array<ObjectRange, kRoadCellTypeCount> scenery_ranges_{};
+  std::array<IndexRange, kRoadCellTypeCount> scenery_ranges_{};
   EngineAssets engine_{};
 };
 

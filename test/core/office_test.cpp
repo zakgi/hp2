@@ -107,7 +107,7 @@ TEST_F(OfficeTest, OpensAPosterAndTakesItsMission) {
   MoveTo(Middle(Office::kPosterAreas[0]));
   Press(Key::kEnter);
   EXPECT_EQ(office_.Step(0.0F), ComponentType::kOffice);
-  EXPECT_EQ(office_.Step(Office::kLightsSeconds), ComponentType::kDriving);
+  EXPECT_EQ(office_.Step(Office::kLightsSeconds), ComponentType::kHighway);
   EXPECT_EQ(game_.mission, 0U);
   EXPECT_FALSE(game_.missions_available[0]);
   EXPECT_EQ(game_.MissionsLeft(), 5U);

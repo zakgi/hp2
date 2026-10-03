@@ -60,7 +60,7 @@ ComponentType Office::Step(float delta_seconds) {
       break;
     case Phase::kLightsOff:
       if (phase_seconds_ >= kLightsSeconds) {
-        next = ComponentType::kDriving;
+        next = ComponentType::kHighway;
       }
       break;
   }

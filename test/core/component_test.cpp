@@ -44,7 +44,7 @@ class Fake {
 
 using Title = Fake<ComponentType::kTitle, ComponentType::kOffice>;
 using Office = Fake<ComponentType::kOffice, ComponentType::kQuit>;
-using Orphan = Fake<ComponentType::kStation, ComponentType::kDriving>;
+using Orphan = Fake<ComponentType::kStation, ComponentType::kHighway>;
 
 TEST(Engine, RunsTransitionsAndQuits) {
   Log log;
@@ -67,7 +67,7 @@ TEST(Engine, RefusesUnregisteredTransitions) {
   EXPECT_FALSE(engine.Start(ComponentType::kOffice));
   EXPECT_FALSE(engine.Running());
   ASSERT_TRUE(engine.Start(ComponentType::kStation));
-  EXPECT_FALSE(engine.Step(1.0F));  // asks for kDriving, which is not registered
+  EXPECT_FALSE(engine.Step(1.0F));  // asks for kHighway, which is not registered
   EXPECT_EQ(engine.Active(), ComponentType::kStation);
   EXPECT_TRUE(engine.Running());
   EXPECT_EQ(log.events, "S>S1");
@@ -81,14 +81,14 @@ TEST(Engine, SwitchesFromOutside) {
   EXPECT_TRUE(engine.Step(1.0F));
   EXPECT_TRUE(engine.Switch(ComponentType::kOffice));
   EXPECT_EQ(engine.Active(), ComponentType::kOffice);
-  EXPECT_FALSE(engine.Switch(ComponentType::kDriving));  // unregistered: stays
+  EXPECT_FALSE(engine.Switch(ComponentType::kHighway));  // unregistered: stays
   EXPECT_EQ(engine.Active(), ComponentType::kOffice);
   EXPECT_TRUE(engine.Switch(ComponentType::kOffice));  // re-entered
   EXPECT_EQ(log.events, "T>T1T<O>O<O>");
 }
 
 static_assert(Engine<Title, Office>::IsRegistered(ComponentType::kOffice));
-static_assert(not Engine<Title, Office>::IsRegistered(ComponentType::kDriving));
+static_assert(not Engine<Title, Office>::IsRegistered(ComponentType::kHighway));
 
 }  // namespace
 }  // namespace hp2

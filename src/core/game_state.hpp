@@ -37,7 +37,7 @@ enum class EndReason : std::uint8_t {
   kStationsRobbed,
   kOverheated,
   kWrecked,
-  kTyresGone,
+  kTiresGone,
   kShot,
   kArrest,
   kBountyGone,
@@ -46,7 +46,7 @@ enum class EndReason : std::uint8_t {
 // What the screens between missions share: the career, the mission under way and the state of
 // the player's car the station and the endings read.
 struct GameState {
-  static constexpr std::uint8_t kFullTyres = 2;
+  static constexpr std::uint8_t kFullTires = 2;
 
   // The bounty earned, which doubles as the score.
   std::uint32_t score{};
@@ -56,7 +56,7 @@ struct GameState {
   std::optional<EndReason> end_reason;
   // 0 (empty) to 1 (full).
   float fuel{1.0F};
-  std::uint8_t tyres{kFullTyres};
+  std::uint8_t tires{kFullTires};
   // Whether the station the player stopped at has been robbed.
   bool station_robbed{};
 

@@ -12,7 +12,7 @@ One 320x200 lowres screen, 4 bitplanes (16 colours), planes 8000 bytes apart, 40
 | 0-69 | Sky, colour 8 | `ClearSkyRows` |
 | ~50-69 | Horizon backdrop (DEC_FOND.IMG), scrolls with heading | `RenderRoadView` |
 | 70-131 | Ground, colour 14; road polygons set plane 0 (colour 15); lane stripes colour 1 | `ClearGroundRows`, `RenderRoadView` |
-| 129-131 | Bonnet edge cut-outs, colour 0 | `MaskBonnetEdge` |
+| 129-131 | Hood edge cut-outs, colour 0 | `MaskBonnetEdge` |
 | 132-199 | Dashboard (DES_TABB image 4, 320x68), gauges, hands on the wheel | `DrawDashboard` |
 
 The horizon is row 70 (`ProjectPoint` adds 70). Sprites (cars, roadside objects, signs) are drawn after the road; see "Objects and sprites" below.
@@ -40,7 +40,7 @@ Much of the look comes from the copper: one palette list with 39 segments.
 - Map: CARTE.BIN, 64x64 bytes, index `y*64 + x`, one road cell type per byte (0-12). The used area is about x 1-39, y 1-38. `scripts/render_map.py` draws it.
 - Cell size: 0x4000 world units. Positions are a cell (map x, y) plus a fine position 0..0x3fff inside it (player record `+0/+2` cell, `+4/+6` fine; field map in `vehicles.md`). Heading 0 = +x (east on the HUD compass), 180 = +y (north); motion is dx = v cos h, dy = v sin h.
 - Angles: 720 steps per turn (half degrees). `cosTable` (`0:83a0`) and `sinTable` (`0:8940`) are Q14 (16384 = 1.0); `atanTable` (`0:8ee0`) holds atan(i/256) in half degrees for `Atan2`.
-- Road cell shapes (`roadCellShapes`, `0:7812`): one closed polygon per type in cell-local x/z, road 1024 units wide centred on 8192:
+- Road cell shapes (`roadCellShapes`, `0:7812`): one closed polygon per type in cell-local x/z, road 1024 units wide centered on 8192:
 
 | Type | Shape | Count on map |
 |---|---|---|
@@ -50,20 +50,20 @@ Much of the look comes from the copper: one palette list with 39 segments.
 | 3-6 | quarter-circle curves, radius 8192 about a cell corner (52 edges) | 155, 159, 153, 168 |
 | 7, 8, 9 | T junctions | 17, 24, 11 |
 | 10 | crossroads | 23 |
-| 11 | N-S road with a lay-by loop on the east side | 8 |
-| 12 | E-W road with a lay-by loop on the north side | 12 |
+| 11 | N-S road with a driveway loop on the east side | 8 |
+| 12 | E-W road with a driveway loop on the north side | 12 |
 
 Types 11/12 are the 20 stations (*unverified* link to "ALL THE STATION HAVE BEEN ROBBED...", string at `0:77d8`). Polygon format: word n (low byte used), then n+1 points of (x, z, y) words, the last equal to the first; y is 0 for all road shapes.
 
 ## Road pipeline
 
-1. **Visible cells** (`SelectVisibleCells`, `0:db78`): the player's cell plus at most one neighbour. `visibleNeighbourTable` (`1:2bac`) is indexed by fine-y quadrant (inverted), fine-x quadrant and heading octant (`HeadingOctant` = heading/90 & 7) and gives 0 none, 1 +x, 2 +y, 3 -x, 4 -y. So the visible road never reaches beyond the adjacent cell (16384 units ahead at most).
+1. **Visible cells** (`SelectVisibleCells`, `0:db78`): the player's cell plus at most one neighbor. `visibleNeighbourTable` (`1:2bac`) is indexed by fine-y quadrant (inverted), fine-x quadrant and heading octant (`HeadingOctant` = heading/90 & 7) and gives 0 none, 1 +x, 2 +y, 3 -x, 4 -y. So the visible road never reaches beyond the adjacent cell (16384 units ahead at most).
 2. **Transform** (`BuildRoadPolygons`, `0:d9ec`): for each visible cell, type from CARTE.BIN (0 off the map), `TranslatePolygon3D` by `cell*0x4000 - player fine position` (16-bit wrap), `RotatePolygon3D` by `0xb4 - heading` (mod 720) with x' = (x cos - z sin) >> 14, z' = (x sin + z cos) >> 14.
 3. **Near clip** (`ClipPolygonNear`): against z >= 200, crossing found by bisection (`ClipEdgeNearBisect`).
 4. **Projection** (`ProjectPoint`): sx = (x << 8) / z + 160, sy = ((y + cameraHeight) << 8) / z + 70. Focal length 256 pixels. `cameraHeight` is `1:2368` = player `+48`: 100 at rest, plus a 40-step suspension wobble of -6..+6 (x4 off the road) or a bump profile when hitting stones (up to +80); it also lowers the backdrop when >= 100.
 5. **2D clip** (`ClipPolygon2D`): Sutherland-Hodgman against x 0..319, then y 70..131, intersections by bisection (`ClipEdgeX`, `ClipEdgeY`).
 6. **Fill**: `DropDegeneratePoints`, then an XOR edge fill in `scratchBuffer` (one pixel per scanline per edge: `XorPolygonEdges`/`XorEdgeLine`; vertex parity fix: `FixPolygonVertices`; horizontal edges are filled directly with `FillHSpan`). `FillRoadRows` walks rows 70..131, turns the edge bits into filled spans with byte tables (`fillPrefixXor`, `fillPrefixXorInverted`, `fillParity`), ORs them into plane 0 of `backScreen` (ground colour 14 + plane 0 = colour 15) and records each row's span edges (up to two spans) in `roadSpanBuffer`.
-7. **Lane stripes** (end of `RenderRoadView`): `stripePhase` += speed << 9 / 0x69 per frame (mod 0x1400; subtracted when the player's `+6e` reverse flag is set). Per screen row 76..131, `roadStripeTable[stripePhase >> 7][row - 76]` says whether a dash is visible (40 phases, dashes longer near the bottom). For every recorded span, a stripe `roadStripeWidths[row]` pixels wide (1 at the horizon, 16 at the bottom) is drawn just inside the left and right edges, colour 1. The stripes are edge lines, not a centre line.
+7. **Lane stripes** (end of `RenderRoadView`): `stripePhase` += speed << 9 / 0x69 per frame (mod 0x1400; subtracted when the player's `+6e` reverse flag is set). Per screen row 76..131, `roadStripeTable[stripePhase >> 7][row - 76]` says whether a dash is visible (40 phases, dashes longer near the bottom). For every recorded span, a stripe `roadStripeWidths[row]` pixels wide (1 at the horizon, 16 at the bottom) is drawn just inside the left and right edges, colour 1. The stripes are edge lines, not a center line.
 8. **Backdrop**: DEC_FOND.IMG, image index from heading: `heading*16/6` split into image (quotient by 320) and x (remainder - 320); drawn twice so it wraps; y = 50, or 50 + (cameraHeight - 100)/10 when cameraHeight >= 100; clipped to rows < 70.
 
 ## Dashboard (`DrawDashboard`, `0:ce74`)
@@ -90,9 +90,9 @@ Per frame (`BuildViewObjects`, `0:2452`), for each visible cell (the same one or
 - Cars: 24 viewing angles from the car's heading relative to the view and its bearing; each angle maps to a VOITURE0-6 bank, angles 7-16 use horizontally mirrored frames (`MirrorBobFrame`, mirrored lazily in place, tracked in `carMirrorFlags`). The drawn car's bank, frame and screen position are kept for shooting (`drawnCar*`).
 - Signs: 4 views (front, back, edge) from the angle between the view and the sign (`extra`), on PAN_POT poles; station signs add PST_STA on two poles.
 
-Bullet holes (`bulletHoles`, BALLE.IMG) are drawn on top of the view afterwards and stay for the rest of the mission.
+Bullet holes (`bulletHoles`, BALLE.IMG) are drawn on top of the view afterward and stay for the rest of the mission.
 
 ## Notes for the port
 
-- The view is 320x62 pixels of road under a sky, with at most two cells of road geometry. Higher resolution needs only the projection constants (focal 256, centre 160/70) and the clip rectangle changed; the stripe tables are tied to 56 rows and need regenerating or replacing.
+- The view is 320x62 pixels of road under a sky, with at most two cells of road geometry. Higher resolution needs only the projection constants (focal 256, center 160/70) and the clip rectangle changed; the stripe tables are tied to 56 rows and need regenerating or replacing.
 - All geometry is 16-bit fixed point; the XOR fill and the byte tables exist only for speed on the 68000.

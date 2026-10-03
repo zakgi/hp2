@@ -35,18 +35,19 @@ struct PlacedObject {
   friend constexpr bool operator==(const PlacedObject&, const PlacedObject&) = default;
 };
 
-struct ObjectRange {
+// The elements [first, first + count) of a span.
+struct IndexRange {
   std::uint32_t first{};
   std::uint32_t count{};
 
-  friend constexpr bool operator==(const ObjectRange&, const ObjectRange&) = default;
+  friend constexpr bool operator==(const IndexRange&, const IndexRange&) = default;
 };
 
 // The scenery of every road cell type (COOR_OBJ.BIN): every cell of a type has the same objects,
 // objects[first, first + count) of its range.
 struct Scenery {
   std::span<const PlacedObject> objects;
-  std::array<ObjectRange, kRoadCellTypeCount> cell_types{};
+  std::array<IndexRange, kRoadCellTypeCount> cell_types{};
 
   [[nodiscard]] constexpr std::span<const PlacedObject> GetObjects(std::size_t cell_type) const {
     return objects.subspan(cell_types[cell_type].first, cell_types[cell_type].count);

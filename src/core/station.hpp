@@ -12,16 +12,16 @@
 
 namespace hp2 {
 
-// The petrol station, when the car stops in a station's lay-by (StationScene, 0:349c): the
+// The gas station, when the car stops in a station's driveway (StationScene, 0:349c): the
 // attendant, or the attendant tied up when the station has been robbed, and a menu of FILL UP,
 // REPAIR TYRE and EXIT. Both services are free, each can be used once, and neither works at a
-// robbed station; repair also needs a tyre to repair. Up and Down move the cursor, Space or Enter
+// robbed station; repair also needs a tire to repair. Up and Down move the cursor, Space or Enter
 // choose; Escape quits.
 class Station {
  public:
   static constexpr ComponentType kType = ComponentType::kStation;
 
-  enum class Item : std::uint8_t { kFillUp, kRepairTyre, kExit };
+  enum class Item : std::uint8_t { kFillUp, kRepairTire, kExit };
   static constexpr std::size_t kItemCount = 3;
 
   // A horizontal line of the cursor: columns left to right on one row.
@@ -36,10 +36,10 @@ class Station {
   static constexpr std::size_t kRobbedAttendantImage = 0;
   static constexpr std::size_t kPanelImage = 1;
   static constexpr std::size_t kFillUpImage = 2;
-  static constexpr std::size_t kRepairTyreImage = 3;
+  static constexpr std::size_t kRepairTireImage = 3;
   static constexpr std::size_t kExitImage = 4;
-  static constexpr std::size_t kFillUpGreyImage = 5;
-  static constexpr std::size_t kRepairTyreGreyImage = 6;
+  static constexpr std::size_t kFillUpGrayImage = 5;
+  static constexpr std::size_t kRepairTireGrayImage = 6;
   static constexpr std::size_t kAttendantImage = 7;
   static constexpr Point kRobbedAttendantAt{.x = 256, .y = 96};
   static constexpr Point kAttendantAt{.x = 64, .y = 64};

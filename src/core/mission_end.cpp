@@ -35,9 +35,9 @@ MissionEnd::Ending MissionEnd::GetEnding(EndReason reason) {
       ending.picture = EnginePicture::kWrecked;
       ending.palette = EnginePalette::kWrecked;
       break;
-    case EndReason::kTyresGone:
-      ending.picture = EnginePicture::kTyresGone;
-      ending.palette = EnginePalette::kTyresGone;
+    case EndReason::kTiresGone:
+      ending.picture = EnginePicture::kTiresGone;
+      ending.palette = EnginePalette::kTiresGone;
       break;
     case EndReason::kShot:
       ending.text = "YOU HAVE BEEN SHOT...";
