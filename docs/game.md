@@ -25,7 +25,17 @@ Evidence: Ghidra `hp2`; detailed per-function notes in `work/analysis/events-sou
 | NAME.IMG images 2 at (10,189) and 3 at (258,143), masked; the 8x8 cell at (240,192) copied to (160,192) ("LICENSE"); one `FlipScreens` | `0:acd4`-`0:add4` | |
 | Common assets load, `WaitFire`, `MusicStop`, `titlePalette` fades out | `0:adda`-`0:b05e` | disk time, 1 s |
 
-The port's `Title` (`src/core/title.cpp`) plays these stages on an action stack with the same timing, a 2 s hold in place of the first disk wait and none for the second. Space or Enter skip to the finished title, and on it fade out and leave; Escape quits. The music is not played yet.
+The port's `Title` (`src/core/title.cpp`) plays these stages on an action stack with the same timing, a 2 s hold in place of the first disk wait and none for the second. Space or Enter skip to the finished title, and on it fade out and leave; Escape quits. HIGHWAY.MUS plays from the title's fade-in to its fade-out, as in the original.
+
+## The port's screens between missions
+
+The port's `Office`, `Station` and `MissionEnd` components (`src/core/`) share a `GameState`: the score, the posters left, the mission under way, how it ended, and the fuel, tyres and robbed flag the station reads.
+
+- **Office** (`office.cpp`): as the original (section 3 of the front-end notes): the desk under the dim palette, then lit; a pointer (BUREAU.IMG image 10) that the arrow keys move at the original's 2 pixels a frame; Space or Enter click. A click on a drawer, found by the desk's colour under the pointer (11, 12 or 4), slides its first poster up, or its other one when the drawer's poster is open; a taken poster gives way to its pair. A click on the open poster takes the mission. The lights hold for half a second each way instead of the original's busy wait of about 1.5 s.
+- **Station** (`station.cpp`): STATION.CPV under its own palette, no fade; the attendant (image 8 at 64,64) or, when robbed, the attendant tied up (image 1 at 256,96); the panel (image 2 at 160,4), FILL UP (image 3, greyed 6) at 168,13, REPAIR TYRE (4, greyed 7) at 168,26, EXIT (5) at 168,48; the cursor as two colour-11 lines per item (`stationCursorLines`, `0:39fe`), starting on EXIT. Up and Down move it one item per key press (the original repeats while the joystick is held); Space or Enter choose.
+- **Endings** (`mission_end.cpp`): the picture of the ending, if any, faded in under its own palette, held until Space or Enter, faded out; then the score screen under `scorePalette` (split at row 168): GAME OVER (GAME_SCO image 1 at 32,20) except after an arrest, SCORE : (image 2 at 55,100), five digits (images 3-12 at 172 + 19 i, 100), and the ending's text in LETTRE1 on the 8 x 8 grid. Fades step every 1/16 s, twice the original's pace. Left out: "QUARTEX 1990!", the crack's line at (13,24); "ALL THE STATION HAVE BEEN ROBBED..." reads STATIONS.
+
+The driving view is not ported yet; `build/hp2 --start station` or `--start ending --ending <reason>` open the other screens directly (`building.md`).
 
 ## Missions
 

@@ -1,0 +1,60 @@
+{
+  "$comment": [
+    "RP2350 flash partition table for the Highway Patrol II Adafruit Feather RP2350 build",
+    "(8 MB QSPI). picotool partition-table JSON format, embedded in the firmware at",
+    "post-link. scripts/pack_assets.py fills the assets partition and generates the layout",
+    "the firmware binds its asset views by.",
+    "",
+    "Layout (start..end, KiB):",
+    "      0 .. 1024  Firmware image",
+    "   1024 .. 8192  assets (the decoded game data, data family)"
+  ],
+  "version": [
+    1,
+    0
+  ],
+  "unpartitioned": {
+    "families": [
+      "absolute"
+    ],
+    "permissions": {
+      "secure": "rw",
+      "nonsecure": "rw",
+      "bootloader": "rw"
+    }
+  },
+  "partitions": [
+    {
+      "name": "firmware",
+      "id": 0,
+      "start": "0K",
+      "size": "1024K",
+      "families": [
+        "rp2350-arm-s",
+        "rp2350-arm-ns",
+        "rp2350-riscv"
+      ],
+      "no_reboot_on_uf2_download": false,
+      "permissions": {
+        "secure": "rw",
+        "nonsecure": "rw",
+        "bootloader": "rw"
+      }
+    },
+    {
+      "name": "assets",
+      "id": 1,
+      "start": "1024K",
+      "size": "7168K",
+      "families": [
+        "data"
+      ],
+      "no_reboot_on_uf2_download": true,
+      "permissions": {
+        "secure": "rw",
+        "nonsecure": "rw",
+        "bootloader": "rw"
+      }
+    }
+  ]
+}

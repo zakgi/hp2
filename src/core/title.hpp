@@ -4,10 +4,12 @@
 #include <cstdint>
 
 #include "core/action_stack.hpp"
+#include "core/audio_engine.hpp"
 #include "core/component.hpp"
 #include "core/engine_assets.hpp"
 #include "core/key_events.hpp"
 #include "core/palette.hpp"
+#include "core/presentation.hpp"
 #include "core/screen.hpp"
 #include "core/xor_animation.hpp"
 
@@ -45,47 +47,11 @@ inline constexpr auto kAnimationLeadSeconds =
   constexpr auto kFrameCycles = 70U;
   constexpr auto kRunCycles = 56U;
   constexpr auto kWordCycles = 46U;
-  const auto apply =
-      kFrameCycles + (kRunCycles * static_cast<std::uint32_t>(frame.runs.size())) + (kWordCycles * frame.source_words);
+  const auto apply = kFrameCycles + (kRunCycles * frame.run_count) + (kWordCycles * frame.source_words);
   return Seconds(apply + kScreenConversionCycles + (2U * (std::uint32_t{delay} + 1U) * kDbfCycles));
 }
 
 }  // namespace original_timing
-
-// Leaves the screen as it is for a while.
-class Hold {
- public:
-  explicit Hold(float seconds) : seconds_(seconds) {}
-
-  void Init() { remaining_seconds_ = seconds_; }
-  bool Tick(float delta_seconds) {
-    remaining_seconds_ -= delta_seconds;
-    return remaining_seconds_ <= 0.0F;
-  }
-
- private:
-  float seconds_;
-  float remaining_seconds_{};
-};
-
-// FadePaletteList (0:0d06) stepped from `first_level` to `last_level`, one level per fade step
-// and a step's wait after each, the first level shown at once.
-class PaletteFade {
- public:
-  PaletteFade(Screen& screen, PaletteProgram program, std::uint8_t first_level, std::uint8_t last_level)
-      : screen_(screen), program_(program), first_level_(first_level), last_level_(last_level) {}
-
-  void Init();
-  bool Tick(float delta_seconds);
-
- private:
-  Screen& screen_;
-  PaletteProgram program_;
-  std::uint8_t first_level_;
-  std::uint8_t last_level_;
-  std::uint8_t level_{};
-  float remaining_seconds_{};
-};
 
 // PlayDIF (0:106e) from its first frame: each step XORs a frame into the screen, then waits.
 class PlayAnimation {
@@ -102,20 +68,16 @@ class PlayAnimation {
   float remaining_seconds_{};
 };
 
-// Shows `program` at fade `level`: each viewport takes the segments in effect on its first row.
-// Segments starting inside a viewport would need palette entries of their own; the presentation's
-// lists have none.
-void ShowPalette(Screen& screen, PaletteProgram program, std::uint8_t level);
-
-// XORs `frame` into the screen.
-void ApplyFrame(Screen& screen, const XorFrame& frame);
+// XORs frame `frame` of `animation` into the screen.
+void ApplyFrame(Screen& screen, const XorAnimation& animation, const XorFrame& frame);
 
 // The opening presentation (main, 0:a908-0:b05e; docs/game.md, "Program flow"): LOGO.CPV fades
 // in, PRESENT.CPV fades in under the title palette, PRESENT.DIF plays over it, NAME.IMG adds the
-// lettering. Space or Enter skips to the finished title; on the finished title they fade it out
-// and leave. Escape quits at any time. The music (HIGHWAY.MUS) is not played yet. A state machine
-// over the stages, as in the original's straight-line code: each stage composes its picture on
-// entry and pushes its timed parts, and the next stage begins when the stack empties.
+// lettering, with HIGHWAY.MUS from the title's fade-in to the fade-out. Space or Enter skips to
+// the finished title; on the finished title they fade it out and go to the office. Escape quits at any
+// time. A state machine over the stages, as in the original's straight-line code: each stage
+// composes its picture on entry and pushes its timed parts, and the next stage begins when the
+// stack empties.
 class Title {
  public:
   static constexpr ComponentType kType = ComponentType::kTitle;
@@ -134,7 +96,8 @@ class Title {
   static constexpr Point kCellTo{.x = 160, .y = 192};
   static constexpr std::uint16_t kCellSize = 8;
 
-  Title(const EngineAssets& assets, Screen& screen, KeyEvents& keys) : assets_(assets), screen_(screen), keys_(keys) {}
+  Title(const EngineAssets& assets, Screen& screen, KeyEvents& keys, AudioEngine& audio)
+      : assets_(assets), screen_(screen), keys_(keys), audio_(audio) {}
 
   void OnEnter();
   void OnExit();
@@ -166,6 +129,7 @@ class Title {
   const EngineAssets& assets_;
   Screen& screen_;
   KeyEvents& keys_;
+  AudioEngine& audio_;
   Actions actions_;
   Stage stage_{Stage::kDone};
 };

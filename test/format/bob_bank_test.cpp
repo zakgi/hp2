@@ -52,7 +52,7 @@ TEST(BobBank, RejectsBadBanks) {
 TEST(BobBank, MatchesTheReferenceDecoder) {
   const auto file = test::DataFile("NAME.IMG");
   if (not file) {
-    GTEST_SKIP() << "game files not present in " << test::GameDir();
+    GTEST_SKIP() << "game files not present in " << test::DiskImage();
   }
   const auto bank = DecodeBobBank(*file);
   ASSERT_TRUE(bank.has_value());

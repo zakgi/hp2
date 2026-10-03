@@ -78,6 +78,7 @@ struct PaletteSegment {
   [[nodiscard]] constexpr Rgb Color(std::size_t index, std::uint8_t level = 0) const {
     return FadedColor(colors[index], format, level);
   }
+  friend constexpr bool operator==(const PaletteSegment&, const PaletteSegment&) = default;
 };
 
 // A palette list in row order, the first segment at row 0 (InstallPalette, 1:19b4).

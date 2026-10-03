@@ -72,7 +72,7 @@ frame:   repeated { word count (0 = end), word byte offset, word xor[count] }
 
 ## Object placement: COOR_OBJ.BIN
 
-11228 bytes, loaded at the start of each mission. Per road cell type, an object list in cell coordinates: a long offset table by cell type, then lists of `word count` (low byte; -1 = empty) + 10-byte entries `{x, y, z, type, extra}`. Types: 1 cactus (fences of the stations too), 3-6 stones, 7 bush, 8-10 road signs, 11 station sign (`extra` = sign angle for the 4 sign views); type 2 (car) is inserted at run time. Used by `BuildViewObjects` / `DrawObjects` (`renderer.md`, `vehicles.md` sections 8.1 and 11).
+11228 bytes, loaded at the start of each mission. Per road cell type, an object list in cell coordinates: a long offset table by cell type, then lists of `word count` (low byte; -1 = empty) + 10-byte entries `{x, y, z, type, extra}`. Types: 1 cactus (fences of the stations too), 3-6 stones, 7 bush, 8-10 road signs, 11 station sign (`extra` = sign angle for the 4 sign views); type 2 (car) is inserted at run time. The game takes the count's low byte as the entry count (`dbf` on count - 1, so a low byte of 0 would run 65536 times; no list has one); the port's decoder reads it as that many entries, 0 for none. Used by `BuildViewObjects` / `DrawObjects` (`renderer.md`, `vehicles.md` sections 8.1 and 11).
 
 ## Sounds: .SND
 
@@ -86,11 +86,24 @@ Raw signed 8-bit samples (MOTEUR.SND and DERAP.SND are IFF 8SVX files, but the g
 | DERAP.SND | whole including the 0x68-byte IFF header | 900 | skid, channel 3 (volume 0x20 when leaving the road) |
 | CHOC.SND | whole | 640 | crash, channel 2 |
 
-The 8SVX headers give rates that match the NTSC clock exactly (3579545 / 900 = 3977 Hz).
+The 8SVX headers give rates that match the NTSC clock exactly (3579545 / 900 = 3977 Hz). MOTEUR.SND's header loops its whole 0x254-byte body at 6628 Hz; DERAP.SND's is a 0x1c1c-byte one-shot at 3977 Hz. SIRENE, TIR and CHOC have no header: their rates exist only as the periods in the code.
 
-## Music: HIGHWAY.MUS
+## Music: .MUS
 
-0x3c-byte header, then a 15-sample Soundtracker module starting at file offset 0x3c (module-relative: 15 sample headers of 30 bytes at +0x14, song length +0x1d6, position table +0x1d8, patterns +0x258, then samples). Played only during the title sequence (`system.md`).
+Only HIGHWAY.MUS, the title music. 15 long instrument sizes in bytes (the player places the instruments with them), then a 15-sample Soundtracker module:
+
+```
++0x00   20 bytes  title; the word at +4 is the tempo, in CIA timer counts per tick (HIGHWAY.MUS: "SONG1" 0x99 -> 0x3199)
++0x14   15 x 30   instruments: name[22], word length (words), word volume (low byte, 0..64),
+                  word loop start (bytes), word loop length (words; 1 = no loop)
++0x1d6  byte      song length (positions)
++0x1d8  128 bytes positions: pattern numbers
++0x258            patterns, 1024 bytes each (as many as the highest position + 1):
+                  64 rows x 4 channels x {word period, byte instrument << 4 | effect, byte parameter}
+then              the instruments' bytes, back to back, sizes from the table before the module
+```
+
+Periods are Paula periods of the PAL clock (428 = C-2). Two special periods: `0xfffe` silences the channel, `0xfffd` clears its effect. An instrument plays `length` bytes when a note starts, then repeats its loop; "nappes" (instrument 3) is the only looping one, a 6306-byte head and the loop after it. HIGHWAY.MUS uses no effects and one `0xfffe`: 9 positions over 7 patterns, at about 56 ticks a second (6 ticks a row).
 
 ## Palettes in the executable
 

@@ -19,9 +19,9 @@ Highway Patrol II is a native, multiplatform C++23 port of the 1990 Amiga game (
 | Compile-time constants and enumerators | `kCamelCase` | `kColorRegisterCount`, `Viewport::kLower` |
 | Preprocessor macros | `UPPER_SNAKE_CASE` | only when required |
 
-Descriptive names of at least three characters for variables, parameters and fields (`index`, `offset`, `count`); type names and enumerators are exempt. Include units when the type does not carry them: `delta_seconds`, `size_bytes`. Distinguish file offsets, hunk offsets and Ghidra addresses.
+Descriptive names of at least three characters for variables, parameters and fields (`index`, `offset`, `count`); type names and enumerators are exempt. Include units when the type does not carry them: `delta_seconds`, `size_bytes`. Distinguish file offsets and hunk offsets.
 
-Synchronous operations use direct verbs: `Load`, `Decode`, `Read`, `Render`. `On...` is reserved for callbacks (and the component hooks `OnEnter`/`OnExit`).
+Synchronous operations use direct verbs: `Load`, `Decode`, `Read`, `Render`. `On...` is reserved for callbacks (and the component hooks `OnEnter`/`OnExit`). Function and method names do not end in prepositions such as `At` or `Of`: `GetNote(index)`, `GetVoice(index)`, not `NoteAt`, `VoiceOf`.
 
 ## Declarations
 

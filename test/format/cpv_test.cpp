@@ -48,7 +48,7 @@ TEST(Cpv, MatchesTheReferenceDecoder) {
   const auto present = test::DataFile("PRESENT.CPV");
   const auto logo = test::DataFile("LOGO.CPV");
   if (not present or not logo) {
-    GTEST_SKIP() << "game files not present in " << test::GameDir();
+    GTEST_SKIP() << "game files not present in " << test::DiskImage();
   }
   const auto present_picture = DecodeCpv(*present);
   ASSERT_TRUE(present_picture.has_value());

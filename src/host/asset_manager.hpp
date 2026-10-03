@@ -1,62 +1,81 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
-#include <string_view>
 #include <vector>
 
 #include "core/engine_assets.hpp"
-#include "core/image_view.hpp"
 #include "core/palette.hpp"
+#include "core/road_map.hpp"
+#include "core/sprite_bank.hpp"
 #include "core/xor_animation.hpp"
+#include "host/adf.hpp"
 #include "host/format/amiga_hunk.hpp"
-#include "host/format/bob_bank.hpp"
-#include "host/format/dif.hpp"
+#include "host/format/music_file.hpp"
+#include "host/format/road_map.hpp"
 
 namespace hp2::host {
 
-// Reads the game files once (hp.prg and DISK2_2/ in the game directory), decodes what the engine
-// uses and owns the storage behind the EngineAssets views. Components receive EngineAssets by
-// reference and never query the manager.
+// Reads the game files once from the game's disk image (hp.prg and DISK2_2/), decodes everything
+// the engine uses and owns the storage behind the EngineAssets views. Components receive
+// EngineAssets by reference and never query the manager.
 class AssetManager {
  public:
-  // Loads everything; false (with a logged reason) when a file is missing or does not decode.
-  [[nodiscard]] bool Load(const std::filesystem::path& game_dir);
+  // Loads everything from the ADF at `disk_image`; false (with a logged reason) when the image or
+  // a file is missing or does not decode.
+  [[nodiscard]] bool Load(const std::filesystem::path& disk_image);
 
   [[nodiscard]] const EngineAssets& Engine() const { return engine_; }
 
  private:
-  [[nodiscard]] bool LoadExecutable(const std::filesystem::path& game_dir);
-  [[nodiscard]] bool LoadLogo(const std::filesystem::path& game_dir);
-  [[nodiscard]] bool LoadTitle(const std::filesystem::path& game_dir);
-  [[nodiscard]] bool LoadNames(const std::filesystem::path& game_dir);
+  struct BankStorage {
+    std::vector<std::uint8_t> pixels;
+    std::vector<SpriteRange> sprites;
+  };
+  struct SoundStorage {
+    std::vector<std::int8_t> samples;
+    std::uint32_t rate_hz{};
+    std::uint32_t loop_start{};
+    std::uint32_t loop_length{};
+  };
+  struct AnimationStorage {
+    std::vector<std::uint8_t> masks;
+    std::vector<XorRun> runs;
+    std::vector<XorFrame> frames;
+    std::vector<AnimationStep> steps;
+  };
+
+  [[nodiscard]] bool LoadExecutable(const AdfImageManager& disk);
+  [[nodiscard]] bool LoadPictures(const AdfImageManager& disk);
+  [[nodiscard]] bool LoadPalettes();
+  [[nodiscard]] bool LoadBanks(const AdfImageManager& disk);
+  [[nodiscard]] bool LoadFonts(const AdfImageManager& disk);
+  [[nodiscard]] bool LoadSounds(const AdfImageManager& disk);
+  [[nodiscard]] bool LoadTitleAnimation(const AdfImageManager& disk);
+  [[nodiscard]] bool LoadMusic(const AdfImageManager& disk);
+  [[nodiscard]] bool LoadRoadMap(const AdfImageManager& disk);
+  [[nodiscard]] bool LoadScenery(const AdfImageManager& disk);
   // Points the EngineAssets views at the storage, once nothing more is added to it.
   void BuildViews();
 
   // hp.prg's bytes and its hunks, which are views into them.
   std::vector<std::uint8_t> executable_bytes_;
   std::optional<HunkFile> executable_;
-  std::vector<std::uint8_t> logo_picture_;
-  std::vector<PaletteSegment> logo_palette_;
-  std::vector<std::uint8_t> title_picture_;
-  std::vector<PaletteSegment> title_palette_;
-  std::vector<DifFrame> title_frames_;
-  std::vector<AnimationStep> title_steps_;
-  std::vector<BobImage> names_;
-  // The views' own storage: runs per frame, frames, images.
-  std::vector<std::vector<XorRun>> title_run_views_;
-  std::vector<XorFrame> title_frame_views_;
-  std::vector<ImageView> name_views_;
-  EngineAssets engine_;
+  std::array<std::vector<std::uint8_t>, kEnginePictureCount> pictures_;
+  // The pictures' header palettes, Atari ST colours.
+  std::array<std::array<std::uint16_t, kColorRegisterCount>, kEnginePictureCount> picture_palettes_{};
+  std::array<std::vector<PaletteSegment>, kEnginePaletteCount> palettes_;
+  std::array<BankStorage, kEngineBankCount> banks_;
+  std::array<std::vector<std::uint8_t>, kEngineFontCount> fonts_;
+  std::array<SoundStorage, kEngineSoundCount> sounds_;
+  AnimationStorage title_animation_;
+  MusicFile title_music_;
+  RoadMap road_map_;
+  std::vector<PlacedObject> scenery_objects_;
+  std::array<ObjectRange, kRoadCellTypeCount> scenery_ranges_{};
+  EngineAssets engine_{};
 };
-
-// The file named `name` in `directory`, matched without regard to case: AmigaDOS names are case
-// insensitive, and the disk has e.g. Sirene.snd where the program asks for SIRENE.SND.
-[[nodiscard]] std::optional<std::filesystem::path> FindFile(const std::filesystem::path& directory,
-                                                            std::string_view name);
-
-// The whole file, or empty when it cannot be read.
-[[nodiscard]] std::optional<std::vector<std::uint8_t>> ReadFile(const std::filesystem::path& path);
 
 }  // namespace hp2::host

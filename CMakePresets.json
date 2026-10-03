@@ -9,7 +9,7 @@
     {
       "name": "_hp2-base",
       "hidden": true,
-      "description": "Shared settings. FETCHCONTENT_BASE_DIR keeps SFML and the rest in one repo-level cache reused across every build directory.",
+      "description": "Shared settings. FETCHCONTENT_BASE_DIR keeps pico-sdk, SFML and the rest in one repo-level cache reused across every build directory.",
       "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
@@ -19,7 +19,7 @@
     {
       "name": "host",
       "displayName": "Host (SFML, Debug)",
-      "description": "Native SFML build with tests.",
+      "description": "Native SFML build with tests. HP2_BOARD is unset so the root CMakeLists takes the host branch.",
       "inherits": "_hp2-base",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
@@ -34,6 +34,26 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "_rp2350-base",
+      "hidden": true,
+      "description": "Common settings for the rp2350 boards. HP2_BOARD (set per board preset) flips the root CMakeLists into its rp2350 branch. Code runs from SRAM (PICO_COPY_TO_RAM): XIP execution is slow on the RP2350.",
+      "inherits": "_hp2-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PICO_COPY_TO_RAM": "ON"
+      }
+    },
+    {
+      "name": "rp2350-adafruit-feather",
+      "displayName": "RP2350 - Adafruit Feather RP2350",
+      "description": "Adafruit Feather RP2350 with PSRAM, 8 MB flash, 300 MHz.",
+      "inherits": "_rp2350-base",
+      "binaryDir": "${sourceDir}/build-rp2350-adafruit-feather",
+      "cacheVariables": {
+        "HP2_BOARD": "adafruit_feather_rp2350"
+      }
     }
   ],
   "buildPresets": [
@@ -44,6 +64,10 @@
     {
       "name": "host-release",
       "configurePreset": "host-release"
+    },
+    {
+      "name": "rp2350-adafruit-feather",
+      "configurePreset": "rp2350-adafruit-feather"
     }
   ],
   "testPresets": [

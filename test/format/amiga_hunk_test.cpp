@@ -22,7 +22,7 @@ TEST(AmigaHunk, RejectsNonExecutables) {
 TEST(AmigaHunk, ReadsTheGameUnrelocated) {
   const auto file = test::Executable();
   if (not file) {
-    GTEST_SKIP() << "game files not present in " << test::GameDir();
+    GTEST_SKIP() << "game files not present in " << test::DiskImage();
   }
   const auto hunks = HunkFile::FromBytes(std::as_bytes(std::span{*file}));
   ASSERT_TRUE(hunks.has_value());

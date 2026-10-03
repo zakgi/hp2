@@ -5,6 +5,7 @@ Every digest is computed with hp2lib.images, independently of the port's decoder
   logo rgb        LOGO.CPV under its header palette, RGB rows
   name N pixels   NAME.IMG image N (1-based), colour indices row-major
   animated pixels PRESENT.CPV after every step of PRESENT.DIF's play list (1:2870)
+  font N pixels   LETTRE<N>.BIN, colour indices glyph after glyph (8x8 each, row-major)
   finished rgb    the finished title: animated picture, NAME.IMG images 2 and 3, the copied 8x8
                   cell (main 0:ad06-0:add0), under the title palette list (1:28e0), RGB rows
 """
@@ -69,6 +70,10 @@ def main() -> None:
 
     for bob in images.parse_bob_bank((ns.data / "NAME.IMG").read_bytes()):
         print(f"name {bob.index} pixels {bob.width}x{bob.height}", digest(bob.indices().tobytes()))
+
+    for number in (1, 2):
+        glyphs = images.decode_font((ns.data / f"LETTRE{number}.BIN").read_bytes())
+        print(f"font {number} pixels", digest(b"".join(glyph.tobytes() for glyph in glyphs)))
 
     animated = animated_title(ns.data, exe)
     print("animated pixels", digest(animated.tobytes()))

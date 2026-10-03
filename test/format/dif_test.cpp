@@ -57,7 +57,7 @@ TEST(Dif, MatchesTheReferencePlayer) {
   const auto animation = test::DataFile("PRESENT.DIF");
   const auto picture = test::DataFile("PRESENT.CPV");
   if (not executable or not animation or not picture) {
-    GTEST_SKIP() << "game files not present in " << test::GameDir();
+    GTEST_SKIP() << "game files not present in " << test::DiskImage();
   }
   const auto hunks = HunkFile::FromBytes(std::as_bytes(std::span{*executable}));
   ASSERT_TRUE(hunks.has_value());

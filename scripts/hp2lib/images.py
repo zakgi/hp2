@@ -370,6 +370,34 @@ def apply_dif_frame(buf: bytearray, frame: DifFrame) -> None:
             buf[pos + 1] = new & 0xFF
 
 
+@dataclass(frozen=True)
+class PixelRun:
+    """A delta run as pixel XOR masks, as the port applies it: whole 16-pixel groups from pixel
+    `offset` (row * 320 + x) on."""
+
+    offset: int
+    masks: bytes
+
+
+def dif_pixel_runs(frame: DifFrame) -> list[PixelRun]:
+    """The frame's runs from plane words (4 interleaved per 16 pixels) to pixel masks
+    (src/host/format/dif.cpp): XORing plane bits is XORing colour index bits."""
+    runs: list[PixelRun] = []
+    for target, words in frame.runs:
+        first_group = target // 8
+        last_group = (target + 2 * len(words) - 2) // 8
+        masks = bytearray((last_group - first_group + 1) * 16)
+        for index, word in enumerate(words):
+            byte = target + 2 * index
+            plane_bit = 1 << ((byte % 8) // 2)
+            first_pixel = (byte // 8 - first_group) * 16
+            for pixel in range(16):
+                if word & (0x8000 >> pixel):
+                    masks[first_pixel + pixel] ^= plane_bit
+        runs.append(PixelRun(offset=first_group * 16, masks=bytes(masks)))
+    return runs
+
+
 def parse_dif_sequence(data: bytes) -> list[tuple[int, int]]:
     """Parse the play list 0:106e walks: {word frame (0 = end), word delay}..."""
     seq: list[tuple[int, int]] = []

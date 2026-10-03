@@ -40,6 +40,13 @@ Evidence: Ghidra `hp2` / `hp.prg`; routine names and plates are in the Ghidra pr
 
 ## Music
 
-Soundtracker-style player for HIGHWAY.MUS (file = 0x3c-byte header + a 15-sample module: sample headers at +0x14, song length at +0x1d6, positions at +0x1d8, patterns at +0x258). Timer: CIA-A timer A via `ciaa.resource` AddICRVector; the interrupt stub at `1:1d06` calls `MusicTick`, which plays a row every 6th tick (`MusicPlayRow`, `MusicChannelNote`) and runs effects otherwise (`MusicChannelEffects`: arpeggio, slides, filter on/off, tone portamento, volume slides 5/6). Period table `musicPeriodTable`. `MusicStart`/`MusicStop` are called only around the title sequence.
+An Ultimate-Soundtracker-style replay routine for HIGHWAY.MUS (`formats.md`, "Music: .MUS"), started by `main` before the title fades in and stopped after `WaitFire`.
+
+- `MusicStart` (`1:1bae`): song length and tempo from the module, instrument addresses from the size table, clears the first longword of every instrument (`MusicClearSamples`, so a one-word loop at the start repeats silence), adds a CIA-A timer A interrupt through `ciaa.resource` (`AddICRVector`) and loads the timer with the tempo word (`MusicStartTimer`). `MusicStop` removes the interrupt and silences the channels.
+- `MusicTick` (`1:1d0e`, through the stub at `1:1d06`): counts ticks 1..6; on the 6th, `MusicPlayRow` (`1:1ed6`) plays a row, otherwise `MusicChannelEffects` (`1:1d64`) runs per channel. The first row plays on the sixth tick.
+- `MusicChannelNote` (`1:1fa8`), per channel and row: an instrument number loads the instrument and writes its volume, adjusted by effect 5 (up by the parameter, at most 64) or 6 (down, at least 0); a period stops the channel's DMA, writes pointer, length and period (`0xfffe`: volume 0 instead) and marks the channel. `MusicPlayRow` then restarts DMA on the marked channels and, after a delay loop, writes every channel's loop pointer and length, so Paula plays the head once and the loop after it.
+- `MusicChannelEffects`: a running slide (effects 7, 8) moves its period by its speed toward its target and stops there; otherwise by effect: 1 arpeggio (ticks 1..5: +high nibble, +low nibble, the note, +low, +high semitones, through `musicPeriodTable`, `1:21b6`: 36 periods from 856 to 113, 113 repeated, -1); 2 pitch bend (the high nibble added to the period each tick, else the low nibble subtracted); 3 and 4 the LED filter off and on (CIA-A port A bit 1); 7 and 8 set a slide toward the period `high nibble` semitones down or up, `low nibble` per tick.
+
+The port's player (`src/core/music_player.hpp`) keeps the tempo, the rows and the effects' meaning, and leaves the hardware out: PAL clocks for pitch and tempo, the first row at once, equal-tempered semitones instead of the period table, a release instead of the volume-0 restart, no LED filter.
 
 Sound effects use a separate mechanism (`0:1162`), described in the events/sound notes.

@@ -3,29 +3,39 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <vector>
 
-#include "host/asset_manager.hpp"
+#include "host/adf.hpp"
 
 namespace hp2::test {
 
-// The extracted game disk the asset-dependent tests read (HP2_ASSET_DIR, set by CMake).
-inline std::filesystem::path GameDir() {
-  return std::filesystem::path{HP2_ASSET_DIR};
+// The game disk image the asset-dependent tests read (HP2_DISK_IMAGE, set by CMake).
+inline std::filesystem::path DiskImage() {
+  return std::filesystem::path{HP2_DISK_IMAGE};
 }
 
-// A data file of DISK2_2/, matched without regard to case; empty when absent.
+// The file at `path` on the game disk; empty when the image or the file is absent.
+inline std::optional<std::vector<std::uint8_t>> DiskFile(std::string_view path) {
+  auto result = std::optional<std::vector<std::uint8_t>>{};
+  auto disk = host::AdfImageManager{};
+  if (disk.AddDiskImage(DiskImage())) {
+    if (const auto bytes = disk.GetFile(path)) {
+      result = std::vector<std::uint8_t>(bytes->begin(), bytes->end());
+    }
+  }
+  return result;
+}
+
+// A data file of DISK2_2/; empty when absent.
 inline std::optional<std::vector<std::uint8_t>> DataFile(std::string_view name) {
-  const auto directory = host::FindFile(GameDir(), "DISK2_2");
-  const auto path = directory ? host::FindFile(*directory, name) : std::nullopt;
-  return path ? host::ReadFile(*path) : std::nullopt;
+  return DiskFile(std::string{"DISK2_2/"} + std::string{name});
 }
 
 // hp.prg; empty when absent.
 inline std::optional<std::vector<std::uint8_t>> Executable() {
-  const auto path = host::FindFile(GameDir(), "hp.prg");
-  return path ? host::ReadFile(*path) : std::nullopt;
+  return DiskFile("hp.prg");
 }
 
 }  // namespace hp2::test

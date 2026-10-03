@@ -10,42 +10,14 @@ namespace hp2 {
 
 namespace {
 
-constexpr auto kDarkest = static_cast<std::uint8_t>(kFadeLevels - 1);
-constexpr auto kFullBrightness = std::uint8_t{0};
+constexpr auto kFadeStep = original_timing::kFadeStepSeconds;
 
 }  // namespace
 
-void ShowPalette(Screen& screen, PaletteProgram program, std::uint8_t level) {
-  for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
-    auto& palette = screen.Palette(viewport);
-    for (const auto& segment : program) {
-      if (segment.first_row <= screen.FirstRow(viewport)) {
-        palette.Overlay(segment, level);
-      }
-    }
+void ApplyFrame(Screen& screen, const XorAnimation& animation, const XorFrame& frame) {
+  for (const auto& run : animation.GetRuns(frame)) {
+    screen.XorScreen(run.offset, animation.GetMasks(run));
   }
-}
-
-void ApplyFrame(Screen& screen, const XorFrame& frame) {
-  for (const auto& run : frame.runs) {
-    screen.XorScreen(run.offset, run.masks);
-  }
-}
-
-void PaletteFade::Init() {
-  level_ = first_level_;
-  ShowPalette(screen_, program_, level_);
-  remaining_seconds_ = original_timing::kFadeStepSeconds;
-}
-
-bool PaletteFade::Tick(float delta_seconds) {
-  remaining_seconds_ -= delta_seconds;
-  while (remaining_seconds_ <= 0.0F and level_ != last_level_) {
-    level_ = static_cast<std::uint8_t>(level_ < last_level_ ? level_ + 1 : level_ - 1);
-    ShowPalette(screen_, program_, level_);
-    remaining_seconds_ += original_timing::kFadeStepSeconds;
-  }
-  return level_ == last_level_ and remaining_seconds_ <= 0.0F;
 }
 
 void PlayAnimation::Init() {
@@ -61,7 +33,7 @@ bool PlayAnimation::Tick(float delta_seconds) {
     const auto& step = steps[step_];
     if (step.frame < animation_.frames.size()) {
       const auto& frame = animation_.frames[step.frame];
-      ApplyFrame(screen_, frame);
+      ApplyFrame(screen_, animation_, frame);
       remaining_seconds_ += original_timing::AnimationStepSeconds(frame, step.delay);
     }
     ++step_;
@@ -77,6 +49,7 @@ void Title::OnEnter() {
 
 void Title::OnExit() {
   actions_.Clear();
+  audio_.StopMusic();
   stage_ = Stage::kDone;
 }
 
@@ -103,7 +76,13 @@ ComponentType Title::Step(float delta_seconds) {
     Enter(Next());
   }
   actions_.Tick(delta_seconds);
-  return quit or stage_ == Stage::kDone ? ComponentType::kQuit : kType;
+  auto next = kType;
+  if (quit) {
+    next = ComponentType::kQuit;
+  } else if (stage_ == Stage::kDone) {
+    next = ComponentType::kOffice;
+  }
+  return next;
 }
 
 // The stack runs top first, so each stage pushes its actions in reverse order. The capacity
@@ -115,9 +94,10 @@ void Title::Enter(Stage stage) {
       screen_.DisableSplit();
       screen_.Palette(Viewport::kUpper).Reset();
       screen_.Clear(0);
-      screen_.Blit(assets_.logo_picture, Point{});
+      screen_.Blit(assets_.Picture(EnginePicture::kLogo), Point{});
       std::ignore = actions_.Push<Hold>(kLogoHoldSeconds);
-      std::ignore = actions_.Push<PaletteFade>(screen_, assets_.logo_palette, kDarkest, kFullBrightness);
+      std::ignore = actions_.Push<PaletteFade>(screen_, assets_.Palette(EnginePalette::kLogo), kDarkest,
+                                               kFullBrightness, kFadeStep);
       break;
 
     case Stage::kLogoGone:
@@ -127,7 +107,9 @@ void Title::Enter(Stage stage) {
 
     case Stage::kTitle:
       ComposeTitle();
-      std::ignore = actions_.Push<PaletteFade>(screen_, assets_.title_palette, kDarkest, kFullBrightness);
+      audio_.PlayMusic(assets_.title_music);
+      std::ignore = actions_.Push<PaletteFade>(screen_, assets_.Palette(EnginePalette::kTitle), kDarkest,
+                                               kFullBrightness, kFadeStep);
       break;
 
     case Stage::kAnimation:
@@ -140,7 +122,9 @@ void Title::Enter(Stage stage) {
       break;
 
     case Stage::kFadeOut:
-      std::ignore = actions_.Push<PaletteFade>(screen_, assets_.title_palette, kFullBrightness, kDarkest);
+      audio_.StopMusic();
+      std::ignore = actions_.Push<PaletteFade>(screen_, assets_.Palette(EnginePalette::kTitle), kFullBrightness,
+                                               kDarkest, kFadeStep);
       break;
 
     case Stage::kDone:
@@ -149,14 +133,15 @@ void Title::Enter(Stage stage) {
 }
 
 void Title::ComposeTitle() {
-  const auto program = assets_.title_palette;
+  const auto program = assets_.Palette(EnginePalette::kTitle);
   const auto split_row = program.size() > 1 ? program[1].first_row : std::uint16_t{0};
   screen_.EnableSplit(split_row);
   for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
     screen_.Palette(viewport).Reset();
     screen_.SetViewport(viewport);
     screen_.Clear(0);
-    screen_.Blit(assets_.title_picture, Point{.x = 0, .y = static_cast<std::int16_t>(-screen_.FirstRow(viewport))});
+    screen_.Blit(assets_.Picture(EnginePicture::kTitle),
+                 Point{.x = 0, .y = static_cast<std::int16_t>(-screen_.FirstRow(viewport))});
   }
 }
 
@@ -167,10 +152,10 @@ void Title::DrawNames() {
   const auto in_viewport = [top](Point point) {
     return Point{.x = point.x, .y = static_cast<std::int16_t>(point.y - top)};
   };
-  const auto names = assets_.name_images;
-  if (names.size() >= 3) {
-    screen_.BlitMasked(names[1], in_viewport(kLowerNameAt));
-    screen_.BlitMasked(names[2], in_viewport(kRightNameAt));
+  const auto& names = assets_.Bank(EngineBank::kNames);
+  if (names.sprites.size() >= 3) {
+    screen_.BlitMasked(names.GetImage(1), in_viewport(kLowerNameAt));
+    screen_.BlitMasked(names.GetImage(2), in_viewport(kRightNameAt));
   }
   screen_.Copy(in_viewport(kCellFrom), in_viewport(kCellTo), kCellSize, kCellSize);
 }
@@ -181,10 +166,13 @@ void Title::Finish() {
   const auto frames = assets_.title_animation.frames;
   for (const auto& step : assets_.title_animation.steps) {
     if (step.frame < frames.size()) {
-      ApplyFrame(screen_, frames[step.frame]);
+      ApplyFrame(screen_, assets_.title_animation, frames[step.frame]);
     }
   }
-  ShowPalette(screen_, assets_.title_palette, kFullBrightness);
+  ShowPalette(screen_, assets_.Palette(EnginePalette::kTitle), kFullBrightness);
+  if (not audio_.MusicPlaying()) {
+    audio_.PlayMusic(assets_.title_music);
+  }
   Enter(Stage::kNames);
 }
 

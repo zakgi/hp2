@@ -87,10 +87,11 @@ void Screen::BlitMasked(const ImageView& image, Point origin, std::uint8_t index
 void Screen::Copy(Point source, Point destination, std::uint16_t width, std::uint16_t height) {
   // The columns and rows where both the source and the destination are inside the viewport.
   const auto rows = std::int32_t{Rows(selected_)};
-  const auto first_column = std::max({std::int32_t{0}, -std::int32_t{source.x}, -std::int32_t{destination.x}});
-  const auto last_column = std::min({std::int32_t{width}, kWidth - std::int32_t{source.x}, kWidth - destination.x});
-  const auto first_row = std::max({std::int32_t{0}, -std::int32_t{source.y}, -std::int32_t{destination.y}});
-  const auto last_row = std::min({std::int32_t{height}, rows - source.y, rows - destination.y});
+  // Explicit std::int32_t: it is long on some targets, so int operands would not deduce one type.
+  const auto first_column = std::max<std::int32_t>({0, -source.x, -destination.x});
+  const auto last_column = std::min<std::int32_t>({width, kWidth - source.x, kWidth - destination.x});
+  const auto first_row = std::max<std::int32_t>({0, -source.y, -destination.y});
+  const auto last_row = std::min<std::int32_t>({height, rows - source.y, rows - destination.y});
   if (last_column > first_column and last_row > first_row) {
     // Rows go in the direction that reads every source row before it is overwritten; each row
     // goes through a buffer, so columns may overlap too.
@@ -110,9 +111,19 @@ void Screen::Copy(Point source, Point destination, std::uint16_t width, std::uin
   }
 }
 
+void Screen::DrawHorizontalLine(std::int16_t left, std::int16_t right, std::int16_t row, std::uint8_t index) {
+  const auto first = std::max<std::int32_t>(left, 0);
+  const auto last = std::min<std::int32_t>(right, kWidth - 1);
+  if (row >= 0 and row < Rows(selected_) and last >= first) {
+    const auto pixels = Row(static_cast<std::uint16_t>(row))
+                            .subspan(static_cast<std::size_t>(first), static_cast<std::size_t>(last - first + 1));
+    std::ranges::fill(pixels, index);
+  }
+}
+
 void Screen::XorScreen(std::uint32_t offset, std::span<const std::uint8_t> masks) {
   if (offset < pixels_.size()) {
-    const auto count = std::min(masks.size(), pixels_.size() - offset);
+    const auto count = std::min<std::size_t>(masks.size(), pixels_.size() - offset);
     const auto pixels = std::span{pixels_}.subspan(offset, count);
     std::ranges::transform(pixels, masks.first(count), pixels.begin(), [](std::uint8_t pixel, std::uint8_t mask) {
       return static_cast<std::uint8_t>(pixel ^ mask);

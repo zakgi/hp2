@@ -11,12 +11,19 @@
 #include <iostream>
 #include <optional>
 #include <string>
+#include <unordered_map>
 
+#include "core/audio_engine.hpp"
 #include "core/component.hpp"
+#include "core/game_state.hpp"
 #include "core/key_events.hpp"
+#include "core/mission_end.hpp"
+#include "core/office.hpp"
 #include "core/screen.hpp"
+#include "core/station.hpp"
 #include "core/title.hpp"
 #include "host/asset_manager.hpp"
+#include "host/audio_output.hpp"
 #include "host/renderer.hpp"
 #include "host/sfml_input.hpp"
 
@@ -24,15 +31,40 @@ namespace hp2 {
 
 namespace {
 
-// Long-lived engine storage: the decoded assets and the screen are large and never move.
+// Long-lived engine storage: the decoded assets, the screen and the audio ring are large and never
+// move.
 host::AssetManager asset_manager;
 Screen screen;
 KeyEvents key_events;
+AudioEngine audio;
+GameState game;
 
-int Run(const std::filesystem::path& game_dir, std::uint32_t scaling) {
+// Where the program starts and the game state it starts with: the station and the endings are
+// reached only from the driving view, which is not ported yet, so they can be opened directly.
+struct Options {
+  std::filesystem::path disk_image;
+  std::uint32_t scaling{};
+  ComponentType start{ComponentType::kTitle};
+  std::optional<EndReason> ending;
+  bool station_robbed{};
+  std::uint32_t score{};
+};
+
+// Logs the frames the audio ring lost since the last call, either way.
+void ReportAudioGaps(host::AudioOutput& output) {
+  if (const auto missing = output.TakeMissingFrames(); missing != 0) {
+    spdlog::warn("Audio: {} frames of silence padded (buffer underflow)", missing);
+  }
+  if (const auto dropped = audio.TakeDroppedFrames(); dropped != 0) {
+    spdlog::warn("Audio: {} frames dropped (buffer overflow)", dropped);
+  }
+}
+
+int Run(const Options& options) {
   auto status = 0;
-  if (not asset_manager.Load(game_dir)) {
-    spdlog::error("Could not load the game files from {}", game_dir.string());
+  const auto scaling = options.scaling;
+  if (not asset_manager.Load(options.disk_image)) {
+    spdlog::error("Could not load the game files from {}", options.disk_image.string());
     status = 1;
   } else {
     // 320x200 shown at 4:3: the window is 6/5 taller than the pixel count.
@@ -42,9 +74,22 @@ int Run(const std::filesystem::path& game_dir, std::uint32_t scaling) {
     window.setKeyRepeatEnabled(false);
     auto renderer = host::Renderer{window};
     auto input = host::SfmlInput{key_events};
+    auto audio_output = host::AudioOutput{audio};
+    audio_output.play();
 
-    auto engine = Engine<Title>{Title{asset_manager.Engine(), screen, key_events}};
-    auto running = engine.Start(ComponentType::kTitle);
+    game.end_reason = options.ending;
+    game.station_robbed = options.station_robbed;
+    game.score = options.score;
+    if (options.start == ComponentType::kStation) {
+      // A car that needs both services.
+      game.tyres = 1;
+      game.fuel = 0.5F;
+    }
+    const auto& assets = asset_manager.Engine();
+    auto engine = Engine<Title, Office, Station, MissionEnd>{
+        Title{assets, screen, key_events, audio}, Office{assets, screen, key_events, game},
+        Station{assets, screen, key_events, game}, MissionEnd{assets, screen, key_events, game}};
+    auto running = engine.Start(options.start);
     auto clock = sf::Clock{};
     while (running and window.isOpen()) {
       while (const auto event = window.pollEvent()) {
@@ -52,8 +97,13 @@ int Run(const std::filesystem::path& game_dir, std::uint32_t scaling) {
           window.close();
         }
       }
-      const auto delta_seconds = clock.restart().asSeconds();
-      running = engine.Step(delta_seconds) and engine.Running();
+      const auto elapsed = clock.restart();
+      running = engine.Step(elapsed.asSeconds()) and engine.Running();
+      if (not running and engine.Running()) {
+        spdlog::info("The driving view is not ported yet");
+      }
+      audio.Step(static_cast<std::uint32_t>(elapsed.asMicroseconds()));
+      ReportAudioGaps(audio_output);
       renderer.Render(screen);
     }
   }
@@ -67,8 +117,27 @@ int main(int argc, char* argv[]) try {
   auto parser = args::ArgumentParser{"Highway Patrol II", "Native C++23 port."};
   auto help = args::HelpFlag{parser, "help", "Display this help menu", {'h', "help"}};
   auto scaling = args::ValueFlag<std::uint32_t>{parser, "scaling", "Window scale (1-8)", {'s', "scaling"}, 3};
-  auto game = args::ValueFlag<std::string>{
-      parser, "game", "Directory with hp.prg and DISK2_2/", {'g', "game"}, "assets/hp2/Highway Patrol II"};
+  auto disk = args::ValueFlag<std::string>{parser, "disk", "Game disk image (ADF)", {'d', "disk"}, "assets/hp2.adf"};
+  const auto screens = std::unordered_map<std::string, hp2::ComponentType>{{"title", hp2::ComponentType::kTitle},
+                                                                           {"office", hp2::ComponentType::kOffice},
+                                                                           {"station", hp2::ComponentType::kStation},
+                                                                           {"ending", hp2::ComponentType::kMissionEnd}};
+  auto start = args::MapFlag<std::string, hp2::ComponentType>{
+      parser,    "screen", "Screen to start on: title, office, station or ending",
+      {"start"}, screens,  hp2::ComponentType::kTitle};
+  const auto endings = std::unordered_map<std::string, hp2::EndReason>{
+      {"out-of-fuel", hp2::EndReason::kOutOfFuel}, {"stations-robbed", hp2::EndReason::kStationsRobbed},
+      {"overheated", hp2::EndReason::kOverheated}, {"wrecked", hp2::EndReason::kWrecked},
+      {"tyres-gone", hp2::EndReason::kTyresGone},  {"shot", hp2::EndReason::kShot},
+      {"arrest", hp2::EndReason::kArrest},         {"bounty-gone", hp2::EndReason::kBountyGone}};
+  auto ending = args::MapFlag<std::string, hp2::EndReason>{
+      parser,
+      "reason",
+      "With --start ending: out-of-fuel, stations-robbed, overheated, wrecked, tyres-gone, shot, arrest or bounty-gone",
+      {"ending"},
+      endings};
+  auto robbed = args::Flag{parser, "robbed", "With --start station: the station has been robbed", {"robbed"}};
+  auto score = args::ValueFlag<std::uint32_t>{parser, "score", "Score to start with", {"score"}, 0};
 
   try {
     parser.ParseCLI(argc, argv);
@@ -84,7 +153,12 @@ int main(int argc, char* argv[]) try {
     spdlog::error("Window scale must be between 1 and 8.");
     return 1;
   }
-  return hp2::Run(std::filesystem::path{game.Get()}, scaling.Get());
+  return hp2::Run(hp2::Options{.disk_image = std::filesystem::path{disk.Get()},
+                               .scaling = scaling.Get(),
+                               .start = start.Get(),
+                               .ending = ending ? std::optional<hp2::EndReason>{ending.Get()} : std::nullopt,
+                               .station_robbed = robbed.Get(),
+                               .score = score.Get()});
 } catch (const std::exception& error) {
   std::cerr << "Highway Patrol II: " << error.what() << '\n';
   return 1;

@@ -41,8 +41,9 @@ std::vector<std::uint8_t> PlanesToPixels(std::span<const std::uint8_t> planes) {
     for (auto index = std::size_t{0}; index < kPlaneBytes; ++index) {
       const auto plane_bits = DeinterleaveShift(plane_bytes[index], static_cast<std::uint8_t>(plane));
       const auto out = std::span{pixels}.subspan(index * 8, 8);
-      std::ranges::transform(plane_bits, out, out.begin(),
-                             [](std::uint8_t bits, std::uint8_t pixel) { return static_cast<std::uint8_t>(bits | pixel); });
+      std::ranges::transform(plane_bits, out, out.begin(), [](std::uint8_t bits, std::uint8_t pixel) {
+        return static_cast<std::uint8_t>(bits | pixel);
+      });
     }
   }
   return pixels;

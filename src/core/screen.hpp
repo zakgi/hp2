@@ -62,6 +62,9 @@ class Screen {
   // Copies the `width` x `height` pixels at `source` to `destination`, both in the selected
   // viewport; the parts outside it are skipped. The areas may overlap.
   void Copy(Point source, Point destination, std::uint16_t width, std::uint16_t height);
+  // Sets the pixels of `row` from `left` to `right`, both included, to `index`, clipped to the
+  // selected viewport.
+  void DrawHorizontalLine(std::int16_t left, std::int16_t right, std::int16_t row, std::uint8_t index);
   // XORs the pixels from screen pixel `offset` (row * kWidth + x) on with `masks`, whatever the
   // viewports; the part past the last pixel is skipped.
   void XorScreen(std::uint32_t offset, std::span<const std::uint8_t> masks);
