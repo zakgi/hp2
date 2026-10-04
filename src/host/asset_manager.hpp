@@ -57,6 +57,7 @@ class AssetManager {
   [[nodiscard]] bool LoadMusic(const AdfImageManager& disk);
   [[nodiscard]] bool LoadRoadMap(const AdfImageManager& disk);
   [[nodiscard]] bool LoadScenery(const AdfImageManager& disk);
+  [[nodiscard]] bool LoadRoadShapes();
   // Points the EngineAssets views at the storage, once nothing more is added to it.
   void BuildViews();
 
@@ -75,6 +76,8 @@ class AssetManager {
   RoadMap road_map_;
   std::vector<PlacedObject> scenery_objects_;
   std::array<IndexRange, kRoadCellTypeCount> scenery_ranges_{};
+  std::vector<ShapePoint> road_shape_points_;
+  std::array<IndexRange, kRoadCellTypeCount> road_shape_ranges_{};
   EngineAssets engine_{};
 };
 

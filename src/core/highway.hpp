@@ -15,8 +15,8 @@ namespace hp2 {
 // The mission on the road, the original's main loop (0:ba7c): the keys become commands for the
 // simulation, which runs whole ticks of the elapsed time; its events become sounds and scenes, and
 // the stop at a station or the end of the mission hands over to Station or MissionEnd. The arrows
-// steer, accelerate and brake; Space fires while aiming; S switches the siren, T the gun, P pauses;
-// Escape abandons the mission (the bounty drops to 0).
+// steer, accelerate and brake; Space fires while aiming; S switches the siren, T the gun, P pauses,
+// M shows the map; Escape abandons the mission (the bounty drops to 0).
 class Highway {
  public:
   static constexpr ComponentType kType = ComponentType::kHighway;
@@ -41,10 +41,10 @@ class Highway {
   enum class Phase : std::uint8_t {
     kDriving,
     kPaused,    // P
+    kMap,       // M: paused on the road map, with the player's car and the criminal's
     kSpinOut,   // PAGE_F1 until a key, then on
     kCoasting,  // the mission is over: the cars roll to a stop before the ending (0:6008)
   };
-  enum class View : std::uint8_t { kDriver, kMap };
 
   // Keys held, followed through their presses and releases.
   struct HeldKeys {
@@ -72,7 +72,6 @@ class Highway {
   // Each mission's seed is drawn from it.
   Random seeds_;
   Phase phase_{Phase::kDriving};
-  View view_{View::kDriver};
   HeldKeys held_;
   // The wheel as the held keys have turned it, -1 full right .. 1 full left.
   float key_steer_{};

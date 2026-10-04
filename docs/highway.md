@@ -95,7 +95,7 @@ Shooting no longer tests the sprite last drawn: the sight is a direction from th
 
 - **Station**: the simulation reports the stop; `Highway` writes fuel, tires and whether the station is robbed into `GameState` and hands over to `Station`. Back in `OnEnter`, a mission under way resumes with the car at the driveway's exit (`LeaveStation`); otherwise a new one starts with the poster chosen in the office.
 - **Ending**: the reason and the score go into `GameState`, then `MissionEnd`.
-- **Map**: a second view of the same simulation, also the engine's debug view; how it works in play is open.
+- **Map**: M pauses the game and shows the road map from above with the player's car and the criminal's; M again returns to the road. Blinking markers can come later.
 - **Dashboard clock**: the digital clock right of the gauges has 13:24 painted into DES_TABB image 4. The port clears it and draws a running time in matching red segments: the mission time (`Simulation::GetTick()` times `kTickSeconds`, minutes and seconds), *provisional*.
 
 ## Storage
@@ -107,6 +107,5 @@ Fixed arrays only. `Simulation` is a value: copying it snapshots a mission (test
 - The original's frame rate, which sets the time scale.
 - How far the handling departs from the original; targets for its feel.
 - How many traffic cars.
-- The map mode in play: overlay or separate screen, while driving or paused.
 - Whether the criminal's robbery takes time (the original: instant once stopped).
 - What the dashboard clock shows: mission time, or a time of day.

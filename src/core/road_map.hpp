@@ -54,4 +54,25 @@ struct Scenery {
   }
 };
 
+// A point of a road shape in cell units, 0..0x4000 across the cell from its south-west corner.
+struct ShapePoint {
+  std::int16_t x{};
+  std::int16_t y{};
+
+  friend constexpr bool operator==(const ShapePoint&, const ShapePoint&) = default;
+};
+
+// The road's outline for every road cell type (roadCellShapes, 0:7812): one closed polygon each,
+// the first point repeated last, none for type 0. Kept from the executable because it is the
+// road's look. Filled even-odd, so the one-unit slits of the station shapes close their driveway
+// loops.
+struct RoadShapes {
+  std::span<const ShapePoint> points;
+  std::array<IndexRange, kRoadCellTypeCount> cell_types{};
+
+  [[nodiscard]] constexpr std::span<const ShapePoint> GetOutline(std::size_t cell_type) const {
+    return points.subspan(cell_types[cell_type].first, cell_types[cell_type].count);
+  }
+};
+
 }  // namespace hp2

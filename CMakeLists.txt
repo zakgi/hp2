@@ -91,7 +91,7 @@ add_library(
   hp2_host STATIC src/host/format/amiga_hunk.cpp src/host/format/bob_bank.cpp src/host/format/cpv.cpp
                   src/host/format/dif.cpp src/host/format/font.cpp src/host/format/iff_8svx.cpp
                   src/host/format/music_file.cpp src/host/format/object_placement.cpp src/host/format/palette_list.cpp
-                  src/host/format/road_map.cpp
+                  src/host/format/road_map.cpp src/host/format/road_shapes.cpp
                   src/host/adf.cpp src/host/asset_manager.cpp)
 target_include_directories(hp2_host PUBLIC ${COMMON_SOURCE_DIR})
 target_link_libraries(hp2_host PUBLIC hp2_core spdlog::spdlog adf)
@@ -177,6 +177,7 @@ if(HP2_BUILD_TESTS)
     test/format/palette_list_test.cpp
     test/format/planar_test.cpp
     test/format/road_map_test.cpp
+    test/format/road_shapes_test.cpp
     test/host/adf_test.cpp
     test/host/asset_image_test.cpp
     test/host/asset_manager_test.cpp)

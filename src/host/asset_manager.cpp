@@ -27,6 +27,7 @@
 #include "host/format/object_placement.hpp"
 #include "host/format/palette_list.hpp"
 #include "host/format/road_map.hpp"
+#include "host/format/road_shapes.hpp"
 
 namespace hp2::host {
 
@@ -109,6 +110,22 @@ constexpr auto kTitlePlayList = HunkOffset{.hunk = 1, .offset = 0x2870};
 constexpr auto kTitleMusicFile = std::string_view{"HIGHWAY.MUS"};
 constexpr auto kRoadMapFile = std::string_view{"CARTE.BIN"};
 constexpr auto kSceneryFile = std::string_view{"COOR_OBJ.BIN"};
+// The road outlines, one per road cell type, in this build of hp.prg. roadCellShapes (0:7812)
+// points at them; the places are listed rather than followed (docs/decisions.md).
+constexpr auto kRoadShapePlaces = std::to_array<HunkOffset>({{0, 0x7846},
+                                                             {0, 0x7848},
+                                                             {0, 0x7876},
+                                                             {0, 0x78a4},
+                                                             {0, 0x79e6},
+                                                             {0, 0x7b28},
+                                                             {0, 0x7c6a},
+                                                             {0, 0x7dac},
+                                                             {0, 0x7df2},
+                                                             {0, 0x7e38},
+                                                             {0, 0x7e7e},
+                                                             {0, 0x7ee8},
+                                                             {0, 0x7f46}});
+static_assert(kRoadShapePlaces.size() == kRoadCellTypeCount);
 
 // The data file `name` from the disk's DISK2_2/.
 std::optional<std::span<const std::uint8_t>> ReadDataFile(const AdfImageManager& disk, std::string_view name) {
@@ -146,7 +163,8 @@ bool AssetManager::Load(const std::filesystem::path& disk_image) {
   auto disk = AdfImageManager{};
   const auto loaded = disk.AddDiskImage(disk_image) and LoadExecutable(disk) and LoadPictures(disk) and
                       LoadPalettes() and LoadBanks(disk) and LoadFonts(disk) and LoadSounds(disk) and
-                      LoadTitleAnimation(disk) and LoadMusic(disk) and LoadRoadMap(disk) and LoadScenery(disk);
+                      LoadTitleAnimation(disk) and LoadMusic(disk) and LoadRoadMap(disk) and LoadScenery(disk) and
+                      LoadRoadShapes();
   if (loaded) {
     BuildViews();
   }
@@ -321,6 +339,26 @@ bool AssetManager::LoadScenery(const AdfImageManager& disk) {
   return placement.has_value();
 }
 
+bool AssetManager::LoadRoadShapes() {
+  auto loaded = true;
+  for (auto type = std::size_t{0}; loaded and type < kRoadCellTypeCount; ++type) {
+    const auto& place = kRoadShapePlaces[type];
+    const auto& data = executable_->hunks[place.hunk].data;
+    const auto outline = place.offset <= data.size() ? DecodeRoadShape(data.subspan(place.offset))
+                                                     : std::unexpected{RoadShapeError::kTruncated};
+    loaded = outline.has_value();
+    if (loaded) {
+      road_shape_ranges_[type] = IndexRange{.first = static_cast<std::uint32_t>(road_shape_points_.size()),
+                                            .count = static_cast<std::uint32_t>(outline->size())};
+      road_shape_points_.insert(road_shape_points_.end(), outline->begin(), outline->end());
+    } else {
+      spdlog::error("Cannot read the road shape at {}:{:04x} (error {})", place.hunk, place.offset,
+                    static_cast<int>(outline.error()));
+    }
+  }
+  return loaded;
+}
+
 void AssetManager::BuildViews() {
   for (auto index = std::size_t{0}; index < kEnginePictureCount; ++index) {
     engine_.pictures[index] = ImageView{.width = Screen::kWidth, .height = Screen::kHeight, .pixels = pictures_[index]};
@@ -352,6 +390,7 @@ void AssetManager::BuildViews() {
                                     .timer = title_music_.timer};
   engine_.road_map = RoadMapView{.cells = road_map_.cells};
   engine_.scenery = Scenery{.objects = scenery_objects_, .cell_types = scenery_ranges_};
+  engine_.road_shapes = RoadShapes{.points = road_shape_points_, .cell_types = road_shape_ranges_};
 }
 
 }  // namespace hp2::host

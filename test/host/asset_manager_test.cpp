@@ -2,8 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <array>
+#include <cstddef>
+
 #include "assets.hpp"
 #include "core/engine_assets.hpp"
+#include "core/road_map.hpp"
 
 namespace hp2::host {
 namespace {
@@ -45,6 +50,26 @@ TEST(AssetManager, LoadsEveryAsset) {
   EXPECT_EQ(assets.title_music.samples.size(), 15U);
   EXPECT_EQ(assets.road_map.cells.size(), 4096U);
   EXPECT_EQ(assets.scenery.GetObjects(11).size(), 107U);
+}
+
+TEST(AssetManager, ReadsTheRoadShapes) {
+  if (not test::Executable()) {
+    GTEST_SKIP() << "game disk not present at " << test::DiskImage();
+  }
+  auto manager = AssetManager{};
+  ASSERT_TRUE(manager.Load(test::DiskImage()));
+  const auto& shapes = manager.Engine().road_shapes;
+  // Points per road cell type, the closing point included: none, straights, quarter circles, T
+  // junctions, crossroads, stations.
+  const auto counts = std::to_array<std::size_t>({0, 7, 7, 53, 53, 53, 53, 11, 11, 11, 17, 15, 15});
+  for (auto type = std::size_t{0}; type < kRoadCellTypeCount; ++type) {
+    EXPECT_EQ(shapes.GetOutline(type).size(), counts[type]) << "cell type " << type;
+  }
+  EXPECT_EQ(shapes.GetOutline(1).front(), (ShapePoint{.x = 8704, .y = 0}));
+  // The station's driveway loop joins the road through a one-unit slit.
+  const auto station = shapes.GetOutline(11);
+  EXPECT_NE(std::ranges::find(station, ShapePoint{.x = 8705, .y = 14336}), station.end());
+  EXPECT_NE(std::ranges::find(station, ShapePoint{.x = 8705, .y = 13056}), station.end());
 }
 
 }  // namespace

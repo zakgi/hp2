@@ -123,6 +123,8 @@ struct EngineAssets {
   RoadMapView road_map;
   // COOR_OBJ.BIN.
   Scenery scenery;
+  // roadCellShapes in hp.prg (0:7812).
+  RoadShapes road_shapes;
 
   [[nodiscard]] constexpr const ImageView& Picture(EnginePicture picture) const {
     return pictures[std::to_underlying(picture)];
