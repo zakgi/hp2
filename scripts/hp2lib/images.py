@@ -61,6 +61,13 @@ def amiga_to_rgb(word: int) -> tuple[int, int, int]:
     return (((word >> 8) & 0xF) * 17, ((word >> 4) & 0xF) * 17, (word & 0xF) * 17)
 
 
+def st_to_rgb(word: int) -> tuple[int, int, int]:
+    """Expand an Atari ST 0x0RGB colour word (3 bits per channel) to 8-bit RGB, each channel scaled to
+    0..255 and rounded, as FromAtariSt in src/host/format/color.hpp."""
+    red, green, blue = ((((word >> shift) & 0x7) * 255 + 3) // 7 for shift in (8, 4, 0))
+    return red, green, blue
+
+
 def fade_palette(words: Sequence[int], level: int) -> list[int]:
     """Subtract ``level`` from every gun, clamping at 0 (0:0d06, one palette segment)."""
     out = []

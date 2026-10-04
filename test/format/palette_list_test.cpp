@@ -27,9 +27,8 @@ TEST(PaletteList, ReadsTheGamesLists) {
   ASSERT_EQ(title->size(), 2U);
   EXPECT_EQ((*title)[1].first_row, 36);
   EXPECT_EQ((*title)[0].count, 16);
-  EXPECT_EQ((*title)[0].format, ColorFormat::kAtariSt);
-  EXPECT_EQ((*title)[0].colors[0], 0x257);
-  EXPECT_EQ((*title)[0].Color(0), FromAmiga(0x4af));
+  // The stored ST word 0x257, decoded.
+  EXPECT_EQ((*title)[0].colors[0], FromAtariSt(0x257));
 
   // viewPalette (0:a520): 39 segments, the dashboard palette at row 132.
   const auto view = ReadPaletteList(code, 0xa520, ColorFormat::kAmiga);

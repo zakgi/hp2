@@ -151,24 +151,24 @@ void MissionEnd::ComposeScore() {
   }
   const auto& bank = assets_.Bank(EngineBank::kScore);
   if (ending_.game_over) {
-    DrawAcrossViewports(screen_, kGameOverAt,
-                        [&](Point origin) { screen_.BlitMasked(bank.GetImage(kGameOverImage), origin); });
+    screen_.DrawAcrossViewports(kGameOverAt,
+                                [&](Point origin) { screen_.BlitMasked(bank.GetImage(kGameOverImage), origin); });
   }
-  DrawAcrossViewports(screen_, kScoreLabelAt,
-                      [&](Point origin) { screen_.BlitMasked(bank.GetImage(kScoreLabelImage), origin); });
+  screen_.DrawAcrossViewports(kScoreLabelAt,
+                              [&](Point origin) { screen_.BlitMasked(bank.GetImage(kScoreLabelImage), origin); });
   auto value = game_.score % kScoreModulus;
   for (auto place = kScoreDigits; place > 0; --place) {
     const auto digit = value % kDecimalBase;
     value /= kDecimalBase;
     const auto digit_at =
         Point{.x = static_cast<std::int16_t>(kFirstDigitAt.x + (kDigitAdvance * (place - 1))), .y = kFirstDigitAt.y};
-    DrawAcrossViewports(screen_, digit_at,
-                        [&](Point origin) { screen_.BlitMasked(bank.GetImage(kFirstDigitImage + digit), origin); });
+    screen_.DrawAcrossViewports(
+        digit_at, [&](Point origin) { screen_.BlitMasked(bank.GetImage(kFirstDigitImage + digit), origin); });
   }
   if (not ending_.text.empty()) {
     const auto& font = assets_.Font(EngineFont::kLettre1);
-    DrawAcrossViewports(screen_, TextCell(ending_.text_cell.x, ending_.text_cell.y),
-                        [&](Point origin) { DrawText(screen_, font, ending_.text, origin); });
+    screen_.DrawAcrossViewports(TextCell(ending_.text_cell.x, ending_.text_cell.y),
+                                [&](Point origin) { screen_.DrawText(font, ending_.text, origin); });
   }
 }
 

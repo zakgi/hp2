@@ -107,10 +107,9 @@ TEST(Screen, DrawsClippedVerticalLines) {
 
 TEST(ScreenPalette, OverlaysAtAnOffset) {
   auto palette = ScreenPalette{};
-  palette.ClearDirty();
-  const auto colors = std::to_array<Rgb>({FromAmiga(0x0f00), FromAmiga(0x00f0)});
+  const auto colors =
+      std::to_array<Rgb>({{.red = 0xff, .green = 0x00, .blue = 0x00}, {.red = 0x00, .green = 0xff, .blue = 0x00}});
   palette.Overlay(colors, 254);
-  EXPECT_TRUE(palette.Dirty());
   EXPECT_EQ(palette.Color(254), (Rgb{.red = 0xff, .green = 0, .blue = 0}));
   EXPECT_EQ(palette.Color(255), (Rgb{.red = 0, .green = 0xff, .blue = 0}));
   palette.Overlay(colors, 256);  // nothing past the last entry

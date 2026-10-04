@@ -20,7 +20,7 @@ import hashlib
 import logging
 import struct
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -160,7 +160,7 @@ ROAD_SHAPES = (
 
 # Record layouts of the engine types (little-endian, as on the RP2350 and the hosts); the C++ side
 # static_asserts the same sizes and offsets (src/target/flash/asset_image.hpp).
-PALETTE_SEGMENT = struct.Struct(f"<HBBBx{COLOR_REGISTERS}H")
+PALETTE_SEGMENT = struct.Struct(f"<HBB{COLOR_REGISTERS * 3}B")
 SPRITE_RANGE = struct.Struct("<IHHhh")
 XOR_RUN = struct.Struct("<III")
 XOR_FRAME = struct.Struct("<III")
@@ -271,18 +271,24 @@ def pack_pictures(image: Image, game: Game, layout: Layout) -> list[tuple[int, .
     return headers
 
 
+def palette_colors(words: Sequence[int], color_format: int) -> list[int]:
+    """The colour words decoded to RGB channels, COLOR_REGISTERS colours, the missing ones black."""
+    convert = images.st_to_rgb if color_format == ATARI_ST_FORMAT else images.amiga_to_rgb
+    channels = [channel for word in words for channel in convert(word)]
+    return channels + [0] * (COLOR_REGISTERS * 3 - len(channels))
+
+
 def palette_segments(game: Game, source: PaletteSource, headers: list[tuple[int, ...]]) -> list[bytes]:
     if source.picture is not None:
-        return [PALETTE_SEGMENT.pack(0, 0, COLOR_REGISTERS, ATARI_ST_FORMAT, *headers[source.picture])]
+        colors = palette_colors(headers[source.picture], ATARI_ST_FORMAT)
+        return [PALETTE_SEGMENT.pack(0, 0, COLOR_REGISTERS, *colors)]
     assert source.place is not None
     records: list[bytes] = []
     for segment in images.parse_palette_list(game.executable.read(source.place, 0x400)):
         if segment.first + len(segment.colours) > COLOR_REGISTERS:
             raise FormatError(f"palette list at {source.place} writes past register {COLOR_REGISTERS - 1}")
-        colors = list(segment.colours) + [0] * (COLOR_REGISTERS - len(segment.colours))
-        records.append(
-            PALETTE_SEGMENT.pack(segment.start_row, segment.first, len(segment.colours), source.color_format, *colors)
-        )
+        colors = palette_colors(segment.colours, source.color_format)
+        records.append(PALETTE_SEGMENT.pack(segment.start_row, segment.first, len(segment.colours), *colors))
     return records
 
 

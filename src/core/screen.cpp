@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string_view>
 
 namespace hp2 {
 
@@ -82,6 +83,33 @@ void Screen::BlitMasked(const ImageView& image, Point origin, std::uint8_t index
   BlitWith(image, origin, [index_offset](std::uint8_t index, std::uint8_t pixel) {
     return index == 0 ? pixel : static_cast<std::uint8_t>(index + index_offset);
   });
+}
+
+void Screen::ApplyFrame(const XorAnimation& animation, const XorFrame& frame) {
+  for (const auto& run : animation.GetRuns(frame)) {
+    XorScreen(run.offset, animation.GetMasks(run));
+  }
+}
+
+void Screen::ShowPalette(std::span<const PaletteSegment> segments, std::uint8_t level) {
+  for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
+    auto& palette = Palette(viewport);
+    for (const auto& segment : segments) {
+      if (segment.first_row <= FirstRow(viewport)) {
+        palette.Overlay(segment, level);
+      }
+    }
+  }
+}
+
+void Screen::DrawText(const BitmapFont& font, std::string_view text, Point origin) {
+  for (const auto character : text) {
+    const auto glyph = font.GetGlyph(character);
+    if (not glyph.pixels.empty()) {
+      Blit(glyph, origin);
+    }
+    origin.x = static_cast<std::int16_t>(origin.x + BitmapFont::kGlyphSize);
+  }
 }
 
 void Screen::Copy(Point source, Point destination, std::uint16_t width, std::uint16_t height) {

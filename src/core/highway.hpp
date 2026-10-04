@@ -7,6 +7,7 @@
 #include "core/engine_assets.hpp"
 #include "core/game_state.hpp"
 #include "core/key_events.hpp"
+#include "core/map_view.hpp"
 #include "core/mission.hpp"
 #include "core/screen.hpp"
 
@@ -55,7 +56,17 @@ class Highway {
     bool fire{};
   };
 
-  void ReadKeys(bool& abandon);
+  // The system keys pressed since the last frame.
+  struct SystemKeys {
+    bool pause{};    // P
+    bool map{};      // M
+    bool abandon{};  // Escape
+  };
+
+  // Follows the pending keystrokes into the held keys; returns the system keys pressed.
+  [[nodiscard]] SystemKeys ReadKeys();
+  // Runs the whole ticks `delta_seconds` covers, at most kMaxTicksPerFrame.
+  void RunTicks(float delta_seconds);
   // The commands for the next tick; single presses count once.
   [[nodiscard]] PlayerCommands TakeCommands();
   // Sounds, phase changes and the component to switch to for one tick's events.
@@ -68,6 +79,7 @@ class Highway {
   AudioEngine& audio_;
   GameState& game_;
   Mission mission_;
+  MapView map_view_;
   AiPolicies policies_;
   // Each mission's seed is drawn from it.
   Random seeds_;

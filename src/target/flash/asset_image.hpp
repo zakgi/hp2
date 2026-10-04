@@ -18,10 +18,8 @@
 
 namespace hp2::flash {
 
-static_assert(sizeof(ColorFormat) == 1);
-static_assert(sizeof(PaletteSegment) == 38 and offsetof(PaletteSegment, first_register) == 2 and
-              offsetof(PaletteSegment, count) == 3 and offsetof(PaletteSegment, format) == 4 and
-              offsetof(PaletteSegment, colors) == 6);
+static_assert(sizeof(PaletteSegment) == 52 and offsetof(PaletteSegment, first_register) == 2 and
+              offsetof(PaletteSegment, count) == 3 and offsetof(PaletteSegment, colors) == 4);
 static_assert(sizeof(SpriteRange) == 12 and offsetof(SpriteRange, width) == 4 and offsetof(SpriteRange, height) == 6 and
               offsetof(SpriteRange, origin_x) == 8 and offsetof(SpriteRange, origin_y) == 10);
 static_assert(sizeof(XorRun) == 12 and offsetof(XorRun, mask_first) == 4 and offsetof(XorRun, mask_count) == 8);

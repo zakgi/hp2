@@ -3,8 +3,6 @@
 #include <algorithm>
 #include <cstdint>
 
-#include "core/map_view.hpp"
-
 namespace hp2 {
 
 Highway::Highway(const EngineAssets& assets, Screen& screen, KeyEvents& keys, AudioEngine& audio, GameState& game,
@@ -15,6 +13,7 @@ Highway::Highway(const EngineAssets& assets, Screen& screen, KeyEvents& keys, Au
       audio_(audio),
       game_(game),
       mission_(Road{assets.road_map, assets.road_shapes, assets.scenery}),
+      map_view_(screen, mission_.GetRoad()),
       seeds_(seed) {}
 
 void Highway::OnEnter() {
@@ -34,8 +33,30 @@ void Highway::OnEnter() {
 }
 
 ComponentType Highway::Step(float delta_seconds) {
-  auto abandon = false;
-  ReadKeys(abandon);
+  auto next = kType;
+  const auto system_keys = ReadKeys();
+  if (system_keys.abandon) {
+    // As the original's Escape (0:bcb2): the bounty drops to 0, which ends the mission.
+    game_.end_reason = EndReason::kBountyGone;
+    mission_under_way_ = false;
+    next = ComponentType::kMissionEnd;
+  } else {
+    if (system_keys.map) {
+      phase_ = phase_ == Phase::kMap ? Phase::kDriving : Phase::kMap;
+    } else if (system_keys.pause and phase_ != Phase::kMap) {
+      phase_ = phase_ == Phase::kPaused ? Phase::kDriving : Phase::kPaused;
+    }
+    if (phase_ == Phase::kDriving) {
+      RunTicks(delta_seconds);
+    } else {
+      pending_seconds_ = 0.0F;
+    }
+    Draw();
+  }
+  return next;
+}
+
+void Highway::RunTicks(float delta_seconds) {
   pending_seconds_ += delta_seconds;
   auto ticks = 0;
   while (pending_seconds_ >= Mission::kTickSeconds and ticks < kMaxTicksPerFrame) {
@@ -45,11 +66,10 @@ ComponentType Highway::Step(float delta_seconds) {
   }
   // After a stall the rest is dropped: the game slows down instead of jumping.
   pending_seconds_ = std::min(pending_seconds_, Mission::kTickSeconds);
-  Draw();
-  return abandon ? ComponentType::kQuit : kType;
 }
 
-void Highway::ReadKeys(bool& abandon) {
+Highway::SystemKeys Highway::ReadKeys() {
+  auto system_keys = SystemKeys{};
   while (const auto event = keys_.Next()) {
     const auto pressed = event->action == KeyAction::kPress;
     switch (event->key) {
@@ -68,13 +88,20 @@ void Highway::ReadKeys(bool& abandon) {
       case Key::kSpace:
         held_.fire = pressed;
         break;
+      case Key::kP:
+        system_keys.pause = system_keys.pause or pressed;
+        break;
+      case Key::kM:
+        system_keys.map = system_keys.map or pressed;
+        break;
       case Key::kEscape:
-        abandon = abandon or pressed;
+        system_keys.abandon = system_keys.abandon or pressed;
         break;
       default:
         break;
     }
   }
+  return system_keys;
 }
 
 PlayerCommands Highway::TakeCommands() {
@@ -94,7 +121,7 @@ PlayerCommands Highway::TakeCommands() {
 
 // Until the driver's view exists, the road shows as the live map.
 void Highway::Draw() {
-  DrawMap(screen_, mission_.GetRoad(), mission_.GetPlayer().position, mission_.GetTarget().position);
+  map_view_.Draw(mission_.GetPlayer().position, mission_.GetTarget().position);
 }
 
 }  // namespace hp2

@@ -111,7 +111,8 @@ inline constexpr std::size_t kEngineSoundCount = std::to_underlying(EngineSound:
 // on the target; components receive it by reference and pick what they need.
 struct EngineAssets {
   std::array<ImageView, kEnginePictureCount> pictures;
-  std::array<PaletteProgram, kEnginePaletteCount> palettes;
+  // Each a palette list: segments in row order, the first at row 0.
+  std::array<std::span<const PaletteSegment>, kEnginePaletteCount> palettes;
   std::array<SpriteBank, kEngineBankCount> banks;
   std::array<BitmapFont, kEngineFontCount> fonts;
   std::array<SoundSample, kEngineSoundCount> sounds;
@@ -129,7 +130,7 @@ struct EngineAssets {
   [[nodiscard]] constexpr const ImageView& Picture(EnginePicture picture) const {
     return pictures[std::to_underlying(picture)];
   }
-  [[nodiscard]] constexpr PaletteProgram Palette(EnginePalette palette) const {
+  [[nodiscard]] constexpr std::span<const PaletteSegment> Palette(EnginePalette palette) const {
     return palettes[std::to_underlying(palette)];
   }
   [[nodiscard]] constexpr const SpriteBank& Bank(EngineBank bank) const { return banks[std::to_underlying(bank)]; }

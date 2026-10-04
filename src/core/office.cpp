@@ -22,7 +22,7 @@ Point Office::Pointer() const {
 void Office::OnEnter() {
   screen_.DisableSplit();
   screen_.Palette(Viewport::kUpper).Reset();
-  ShowPalette(screen_, assets_.Palette(EnginePalette::kOfficeDim), kFullBrightness);
+  screen_.ShowPalette(assets_.Palette(EnginePalette::kOfficeDim), kFullBrightness);
   phase_ = Phase::kLightsOn;
   phase_seconds_ = 0.0F;
   pointer_x_ = static_cast<float>(kPointerStart.x);
@@ -43,7 +43,7 @@ ComponentType Office::Step(float delta_seconds) {
   switch (phase_) {
     case Phase::kLightsOn:
       if (phase_seconds_ >= kLightsSeconds) {
-        ShowPalette(screen_, assets_.Palette(EnginePalette::kOffice), kFullBrightness);
+        screen_.ShowPalette(assets_.Palette(EnginePalette::kOffice), kFullBrightness);
         phase_ = Phase::kPointing;
       }
       break;
@@ -125,7 +125,7 @@ void Office::Click() {
     if (poster_ and kPosterAreas[*poster_ / 2].Contains(pointer)) {
       game_.missions_available[*poster_] = false;
       game_.mission = *poster_;
-      ShowPalette(screen_, assets_.Palette(EnginePalette::kOfficeDim), kFullBrightness);
+      screen_.ShowPalette(assets_.Palette(EnginePalette::kOfficeDim), kFullBrightness);
       phase_ = Phase::kLightsOff;
       phase_seconds_ = 0.0F;
     } else {

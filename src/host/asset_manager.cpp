@@ -19,6 +19,7 @@
 #include "host/adf.hpp"
 #include "host/format/amiga_hunk.hpp"
 #include "host/format/bob_bank.hpp"
+#include "host/format/color.hpp"
 #include "host/format/cpv.hpp"
 #include "host/format/dif.hpp"
 #include "host/format/font.hpp"
@@ -204,8 +205,9 @@ bool AssetManager::LoadPalettes() {
   for (auto index = std::size_t{0}; loaded and index < kEnginePaletteCount; ++index) {
     const auto& source = kPaletteSources[index];
     if (source.picture) {
-      auto segment = PaletteSegment{.count = kColorRegisterCount, .format = ColorFormat::kAtariSt};
-      segment.colors = picture_palettes_[std::to_underlying(*source.picture)];
+      auto segment = PaletteSegment{.count = kColorRegisterCount};
+      std::ranges::transform(picture_palettes_[std::to_underlying(*source.picture)], segment.colors.begin(),
+                             FromAtariSt);
       palettes_[index] = {segment};
     } else {
       auto list = ReadPaletteList(executable_->hunks[source.list.hunk], source.list.offset, source.format);

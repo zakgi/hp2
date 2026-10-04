@@ -8,12 +8,16 @@ Every digest is computed with hp2lib.images, independently of the port's decoder
   font N pixels   LETTRE<N>.BIN, colour indices glyph after glyph (8x8 each, row-major)
   finished rgb    the finished title: animated picture, NAME.IMG images 2 and 3, the copied 8x8
                   cell (main 0:ad06-0:add0), under the title palette list (1:28e0), RGB rows
+
+Atari ST colour words are decoded as the port decodes them (images.st_to_rgb), not through the
+original's ST-to-Amiga table.
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
@@ -34,8 +38,15 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def rgb_rows(indices: np.ndarray, rows: images.RowPalettes) -> bytes:
-    return images.render(indices, rows).convert("RGB").tobytes()
+def rgb_bytes(indices: np.ndarray, rows: Sequence[Sequence[tuple[int, int, int]]]) -> bytes:
+    """RGB bytes of `indices`, colour index i on row r taking rows[r][i]."""
+    table = np.array(rows, dtype=np.uint8)
+    return table[np.arange(indices.shape[0])[:, None], indices].tobytes()
+
+
+def st_rows(rows: Sequence[Sequence[int]]) -> list[list[tuple[int, int, int]]]:
+    """Rows of ST colour words decoded as the port decodes them (images.st_to_rgb)."""
+    return [[images.st_to_rgb(word) for word in row] for row in rows]
 
 
 def animated_title(data_dir: Path, exe: Executable) -> np.ndarray:
@@ -66,7 +77,8 @@ def main() -> None:
     exe = Executable(ns.exe)
 
     logo = images.decode_cpv((ns.data / "LOGO.CPV").read_bytes())
-    print("logo rgb", digest(images.render(logo.indices(), logo.palette).convert("RGB").tobytes()))
+    logo_rows = st_rows([logo.palette_st] * images.SCREEN_HEIGHT)
+    print("logo rgb", digest(rgb_bytes(logo.indices(), logo_rows)))
 
     for bob in images.parse_bob_bank((ns.data / "NAME.IMG").read_bytes()):
         print(f"name {bob.index} pixels {bob.width}x{bob.height}", digest(bob.indices().tobytes()))
@@ -78,8 +90,8 @@ def main() -> None:
     animated = animated_title(ns.data, exe)
     print("animated pixels", digest(animated.tobytes()))
 
-    title_rows = images.row_palettes(images.parse_palette_list(exe.read(TITLE_PALETTE, 0x100)), st=True)
-    print("finished rgb", digest(rgb_rows(finished_title(ns.data, animated), title_rows)))
+    title_rows = st_rows(images.row_palettes(images.parse_palette_list(exe.read(TITLE_PALETTE, 0x100))))
+    print("finished rgb", digest(rgb_bytes(finished_title(ns.data, animated), title_rows)))
 
 
 if __name__ == "__main__":

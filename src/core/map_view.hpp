@@ -21,10 +21,24 @@ inline constexpr auto kMapCellPixels = std::int16_t{5};
 inline constexpr auto kMapCells = std::int16_t{40};
 inline constexpr auto kMapLeft = static_cast<std::int16_t>((Screen::kWidth - (kMapCells * kMapCellPixels)) / 2);
 
-// Draws the road map from above, north up, for the map mode (M), with the player's car and the
+// The road map from above, north up, for the map mode (M), with the player's car and the
 // criminal's. At this scale the road is narrower than a pixel, so each road cell is drawn as lines
-// from its center to its open sides. Installs the map's palette over the whole screen.
-void DrawMap(Screen& screen, const Road& road, WorldPoint player, WorldPoint target);
+// from its center to its open sides.
+class MapView {
+ public:
+  MapView(Screen& screen, const Road& road) : screen_(screen), road_(road) {}
+
+  // Installs the map's palette over the whole screen and draws the map with the cars.
+  void Draw(WorldPoint player, WorldPoint target);
+
+ private:
+  // The center pixel of `cell`, and a line from it to each open side.
+  void DrawCell(Cell cell, SideMask exits);
+  void DrawMarker(WorldPoint position, std::uint8_t color);
+
+  Screen& screen_;
+  const Road& road_;
+};
 
 // The screen pixel of `point` on the map.
 [[nodiscard]] Point GetMapPixel(WorldPoint point);

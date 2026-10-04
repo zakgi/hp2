@@ -68,9 +68,6 @@ class PlayAnimation {
   float remaining_seconds_{};
 };
 
-// XORs frame `frame` of `animation` into the screen.
-void ApplyFrame(Screen& screen, const XorAnimation& animation, const XorFrame& frame);
-
 // The opening presentation (main, 0:a908-0:b05e; docs/game.md, "Program flow"): LOGO.CPV fades
 // in, PRESENT.CPV fades in under the title palette, PRESENT.DIF plays over it, NAME.IMG adds the
 // lettering, with HIGHWAY.MUS from the title's fade-in to the fade-out. Space or Enter skips to

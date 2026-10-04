@@ -14,12 +14,6 @@ constexpr auto kFadeStep = original_timing::kFadeStepSeconds;
 
 }  // namespace
 
-void ApplyFrame(Screen& screen, const XorAnimation& animation, const XorFrame& frame) {
-  for (const auto& run : animation.GetRuns(frame)) {
-    screen.XorScreen(run.offset, animation.GetMasks(run));
-  }
-}
-
 void PlayAnimation::Init() {
   step_ = 0;
   remaining_seconds_ = 0.0F;
@@ -33,7 +27,7 @@ bool PlayAnimation::Tick(float delta_seconds) {
     const auto& step = steps[step_];
     if (step.frame < animation_.frames.size()) {
       const auto& frame = animation_.frames[step.frame];
-      ApplyFrame(screen_, animation_, frame);
+      screen_.ApplyFrame(animation_, frame);
       remaining_seconds_ += original_timing::AnimationStepSeconds(frame, step.delay);
     }
     ++step_;
@@ -166,10 +160,10 @@ void Title::Finish() {
   const auto frames = assets_.title_animation.frames;
   for (const auto& step : assets_.title_animation.steps) {
     if (step.frame < frames.size()) {
-      ApplyFrame(screen_, assets_.title_animation, frames[step.frame]);
+      screen_.ApplyFrame(assets_.title_animation, frames[step.frame]);
     }
   }
-  ShowPalette(screen_, assets_.Palette(EnginePalette::kTitle), kFullBrightness);
+  screen_.ShowPalette(assets_.Palette(EnginePalette::kTitle), kFullBrightness);
   if (not audio_.MusicPlaying()) {
     audio_.PlayMusic(assets_.title_music);
   }

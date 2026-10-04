@@ -17,8 +17,8 @@ namespace hp2 {
 namespace {
 
 // Digests from scripts/reference_digests.py.
-constexpr auto kLogoRgb = "e2acdef5860ac75cd114acf5b93c82f486e7b20a0d08370b6c883e92107f4458";
-constexpr auto kFinishedRgb = "7e62575de0716ec678eba686048e066dc65efe2626ef16417f946ff1a2b274fd";
+constexpr auto kLogoRgb = "fe8dad00d4d69e51a3a2e0c1dc7c9ed1e44e1595b7791a3ab17e2fed9f174f95";
+constexpr auto kFinishedRgb = "e86067cfadd46145b43e81c43013a60c30edce91937e027eca1207198f1fb4a6";
 
 // The screen's pixels through each viewport's palette, as RGB rows.
 std::vector<std::uint8_t> ResolveRgb(const Screen& screen) {

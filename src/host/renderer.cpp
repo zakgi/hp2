@@ -38,7 +38,6 @@ void Renderer::Render(Screen& screen) {
         out[(column * kChannels) + 3] = kOpaque;
       }
     }
-    palette.ClearDirty();
   }
   texture_.update(rgba_.data());
 

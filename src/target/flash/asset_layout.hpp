@@ -20,27 +20,27 @@ struct Section {
   std::size_t count;
 };
 
-inline constexpr std::size_t kImageSize = 0x178f8c;
+inline constexpr std::size_t kImageSize = 0x179494;
 inline constexpr Digest kImageDigest =
-    Sha256FromHex("b44a738d39cf6b21d8e07c73a6de567114fc91fc393dacb49bd231716de901dc");
+    Sha256FromHex("55db2a96cc4bb71db5f86f96bc097c490900d9acd589d6f288d57e1f5e375ebc");
 
 inline constexpr Section kPicturePixels{.offset = 0x0, .count = 640000};
 inline constexpr Section kPaletteSegments{.offset = 0x9c400, .count = 92};
-inline constexpr Section kBankPixels{.offset = 0x9d1a8, .count = 531264};
-inline constexpr Section kBankSprites{.offset = 0x11ece8, .count = 253};
-inline constexpr Section kFontPixels{.offset = 0x11f8c4, .count = 12032};
-inline constexpr Section kSoundSamples{.offset = 0x1227c4, .count = 43596};
-inline constexpr Section kAnimationMasks{.offset = 0x12d210, .count = 160592};
-inline constexpr Section kAnimationRuns{.offset = 0x154560, .count = 5298};
-inline constexpr Section kAnimationFrames{.offset = 0x163db8, .count = 19};
-inline constexpr Section kAnimationSteps{.offset = 0x163e9c, .count = 27};
-inline constexpr Section kMusicSampleData{.offset = 0x163f08, .count = 58552};
-inline constexpr Section kMusicSamples{.offset = 0x1723c0, .count = 15};
-inline constexpr Section kMusicPositions{.offset = 0x172528, .count = 9};
-inline constexpr Section kMusicNotes{.offset = 0x172534, .count = 1792};
-inline constexpr Section kRoadMap{.offset = 0x174f34, .count = 4096};
-inline constexpr Section kSceneryObjects{.offset = 0x175f34, .count = 1115};
-inline constexpr Section kRoadShapePoints{.offset = 0x178ac4, .count = 306};
+inline constexpr Section kBankPixels{.offset = 0x9d6b0, .count = 531264};
+inline constexpr Section kBankSprites{.offset = 0x11f1f0, .count = 253};
+inline constexpr Section kFontPixels{.offset = 0x11fdcc, .count = 12032};
+inline constexpr Section kSoundSamples{.offset = 0x122ccc, .count = 43596};
+inline constexpr Section kAnimationMasks{.offset = 0x12d718, .count = 160592};
+inline constexpr Section kAnimationRuns{.offset = 0x154a68, .count = 5298};
+inline constexpr Section kAnimationFrames{.offset = 0x1642c0, .count = 19};
+inline constexpr Section kAnimationSteps{.offset = 0x1643a4, .count = 27};
+inline constexpr Section kMusicSampleData{.offset = 0x164410, .count = 58552};
+inline constexpr Section kMusicSamples{.offset = 0x1728c8, .count = 15};
+inline constexpr Section kMusicPositions{.offset = 0x172a30, .count = 9};
+inline constexpr Section kMusicNotes{.offset = 0x172a3c, .count = 1792};
+inline constexpr Section kRoadMap{.offset = 0x17543c, .count = 4096};
+inline constexpr Section kSceneryObjects{.offset = 0x17643c, .count = 1115};
+inline constexpr Section kRoadShapePoints{.offset = 0x178fcc, .count = 306};
 
 // Valid only once the image verified, or over a copy of assets.bin.
 [[nodiscard]] inline EngineAssets FlashAssets(std::uintptr_t base) {
@@ -59,103 +59,103 @@ inline constexpr Section kRoadShapePoints{.offset = 0x178ac4, .count = 306};
       }},
       .palettes = {{
           TableView<PaletteSegment>(base + 0x9c400, 1),
-          TableView<PaletteSegment>(base + 0x9c426, 1),
-          TableView<PaletteSegment>(base + 0x9c44c, 1),
-          TableView<PaletteSegment>(base + 0x9c472, 1),
-          TableView<PaletteSegment>(base + 0x9c498, 1),
-          TableView<PaletteSegment>(base + 0x9c4be, 1),
-          TableView<PaletteSegment>(base + 0x9c4e4, 1),
-          TableView<PaletteSegment>(base + 0x9c50a, 1),
-          TableView<PaletteSegment>(base + 0x9c530, 2),
-          TableView<PaletteSegment>(base + 0x9c57c, 1),
-          TableView<PaletteSegment>(base + 0x9c5a2, 1),
-          TableView<PaletteSegment>(base + 0x9c5c8, 2),
-          TableView<PaletteSegment>(base + 0x9c614, 39),
-          TableView<PaletteSegment>(base + 0x9cbde, 39),
+          TableView<PaletteSegment>(base + 0x9c434, 1),
+          TableView<PaletteSegment>(base + 0x9c468, 1),
+          TableView<PaletteSegment>(base + 0x9c49c, 1),
+          TableView<PaletteSegment>(base + 0x9c4d0, 1),
+          TableView<PaletteSegment>(base + 0x9c504, 1),
+          TableView<PaletteSegment>(base + 0x9c538, 1),
+          TableView<PaletteSegment>(base + 0x9c56c, 1),
+          TableView<PaletteSegment>(base + 0x9c5a0, 2),
+          TableView<PaletteSegment>(base + 0x9c608, 1),
+          TableView<PaletteSegment>(base + 0x9c63c, 1),
+          TableView<PaletteSegment>(base + 0x9c670, 2),
+          TableView<PaletteSegment>(base + 0x9c6d8, 39),
+          TableView<PaletteSegment>(base + 0x9cec4, 39),
       }},
       .banks = {{
-          {.pixels = TableView<std::uint8_t>(base + 0x9d1a8, 25360),
-           .sprites = TableView<SpriteRange>(base + 0x11ece8, 3)},
-          {.pixels = TableView<std::uint8_t>(base + 0xa34b8, 48736),
-           .sprites = TableView<SpriteRange>(base + 0x11ed0c, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xaf318, 31328),
-           .sprites = TableView<SpriteRange>(base + 0x11ed84, 8)},
-          {.pixels = TableView<std::uint8_t>(base + 0xb6d78, 9984),
-           .sprites = TableView<SpriteRange>(base + 0x11ede4, 12)},
-          {.pixels = TableView<std::uint8_t>(base + 0xb9478, 672),
-           .sprites = TableView<SpriteRange>(base + 0x11ee74, 3)},
-          {.pixels = TableView<std::uint8_t>(base + 0xb9718, 17040),
-           .sprites = TableView<SpriteRange>(base + 0x11ee98, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xbd9a8, 4272),
-           .sprites = TableView<SpriteRange>(base + 0x11ef10, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xbea58, 2784),
-           .sprites = TableView<SpriteRange>(base + 0x11ef88, 16)},
-          {.pixels = TableView<std::uint8_t>(base + 0xbf538, 38400),
-           .sprites = TableView<SpriteRange>(base + 0x11f048, 6)},
-          {.pixels = TableView<std::uint8_t>(base + 0xc8b38, 54560),
-           .sprites = TableView<SpriteRange>(base + 0x11f090, 5)},
-          {.pixels = TableView<std::uint8_t>(base + 0xd6058, 4816),
-           .sprites = TableView<SpriteRange>(base + 0x11f0cc, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xd7328, 3440),
-           .sprites = TableView<SpriteRange>(base + 0x11f144, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xd8098, 3440),
-           .sprites = TableView<SpriteRange>(base + 0x11f1bc, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xd8e08, 3440),
-           .sprites = TableView<SpriteRange>(base + 0x11f234, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xd9b78, 3440),
-           .sprites = TableView<SpriteRange>(base + 0x11f2ac, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xda8e8, 1840),
-           .sprites = TableView<SpriteRange>(base + 0x11f324, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xdb018, 4688),
-           .sprites = TableView<SpriteRange>(base + 0x11f39c, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xdc268, 4688),
-           .sprites = TableView<SpriteRange>(base + 0x11f414, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xdd4b8, 4512),
-           .sprites = TableView<SpriteRange>(base + 0x11f48c, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xde658, 8944),
-           .sprites = TableView<SpriteRange>(base + 0x11f504, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xe0948, 26560),
-           .sprites = TableView<SpriteRange>(base + 0x11f57c, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xe7108, 42064),
-           .sprites = TableView<SpriteRange>(base + 0x11f5f4, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xf1558, 52336),
-           .sprites = TableView<SpriteRange>(base + 0x11f66c, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0xfe1c8, 42720),
-           .sprites = TableView<SpriteRange>(base + 0x11f6e4, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0x1088a8, 34576),
-           .sprites = TableView<SpriteRange>(base + 0x11f75c, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0x110fb8, 30064),
-           .sprites = TableView<SpriteRange>(base + 0x11f7d4, 10)},
-          {.pixels = TableView<std::uint8_t>(base + 0x118528, 26560),
-           .sprites = TableView<SpriteRange>(base + 0x11f84c, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0x9d6b0, 25360),
+           .sprites = TableView<SpriteRange>(base + 0x11f1f0, 3)},
+          {.pixels = TableView<std::uint8_t>(base + 0xa39c0, 48736),
+           .sprites = TableView<SpriteRange>(base + 0x11f214, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xaf820, 31328),
+           .sprites = TableView<SpriteRange>(base + 0x11f28c, 8)},
+          {.pixels = TableView<std::uint8_t>(base + 0xb7280, 9984),
+           .sprites = TableView<SpriteRange>(base + 0x11f2ec, 12)},
+          {.pixels = TableView<std::uint8_t>(base + 0xb9980, 672),
+           .sprites = TableView<SpriteRange>(base + 0x11f37c, 3)},
+          {.pixels = TableView<std::uint8_t>(base + 0xb9c20, 17040),
+           .sprites = TableView<SpriteRange>(base + 0x11f3a0, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xbdeb0, 4272),
+           .sprites = TableView<SpriteRange>(base + 0x11f418, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xbef60, 2784),
+           .sprites = TableView<SpriteRange>(base + 0x11f490, 16)},
+          {.pixels = TableView<std::uint8_t>(base + 0xbfa40, 38400),
+           .sprites = TableView<SpriteRange>(base + 0x11f550, 6)},
+          {.pixels = TableView<std::uint8_t>(base + 0xc9040, 54560),
+           .sprites = TableView<SpriteRange>(base + 0x11f598, 5)},
+          {.pixels = TableView<std::uint8_t>(base + 0xd6560, 4816),
+           .sprites = TableView<SpriteRange>(base + 0x11f5d4, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xd7830, 3440),
+           .sprites = TableView<SpriteRange>(base + 0x11f64c, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xd85a0, 3440),
+           .sprites = TableView<SpriteRange>(base + 0x11f6c4, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xd9310, 3440),
+           .sprites = TableView<SpriteRange>(base + 0x11f73c, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xda080, 3440),
+           .sprites = TableView<SpriteRange>(base + 0x11f7b4, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xdadf0, 1840),
+           .sprites = TableView<SpriteRange>(base + 0x11f82c, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xdb520, 4688),
+           .sprites = TableView<SpriteRange>(base + 0x11f8a4, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xdc770, 4688),
+           .sprites = TableView<SpriteRange>(base + 0x11f91c, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xdd9c0, 4512),
+           .sprites = TableView<SpriteRange>(base + 0x11f994, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xdeb60, 8944),
+           .sprites = TableView<SpriteRange>(base + 0x11fa0c, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xe0e50, 26560),
+           .sprites = TableView<SpriteRange>(base + 0x11fa84, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xe7610, 42064),
+           .sprites = TableView<SpriteRange>(base + 0x11fafc, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xf1a60, 52336),
+           .sprites = TableView<SpriteRange>(base + 0x11fb74, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0xfe6d0, 42720),
+           .sprites = TableView<SpriteRange>(base + 0x11fbec, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0x108db0, 34576),
+           .sprites = TableView<SpriteRange>(base + 0x11fc64, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0x1114c0, 30064),
+           .sprites = TableView<SpriteRange>(base + 0x11fcdc, 10)},
+          {.pixels = TableView<std::uint8_t>(base + 0x118a30, 26560),
+           .sprites = TableView<SpriteRange>(base + 0x11fd54, 10)},
       }},
       .fonts = {{
-          {.pixels = TableView<std::uint8_t>(base + 0x11f8c4, 6016)},
-          {.pixels = TableView<std::uint8_t>(base + 0x121044, 6016)},
+          {.pixels = TableView<std::uint8_t>(base + 0x11fdcc, 6016)},
+          {.pixels = TableView<std::uint8_t>(base + 0x12154c, 6016)},
       }},
       .sounds = {{
-          {.samples = TableView<std::int8_t>(base + 0x1227c4, 596),
+          {.samples = TableView<std::int8_t>(base + 0x122ccc, 596),
            .rate_hz = 6628, .loop_start = 0, .loop_length = 596},
-          {.samples = TableView<std::int8_t>(base + 0x122a18, 23830),
+          {.samples = TableView<std::int8_t>(base + 0x122f20, 23830),
            .rate_hz = 4143, .loop_start = 0, .loop_length = 23830},
-          {.samples = TableView<std::int8_t>(base + 0x12872e, 7964),
+          {.samples = TableView<std::int8_t>(base + 0x128c36, 7964),
            .rate_hz = 8383, .loop_start = 0, .loop_length = 0},
-          {.samples = TableView<std::int8_t>(base + 0x12a64a, 7196),
+          {.samples = TableView<std::int8_t>(base + 0x12ab52, 7196),
            .rate_hz = 3977, .loop_start = 0, .loop_length = 0},
-          {.samples = TableView<std::int8_t>(base + 0x12c266, 4010),
+          {.samples = TableView<std::int8_t>(base + 0x12c76e, 4010),
            .rate_hz = 5593, .loop_start = 0, .loop_length = 0},
       }},
-      .title_animation = {.masks = TableView<std::uint8_t>(base + 0x12d210, 160592),
-                          .runs = TableView<XorRun>(base + 0x154560, 5298),
-                          .frames = TableView<XorFrame>(base + 0x163db8, 19),
-                          .steps = TableView<AnimationStep>(base + 0x163e9c, 27)},
-      .title_music = {.sample_data = TableView<std::int8_t>(base + 0x163f08, 58552),
-                      .samples = TableView<ModuleSample>(base + 0x1723c0, 15),
-                      .positions = TableView<std::uint8_t>(base + 0x172528, 9),
-                      .notes = TableView<ModuleNote>(base + 0x172534, 1792),
+      .title_animation = {.masks = TableView<std::uint8_t>(base + 0x12d718, 160592),
+                          .runs = TableView<XorRun>(base + 0x154a68, 5298),
+                          .frames = TableView<XorFrame>(base + 0x1642c0, 19),
+                          .steps = TableView<AnimationStep>(base + 0x1643a4, 27)},
+      .title_music = {.sample_data = TableView<std::int8_t>(base + 0x164410, 58552),
+                      .samples = TableView<ModuleSample>(base + 0x1728c8, 15),
+                      .positions = TableView<std::uint8_t>(base + 0x172a30, 9),
+                      .notes = TableView<ModuleNote>(base + 0x172a3c, 1792),
                       .timer = 0x3199},
-      .road_map = {.cells = TableView<std::uint8_t>(base + 0x174f34, 4096)},
-      .scenery = {.objects = TableView<PlacedObject>(base + 0x175f34, 1115),
+      .road_map = {.cells = TableView<std::uint8_t>(base + 0x17543c, 4096)},
+      .scenery = {.objects = TableView<PlacedObject>(base + 0x17643c, 1115),
                   .cell_types = {{
                       {.first = 0, .count = 80},
                       {.first = 80, .count = 80},
@@ -171,7 +171,7 @@ inline constexpr Section kRoadShapePoints{.offset = 0x178ac4, .count = 306};
                       {.first = 901, .count = 107},
                       {.first = 1008, .count = 107},
                   }}},
-      .road_shapes = {.points = TableView<ShapePoint>(base + 0x178ac4, 306),
+      .road_shapes = {.points = TableView<ShapePoint>(base + 0x178fcc, 306),
                       .cell_types = {{
                           {.first = 0, .count = 0},
                           {.first = 0, .count = 7},

@@ -11,7 +11,7 @@ namespace hp2 {
 void Station::OnEnter() {
   screen_.DisableSplit();
   screen_.Palette(Viewport::kUpper).Reset();
-  ShowPalette(screen_, assets_.Palette(EnginePalette::kStation), kFullBrightness);
+  screen_.ShowPalette(assets_.Palette(EnginePalette::kStation), kFullBrightness);
   cursor_ = Item::kExit;
   fill_up_used_ = false;
   repair_used_ = false;

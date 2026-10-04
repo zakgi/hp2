@@ -157,6 +157,7 @@ if(HP2_BUILD_TESTS)
     test/core/action_stack_test.cpp
     test/core/audio_engine_test.cpp
     test/core/component_test.cpp
+    test/core/highway_test.cpp
     test/core/key_events_test.cpp
     test/core/map_view_test.cpp
     test/core/mission_test.cpp
@@ -172,6 +173,7 @@ if(HP2_BUILD_TESTS)
     test/core/voice_test.cpp
     test/format/amiga_hunk_test.cpp
     test/format/bob_bank_test.cpp
+    test/format/color_test.cpp
     test/format/cpv_test.cpp
     test/format/dif_test.cpp
     test/format/font_test.cpp

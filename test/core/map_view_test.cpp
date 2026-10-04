@@ -40,7 +40,8 @@ TEST_F(MapViewTest, DrawsRoadsDesertAndTheCars) {
   const auto road = Road{assets.road_map, assets.road_shapes, assets.scenery};
   const auto player = Middle(Cell{.x = 20, .y = 20});
   const auto target = Middle(Cell{.x = 30, .y = 30});
-  DrawMap(screen_, road, player, target);
+  auto map_view = MapView{screen_, road};
+  map_view.Draw(player, target);
 
   // The north-south straight at (13, 2): road down its middle column, desert beside it.
   const auto straight = GetMapPixel(Middle(Cell{.x = 13, .y = 2}));
@@ -55,7 +56,7 @@ TEST_F(MapViewTest, DrawsRoadsDesertAndTheCars) {
   EXPECT_EQ(GetPixel(Point{.x = 10, .y = 100}), kMapBlack);
   EXPECT_EQ(GetPixel(GetMapPixel(player)), kMapPlayer);
   EXPECT_EQ(GetPixel(GetMapPixel(target)), kMapTarget);
-  EXPECT_EQ(screen_.Palette(Viewport::kUpper).Color(kMapTarget), FromAmiga(0xf00));
+  EXPECT_EQ(screen_.Palette(Viewport::kUpper).Color(kMapTarget), (Rgb{.red = 0xff, .green = 0x00, .blue = 0x00}));
 }
 
 }  // namespace

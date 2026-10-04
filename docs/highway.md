@@ -103,6 +103,8 @@ Shooting no longer tests the sprite last drawn: the sight is a direction from th
 - **Map**: M pauses the game and shows the road map from above with the player's car and the criminal's; M again returns to the road. Blinking markers can come later. Built (`map_view.cpp`). Until the driver's view exists, `Highway` shows it live while driving.
 - **Dashboard clock**: the digital clock right of the gauges has 13:24 painted into DES_TABB image 4. The port clears it and draws a running time in matching red segments: the mission time (`Mission::GetTick()` times `kTickSeconds`, minutes and seconds), *provisional*.
 
+Built: the held keys, the fixed ticks, pause (P), the map (M) and abandoning (Escape); the station stop, the endings from play and the spin-out picture are not.
+
 ## Storage
 
 Fixed arrays only. `Mission` is a value: copying it snapshots a mission (tests, replays). The largest parts are the route fields, 8 KB each: one per computer driver and two the policies share, 56 KB in all.

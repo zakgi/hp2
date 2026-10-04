@@ -4,9 +4,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string_view>
 
+#include "core/bitmap_font.hpp"
 #include "core/image_view.hpp"
 #include "core/palette.hpp"
+#include "core/xor_animation.hpp"
 
 namespace hp2 {
 
@@ -59,6 +62,9 @@ class Screen {
   void Blit(const ImageView& image, Point origin, std::uint8_t index_offset = 0);
   // Like Blit, leaving the pixels where `image` has index 0 (a masked bob, BlitBob 1:001c).
   void BlitMasked(const ImageView& image, Point origin, std::uint8_t index_offset = 0);
+  // Draws `text` in `font` from `origin` on, in the selected viewport, glyphs opaque (DrawString,
+  // 0:0c9c); a character the font lacks is skipped but takes its place.
+  void DrawText(const BitmapFont& font, std::string_view text, Point origin);
   // Copies the `width` x `height` pixels at `source` to `destination`, both in the selected
   // viewport; the parts outside it are skipped. The areas may overlap.
   void Copy(Point source, Point destination, std::uint16_t width, std::uint16_t height);
@@ -71,6 +77,17 @@ class Screen {
   // XORs the pixels from screen pixel `offset` (row * kWidth + x) on with `masks`, whatever the
   // viewports; the part past the last pixel is skipped.
   void XorScreen(std::uint32_t offset, std::span<const std::uint8_t> masks);
+  // XORs frame `frame` of `animation` into the screen.
+  void ApplyFrame(const XorAnimation& animation, const XorFrame& frame);
+
+  // Shows `segments` at fade `level`: each viewport takes the segments in effect on its first row.
+  // Segments starting inside a viewport would need palette entries of their own; the screens' lists
+  // have none.
+  void ShowPalette(std::span<const PaletteSegment> segments, std::uint8_t level);
+  // Calls `draw(origin)` once per viewport with `origin`, given in screen coordinates, moved into the
+  // viewport's; each viewport clips its share.
+  template <typename Draw>
+  void DrawAcrossViewports(Point origin, Draw draw);
 
   [[nodiscard]] ScreenPalette& Palette(Viewport viewport) { return palettes_[Index(viewport)]; }
   [[nodiscard]] const ScreenPalette& Palette(Viewport viewport) const { return palettes_[Index(viewport)]; }
@@ -86,5 +103,15 @@ class Screen {
   std::uint16_t split_row_{};  // 0: no split
   Viewport selected_{Viewport::kUpper};
 };
+
+template <typename Draw>
+void Screen::DrawAcrossViewports(Point origin, Draw draw) {
+  for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
+    if (Rows(viewport) > 0) {
+      SetViewport(viewport);
+      draw(Point{.x = origin.x, .y = static_cast<std::int16_t>(origin.y - FirstRow(viewport))});
+    }
+  }
+}
 
 }  // namespace hp2

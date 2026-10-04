@@ -34,12 +34,11 @@ std::expected<std::vector<PaletteSegment>, PaletteListError> ReadPaletteList(con
     } else {
       auto segment = PaletteSegment{.first_row = static_cast<std::uint16_t>(row),
                                     .first_register = static_cast<std::uint8_t>(*first),
-                                    .count = static_cast<std::uint8_t>(*count),
-                                    .format = format};
+                                    .count = static_cast<std::uint8_t>(*count)};
       for (auto index = std::uint32_t{0}; index < *count and result; ++index) {
         const auto color = hunk.Read<std::uint16_t>(offset + kSegmentHeaderBytes + (2 * index));
         if (color) {
-          segment.colors[index] = *color;
+          segment.colors[index] = FromColorWord(*color, format);
         } else {
           result = std::unexpected{PaletteListError::kOutOfHunk};
         }
