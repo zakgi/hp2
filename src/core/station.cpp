@@ -1,17 +1,14 @@
 #include "core/station.hpp"
 
 #include <cstddef>
-#include <cstdint>
 #include <utility>
-
-#include "core/presentation.hpp"
 
 namespace hp2 {
 
 void Station::OnEnter() {
   screen_.DisableSplit();
   screen_.Palette(Viewport::kUpper).Reset();
-  screen_.ShowPalette(assets_.Palette(EnginePalette::kStation), kFullBrightness);
+  screen_.ShowPalette(assets_.Palette(EnginePalette::kStation));
   cursor_ = Item::kExit;
   fill_up_used_ = false;
   repair_used_ = false;
@@ -78,19 +75,19 @@ void Station::Compose() {
   const auto& bank = assets_.Bank(EngineBank::kStation);
   screen_.Blit(assets_.Picture(EnginePicture::kStation), Point{});
   if (game_.station_robbed) {
-    screen_.Blit(bank.GetImage(kRobbedAttendantImage), kRobbedAttendantAt);
+    screen_.Blit(bank.GetImage(kRobbedAttendantImage), kRobbedAttendantPosition);
   } else {
-    screen_.Blit(bank.GetImage(kAttendantImage), kAttendantAt);
+    screen_.Blit(bank.GetImage(kAttendantImage), kAttendantPosition);
   }
-  screen_.BlitMasked(bank.GetImage(kPanelImage), kPanelAt);
+  screen_.BlitMasked(bank.GetImage(kPanelImage), kPanelPosition);
   const auto item_image = [this](Item item, std::size_t image, std::size_t grey_image) {
     return Available(item) ? image : grey_image;
   };
   screen_.BlitMasked(bank.GetImage(item_image(Item::kFillUp, kFillUpImage, kFillUpGrayImage)),
-                     kItemsAt[std::to_underlying(Item::kFillUp)]);
+                     kItemPositions[std::to_underlying(Item::kFillUp)]);
   screen_.BlitMasked(bank.GetImage(item_image(Item::kRepairTire, kRepairTireImage, kRepairTireGrayImage)),
-                     kItemsAt[std::to_underlying(Item::kRepairTire)]);
-  screen_.BlitMasked(bank.GetImage(kExitImage), kItemsAt[std::to_underlying(Item::kExit)]);
+                     kItemPositions[std::to_underlying(Item::kRepairTire)]);
+  screen_.BlitMasked(bank.GetImage(kExitImage), kItemPositions[std::to_underlying(Item::kExit)]);
   for (const auto& line : kCursorLines[std::to_underlying(cursor_)]) {
     screen_.DrawHorizontalLine(line.left, line.right, line.row, kCursorColor);
   }

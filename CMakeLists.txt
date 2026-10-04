@@ -165,6 +165,7 @@ if(HP2_BUILD_TESTS)
     test/core/music_player_test.cpp
     test/core/office_test.cpp
     test/core/palette_test.cpp
+    test/core/presentation_test.cpp
     test/core/road_test.cpp
     test/core/screen_test.cpp
     test/core/station_test.cpp

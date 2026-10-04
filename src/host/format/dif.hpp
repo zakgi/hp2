@@ -35,7 +35,7 @@ struct DifFrame {
 // reads it: long frame count, long offsets[count] from the file start, then per frame repeated
 // {word count (0 = end), word byte offset, word xor[count]} into an Atari ST low-res screen. Each
 // run is converted from plane words (4 interleaved per 16 pixels, 160 bytes a row) to pixel masks;
-// XORing plane bits is XORing colour index bits, so the masks apply to pixels directly.
+// XORing plane bits is XORing color index bits, so the masks apply to pixels directly.
 [[nodiscard]] std::expected<std::vector<DifFrame>, DifError> DecodeDif(std::span<const std::uint8_t> file);
 
 enum class PlayListError : std::uint8_t {

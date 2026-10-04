@@ -33,7 +33,7 @@ std::size_t PlanarOffset(std::size_t index) {
   return (plane * kPlaneBytes) + (row * kRowBytes) + column;
 }
 
-// Four 8000-byte planes (40 bytes a row) to one colour index per pixel.
+// Four 8000-byte planes (40 bytes a row) to one color index per pixel.
 std::vector<std::uint8_t> PlanesToPixels(std::span<const std::uint8_t> planes) {
   auto pixels = std::vector<std::uint8_t>(std::size_t{CpvPicture::kWidth} * CpvPicture::kHeight);
   for (auto plane = std::size_t{0}; plane < kPlaneCount; ++plane) {

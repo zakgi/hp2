@@ -91,22 +91,22 @@ void Screen::ApplyFrame(const XorAnimation& animation, const XorFrame& frame) {
   }
 }
 
-void Screen::ShowPalette(std::span<const PaletteSegment> segments, std::uint8_t level) {
+void Screen::ShowPalette(std::span<const PaletteSegment> segments) {
   for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
     auto& palette = Palette(viewport);
     for (const auto& segment : segments) {
       if (segment.first_row <= FirstRow(viewport)) {
-        palette.Overlay(segment, level);
+        palette.Overlay(segment);
       }
     }
   }
 }
 
-void Screen::DrawText(const BitmapFont& font, std::string_view text, Point origin) {
+void Screen::DrawText(const BitmapFont& font, std::string_view text, Point origin, std::uint8_t index_offset) {
   for (const auto character : text) {
     const auto glyph = font.GetGlyph(character);
     if (not glyph.pixels.empty()) {
-      Blit(glyph, origin);
+      Blit(glyph, origin, index_offset);
     }
     origin.x = static_cast<std::int16_t>(origin.x + BitmapFont::kGlyphSize);
   }

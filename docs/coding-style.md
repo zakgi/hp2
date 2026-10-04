@@ -21,7 +21,7 @@ Highway Patrol II is a native, multiplatform C++23 port of the 1990 Amiga game (
 
 Descriptive names of at least three characters for variables, parameters and fields (`index`, `offset`, `count`); type names and enumerators are exempt. Include units when the type does not carry them: `delta_seconds`, `size_bytes`. Distinguish file offsets and hunk offsets.
 
-Synchronous operations use direct verbs: `Load`, `Decode`, `Read`, `Render`. `On...` is reserved for callbacks (and the component hooks `OnEnter`/`OnExit`). Function and method names do not end in prepositions such as `At` or `Of`: `GetNote(index)`, `GetVoice(index)`, not `NoteAt`, `VoiceOf`.
+Synchronous operations use direct verbs: `Load`, `Decode`, `Read`, `Render`. `On...` is reserved for callbacks (and the component hooks `OnEnter`/`OnExit`). Names do not end in prepositions such as `At` or `Of`: `GetNote(index)`, `GetVoice(index)`, not `NoteAt`, `VoiceOf`.
 
 ## Declarations
 
@@ -43,13 +43,13 @@ Synchronous operations use direct verbs: `Load`, `Decode`, `Read`, `Render`. `On
 
 - The original is big-endian 68000 code. Read file and executable fields with the explicit big-endian helpers (`host/format/endian.hpp`) into native integers; do not overlay structs on file bytes.
 - Fixed-width integer types for file fields and for arithmetic whose width affects behaviour; `std::size_t` for host buffer sizes. `enum class` with an explicit underlying type.
-- Decode once, in the host loader, which owns the layout knowledge (offsets, plane order, compression). Engine-facing types present the data the way a modern engine uses it: one colour index per pixel instead of bitplanes, spans and plain integers instead of planar buffers and segment pointers. Do not carry the original's buffer sizes or memory tricks into engine types.
+- Decode once, in the host loader, which owns the layout knowledge (offsets, plane order, compression). Engine-facing types present the data the way a modern engine uses it: one color index per pixel instead of bitplanes, spans and plain integers instead of planar buffers and segment pointers. Do not carry the original's buffer sizes or memory tricks into engine types.
 - Validate lengths, counts, offsets and arithmetic before access. Unknown fields stay explicitly unknown until evidence supports a meaning.
 - Where original behaviour depends on 16-bit wrap-around, sign extension or discrete transitions, express it with defined C++ operations and cite the routine (`DecodeCpv`, `0:0f6c`).
 
 ## Display model
 
-The original draws 4 bitplanes and changes colours down the screen with the copper. The port draws 8-bit pixels (palette indices) into a `Screen` that is one viewport, or two once split at a row; each viewport has its own 256-colour palette. A screen splits where its second full palette starts (the title picture, the dashboard); colour changes inside a viewport (the sky gradient, the ground haze) are separate entries of that viewport's palette. The host `Renderer` resolves pixels through the palettes; the core never sees RGBA.
+The original draws 4 bitplanes and changes colors down the screen with the copper. The port draws 8-bit pixels (palette indices) into a `Screen` that is one viewport, or two once split at a row; each viewport has its own 256-color palette. A screen splits where its second full palette starts (the title picture, the dashboard); color changes inside a viewport (the sky gradient, the ground haze) are separate entries of that viewport's palette. The host `Renderer` resolves pixels through the palettes; the core never sees RGBA.
 
 ## Errors and core boundaries
 

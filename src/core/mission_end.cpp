@@ -111,7 +111,6 @@ ComponentType MissionEnd::Step(float delta_seconds) {
 
 void MissionEnd::Enter(Stage stage) {
   stage_ = stage;
-  const auto score_palette = assets_.Palette(EnginePalette::kScore);
   switch (stage) {
     case Stage::kPicture: {
       const auto palette = assets_.Palette(*ending_.palette);
@@ -119,19 +118,19 @@ void MissionEnd::Enter(Stage stage) {
       screen_.Palette(Viewport::kUpper).Reset();
       screen_.Clear(0);
       screen_.Blit(assets_.Picture(*ending_.picture), Point{});
-      std::ignore = actions_.Push<PaletteFade>(screen_, palette, kDarkest, kFullBrightness, kFadeStepSeconds);
+      screen_.ShowPalette(palette);
+      std::ignore = actions_.Push<Fade>(screen_, 0.0F, 1.0F, kFadeSeconds);
       break;
     }
     case Stage::kPictureOut:
-      std::ignore = actions_.Push<PaletteFade>(screen_, assets_.Palette(*ending_.palette), kFullBrightness, kDarkest,
-                                               kFadeStepSeconds);
+      std::ignore = actions_.Push<Fade>(screen_, 1.0F, 0.0F, kFadeSeconds);
       break;
     case Stage::kScore:
       ComposeScore();
-      std::ignore = actions_.Push<PaletteFade>(screen_, score_palette, kDarkest, kFullBrightness, kFadeStepSeconds);
+      std::ignore = actions_.Push<Fade>(screen_, 0.0F, 1.0F, kFadeSeconds);
       break;
     case Stage::kScoreOut:
-      std::ignore = actions_.Push<PaletteFade>(screen_, score_palette, kFullBrightness, kDarkest, kFadeStepSeconds);
+      std::ignore = actions_.Push<Fade>(screen_, 1.0F, 0.0F, kFadeSeconds);
       break;
     case Stage::kPictureShown:
     case Stage::kScoreShown:
@@ -140,35 +139,33 @@ void MissionEnd::Enter(Stage stage) {
   }
 }
 
-// The score screen's palette changes at row 168, so the screen splits there.
 void MissionEnd::ComposeScore() {
-  const auto palette = assets_.Palette(EnginePalette::kScore);
-  screen_.EnableSplit(palette.size() > 1 ? palette[1].first_row : std::uint16_t{0});
-  for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
-    screen_.Palette(viewport).Reset();
-    screen_.SetViewport(viewport);
-    screen_.Clear(0);
+  const auto segments = assets_.Palette(EnginePalette::kScore);
+  auto& palette = screen_.Palette(Viewport::kUpper);
+  screen_.DisableSplit();
+  palette.Reset();
+  if (segments.size() > 1) {
+    palette.Overlay(segments[0]);
+    palette.Overlay(segments[1], kTextIndexOffset);
   }
+  screen_.Clear(0);
   const auto& bank = assets_.Bank(EngineBank::kScore);
   if (ending_.game_over) {
-    screen_.DrawAcrossViewports(kGameOverAt,
-                                [&](Point origin) { screen_.BlitMasked(bank.GetImage(kGameOverImage), origin); });
+    screen_.BlitMasked(bank.GetImage(kGameOverImage), kGameOverPosition);
   }
-  screen_.DrawAcrossViewports(kScoreLabelAt,
-                              [&](Point origin) { screen_.BlitMasked(bank.GetImage(kScoreLabelImage), origin); });
+  screen_.BlitMasked(bank.GetImage(kScoreLabelImage), kScoreLabelPosition);
   auto value = game_.score % kScoreModulus;
   for (auto place = kScoreDigits; place > 0; --place) {
     const auto digit = value % kDecimalBase;
     value /= kDecimalBase;
-    const auto digit_at =
-        Point{.x = static_cast<std::int16_t>(kFirstDigitAt.x + (kDigitAdvance * (place - 1))), .y = kFirstDigitAt.y};
-    screen_.DrawAcrossViewports(
-        digit_at, [&](Point origin) { screen_.BlitMasked(bank.GetImage(kFirstDigitImage + digit), origin); });
+    const auto digit_position =
+        Point{.x = static_cast<std::int16_t>(kFirstDigitPosition.x + (kDigitAdvance * (place - 1))),
+              .y = kFirstDigitPosition.y};
+    screen_.BlitMasked(bank.GetImage(kFirstDigitImage + digit), digit_position);
   }
   if (not ending_.text.empty()) {
     const auto& font = assets_.Font(EngineFont::kLettre1);
-    screen_.DrawAcrossViewports(TextCell(ending_.text_cell.x, ending_.text_cell.y),
-                                [&](Point origin) { screen_.DrawText(font, ending_.text, origin); });
+    screen_.DrawText(font, ending_.text, TextCell(ending_.text_cell.x, ending_.text_cell.y), kTextIndexOffset);
   }
 }
 

@@ -45,7 +45,7 @@ class Office {
   static constexpr std::size_t kDrawerCount = 3;
   // Clicks count only over the desk.
   static constexpr Area kDesk{.left = 20, .top = 0, .right = 130, .bottom = 140};
-  // A drawer is found by the colour of the picture under the pointer.
+  // A drawer is found by the color of the picture under the pointer.
   static constexpr auto kDrawerColors = std::to_array<std::uint8_t>({11, 12, 4});
   static constexpr auto kPosterSlides = std::to_array<PosterSlide>({
       {.x = 48, .open_y = 48, .closed_y = 138, .clip_bottom = 138},

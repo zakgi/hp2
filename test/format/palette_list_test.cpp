@@ -21,7 +21,7 @@ TEST(PaletteList, ReadsTheGamesLists) {
   const auto& code = hunks->hunks[0];
   const auto& data = hunks->hunks[1];
 
-  // titlePalette (1:28e0): ST colours, sky rows 0-35, PRESENT.CPV's colours from row 36.
+  // titlePalette (1:28e0): ST colors, sky rows 0-35, PRESENT.CPV's colors from row 36.
   const auto title = ReadPaletteList(data, 0x28e0, ColorFormat::kAtariSt);
   ASSERT_TRUE(title.has_value());
   ASSERT_EQ(title->size(), 2U);

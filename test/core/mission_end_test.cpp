@@ -2,6 +2,9 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
+#include <span>
+
 #include "assets.hpp"
 #include "core/game_state.hpp"
 #include "core/key_events.hpp"
@@ -31,6 +34,13 @@ class MissionEndTest : public ::testing::Test {
     return end_.Step(0.0F);
   }
 
+  // Whether the score palette shows: its second segment in the text's entries.
+  [[nodiscard]] bool ShowsTheScorePalette() {
+    const auto& segment = manager_.Engine().Palette(EnginePalette::kScore)[1];
+    const auto shown = screen_.Palette(Viewport::kUpper).Colors().subspan(MissionEnd::kTextIndexOffset, segment.count);
+    return std::ranges::equal(shown, std::span{segment.colors}.first(segment.count));
+  }
+
   host::AssetManager manager_;
   Screen screen_;
   KeyEvents keys_;
@@ -41,11 +51,11 @@ class MissionEndTest : public ::testing::Test {
 TEST_F(MissionEndTest, AnArrestKeepsTheScoreAndTheCareer) {
   game_.end_reason = EndReason::kArrest;
   end_.OnEnter();
-  EXPECT_EQ(screen_.SplitRow(), 0);  // the arrest picture
   EXPECT_EQ(FadeThenPress(), ComponentType::kMissionEnd);
+  EXPECT_FALSE(ShowsTheScorePalette());                    // the arrest picture
   EXPECT_EQ(end_.Step(1.0F), ComponentType::kMissionEnd);  // the picture fades out
   EXPECT_EQ(FadeThenPress(), ComponentType::kMissionEnd);  // the score screen
-  EXPECT_EQ(screen_.SplitRow(), 168);
+  EXPECT_TRUE(ShowsTheScorePalette());
   EXPECT_EQ(end_.Step(1.0F), ComponentType::kMissionEnd);
   EXPECT_EQ(end_.Step(0.0F), ComponentType::kOffice);
   EXPECT_EQ(game_.score, 12'345U);
@@ -56,9 +66,9 @@ TEST_F(MissionEndTest, AnArrestKeepsTheScoreAndTheCareer) {
 TEST_F(MissionEndTest, AFailureStartsANewCareer) {
   game_.end_reason = EndReason::kShot;
   end_.OnEnter();
-  EXPECT_EQ(screen_.SplitRow(), 168);  // no picture: the score screen at once
   EXPECT_EQ(game_.score, 0U);
   EXPECT_EQ(FadeThenPress(), ComponentType::kMissionEnd);
+  EXPECT_TRUE(ShowsTheScorePalette());  // no picture: the score screen at once
   EXPECT_EQ(end_.Step(1.0F), ComponentType::kMissionEnd);
   EXPECT_EQ(end_.Step(0.0F), ComponentType::kOffice);
   EXPECT_EQ(game_.MissionsLeft(), kMissionCount);

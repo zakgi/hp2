@@ -1,10 +1,11 @@
 #pragma once
 
-// Pieces the screens share: showing a palette list at a fade level, and the actions that time
-// them (core/action_stack.hpp).
+// Pieces the screens share: where text goes, and the actions that time them
+// (core/action_stack.hpp).
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
-#include <span>
 
 #include "core/bitmap_font.hpp"
 #include "core/palette.hpp"
@@ -12,8 +13,8 @@
 
 namespace hp2 {
 
-inline constexpr auto kDarkest = static_cast<std::uint8_t>(kFadeLevels - 1);
-inline constexpr auto kFullBrightness = std::uint8_t{0};
+// How long a fade in or out takes.
+inline constexpr auto kFadeSeconds = 0.5F;
 
 // The top-left pixel of character cell (column, row): the original places text on an 8 x 8 grid.
 [[nodiscard]] constexpr Point TextCell(std::int16_t column, std::int16_t row) {
@@ -37,29 +38,40 @@ class Hold {
   float remaining_seconds_{};
 };
 
-// FadePaletteList (0:0d06) stepped from `first_level` to `last_level`, one level every
-// `step_seconds`, the first level shown at once and a step's wait after the last.
-class PaletteFade {
+// Moves the screen's palette from `start` to `end` brightness over `seconds`, eased so it starts and
+// ends gently: fade in 0 to 1, fade out 1 to 0. Full brightness is the palette as it is when the fade
+// is made, and the fade shows `start` from then on, so a fade in is black before its first frame.
+class Fade {
  public:
-  PaletteFade(Screen& screen, std::span<const PaletteSegment> segments, std::uint8_t first_level,
-              std::uint8_t last_level, float step_seconds)
-      : screen_(screen),
-        segments_(segments),
-        first_level_(first_level),
-        last_level_(last_level),
-        step_seconds_(step_seconds) {}
+  Fade(Screen& screen, float start, float end, float seconds)
+      : palette_(screen.Palette(Viewport::kUpper)), colors_(palette_), start_(start), end_(end), seconds_(seconds) {
+    Show(start_);
+  }
 
-  void Init();
-  bool Tick(float delta_seconds);
+  void Init() { elapsed_ = 0.0F; }
+  bool Tick(float delta_seconds) {
+    elapsed_ = std::min(elapsed_ + delta_seconds, seconds_);
+    const auto progress = seconds_ > 0.0F ? elapsed_ / seconds_ : 1.0F;
+    const auto eased = progress * progress * (3.0F - (2.0F * progress));
+    Show(start_ + ((end_ - start_) * eased));
+    return elapsed_ >= seconds_;
+  }
 
  private:
-  Screen& screen_;
-  std::span<const PaletteSegment> segments_;
-  std::uint8_t first_level_;
-  std::uint8_t last_level_;
-  float step_seconds_;
-  std::uint8_t level_{};
-  float remaining_seconds_{};
+  // Sets every entry to its full-brightness color scaled by `brightness`.
+  void Show(float brightness) {
+    for (auto index = std::size_t{0}; index < ScreenPalette::kColorCount; ++index) {
+      const auto entry = static_cast<std::uint8_t>(index);
+      palette_.SetColor(entry, ScaleColor(colors_.Color(entry), brightness));
+    }
+  }
+
+  ScreenPalette& palette_;
+  ScreenPalette colors_;
+  float start_;
+  float end_;
+  float seconds_;
+  float elapsed_{};
 };
 
 }  // namespace hp2

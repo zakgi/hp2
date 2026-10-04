@@ -258,7 +258,7 @@ def concatenated(parts: Iterable[bytes]) -> bytes:
 
 
 def pack_pictures(image: Image, game: Game, layout: Layout) -> list[tuple[int, ...]]:
-    """Every picture as colour indices; returns the header palettes."""
+    """Every picture as color indices; returns the header palettes."""
     pixels = bytearray()
     headers: list[tuple[int, ...]] = []
     for name in PICTURES:
@@ -272,7 +272,7 @@ def pack_pictures(image: Image, game: Game, layout: Layout) -> list[tuple[int, .
 
 
 def palette_colors(words: Sequence[int], color_format: int) -> list[int]:
-    """The colour words decoded to RGB channels, COLOR_REGISTERS colours, the missing ones black."""
+    """The color words decoded to RGB channels, COLOR_REGISTERS colors, the missing ones black."""
     convert = images.st_to_rgb if color_format == ATARI_ST_FORMAT else images.amiga_to_rgb
     channels = [channel for word in words for channel in convert(word)]
     return channels + [0] * (COLOR_REGISTERS * 3 - len(channels))
@@ -285,10 +285,10 @@ def palette_segments(game: Game, source: PaletteSource, headers: list[tuple[int,
     assert source.place is not None
     records: list[bytes] = []
     for segment in images.parse_palette_list(game.executable.read(source.place, 0x400)):
-        if segment.first + len(segment.colours) > COLOR_REGISTERS:
+        if segment.first + len(segment.colors) > COLOR_REGISTERS:
             raise FormatError(f"palette list at {source.place} writes past register {COLOR_REGISTERS - 1}")
-        colors = palette_colors(segment.colours, source.color_format)
-        records.append(PALETTE_SEGMENT.pack(segment.start_row, segment.first, len(segment.colours), *colors))
+        colors = palette_colors(segment.colors, source.color_format)
+        records.append(PALETTE_SEGMENT.pack(segment.start_row, segment.first, len(segment.colors), *colors))
     return records
 
 
@@ -304,7 +304,7 @@ def pack_palettes(image: Image, game: Game, headers: list[tuple[int, ...]], layo
 
 
 def pack_banks(image: Image, game: Game, layout: Layout) -> None:
-    """Every bank's images as colour indices, each bank's sprite offsets from its own first pixel."""
+    """Every bank's images as color indices, each bank's sprite offsets from its own first pixel."""
     pixels = bytearray()
     sprites: list[bytes] = []
     entries: list[tuple[int, int, int, int]] = []

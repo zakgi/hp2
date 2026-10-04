@@ -41,12 +41,12 @@ class Station {
   static constexpr std::size_t kFillUpGrayImage = 5;
   static constexpr std::size_t kRepairTireGrayImage = 6;
   static constexpr std::size_t kAttendantImage = 7;
-  static constexpr Point kRobbedAttendantAt{.x = 256, .y = 96};
-  static constexpr Point kAttendantAt{.x = 64, .y = 64};
-  static constexpr Point kPanelAt{.x = 160, .y = 4};
-  static constexpr auto kItemsAt =
+  static constexpr Point kRobbedAttendantPosition{.x = 256, .y = 96};
+  static constexpr Point kAttendantPosition{.x = 64, .y = 64};
+  static constexpr Point kPanelPosition{.x = 160, .y = 4};
+  static constexpr auto kItemPositions =
       std::to_array<Point>({{.x = 168, .y = 13}, {.x = 168, .y = 26}, {.x = 168, .y = 48}});
-  // Two lines in colour 11 frame the item under the cursor (stationCursorLines, 0:39fe).
+  // Two lines in color 11 frame the item under the cursor (stationCursorLines, 0:39fe).
   static constexpr std::uint8_t kCursorColor = 11;
   static constexpr auto kCursorLines = std::to_array<std::array<CursorLine, 2>>({
       {{{.left = 168, .right = 285, .row = 11}, {.left = 168, .right = 285, .row = 21}}},

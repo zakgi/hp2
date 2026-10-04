@@ -12,7 +12,7 @@
 namespace hp2::host {
 
 // Shows a Screen in the window: every viewport's pixels through that viewport's palette, scaled to
-// the window at a 4:3 aspect (320x200 filling an NTSC display). Colours are resolved here and
+// the window at a 4:3 aspect (320x200 filling an NTSC display). Colors are resolved here and
 // nowhere else; the core never sees RGBA.
 class Renderer {
  public:

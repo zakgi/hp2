@@ -5,7 +5,7 @@ usage: python3 scripts/extract_images.py [--data DIR] [--exe hp.prg] [--out DIR]
 Output under work/assets/png/:
   cpv/<NAME>.png                 full-screen pictures with the palette in their own header
   cpv/PRESENT_exe_palette.png    PRESENT.CPV with the split palette the title really uses (1:28e0)
-  img/<NAME>_sheet.png           every image of a bob bank on one sheet (colour 0 transparent)
+  img/<NAME>_sheet.png           every image of a bob bank on one sheet (color 0 transparent)
   img/<NAME>/<NN>.png            each image of the bank (1-based BlitBob index)
   dif/PRESENT_sNN_fMM.png        PRESENT.CPV after step NN of the play list (frame MM of PRESENT.DIF)
   dif/PRESENT.gif                the same steps as an animation (timing estimated)
@@ -50,7 +50,7 @@ PAL_BUREAU = HunkOffset(0, 0xCA94)  # office screen, installed at 0:c4dc
 PAL_GAME_SCO = HunkOffset(0, 0x7766)  # score screens of 0:6008 (segment 0 rows 0-167, text from 168)
 PAL_QUESTION = HunkOffset(0, 0xC338)  # dead manual-lookup screen 0:bd4e (segment 1 rows 98-151 = tiles)
 PAL_INGAME = HunkOffset(0, 0xA520)  # in-game split palette, installed at 0:b9a8
-CAR_COLOURS = HunkOffset(0, 0xA6F4)  # 0:e5d0: 8-byte entries patched into colours 4-7 of segment 1
+CAR_COLOURS = HunkOffset(0, 0xA6F4)  # 0:e5d0: 8-byte entries patched into colors 4-7 of segment 1
 PLAYLIST_DIF = HunkOffset(1, 0x2870)  # {frame, delay} list read by 0:106e
 
 CPU_HZ = 7_159_090  # NTSC 68000 clock, for the GIF timing estimate only
@@ -161,7 +161,7 @@ def main() -> int:
         "DES_TABB": (game_rows[132], 0, "exe 0:a520 last segment 0:a6ce (rows 132-199)"),
         "DEC_FOND": (game_rows, 50, "exe 0:a520 per row from y=50 (0:df56 default y)"),
     }
-    ingame = (game_rows[100], 0, "exe 0:a520 at row 100, colours 4-7 from 0:a6f4 entry 0")
+    ingame = (game_rows[100], 0, "exe 0:a520 at row 100, colors 4-7 from 0:a6f4 entry 0")
     for path in sorted(p for p in ns.data.iterdir() if p.suffix.upper() == ".IMG"):
         name = path.stem.upper()
         palette, first_row, desc = sources.get(name, ingame)

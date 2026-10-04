@@ -35,11 +35,11 @@ image:   +0  word  flags                    bits 0-3 stored plane count, bits 8-
          +10       plane data: stored plane count x height rows x width*2 bytes, plane after plane
 ```
 
-Stored plane i goes to the i-th set bit of the plane mask (lowest first); flags seen: 0x0f04 (4 planes) and 0x0703 (3 planes to planes 0-2: VOITURE*, GAME_SCO image 1). Masked draws use the OR of the stored planes as mask (colour 0 transparent) and clear the absent planes under it.
+Stored plane i goes to the i-th set bit of the plane mask (lowest first); flags seen: 0x0f04 (4 planes) and 0x0703 (3 planes to planes 0-2: VOITURE*, GAME_SCO image 1). Masked draws use the OR of the stored planes as mask (color 0 transparent) and clear the absent planes under it.
 
 | File | Images | Content |
 |---|---|---|
-| VOITURE0-6 | 10 each | the cars at 10 sizes (VOITURE1 = red sports car); 3 planes, colours 0-7 |
+| VOITURE0-6 | 10 each | the cars at 10 sizes (VOITURE1 = red sports car); 3 planes, colors 0-7 |
 | CACTUS, BUISSON (bush), CAILLOUX (rocks) | 10, 10, 16 | roadside scenery at decreasing sizes |
 | PAN_POT, PAN_GAU, PAN_CRO, PAN_DRO, PAN_ARR, PAN_PRO | 10 each | road signs (PAN = panneau) |
 | PST_PRO, PST_STA, PST_FLG, PST_FLD | 10 each | station objects (PST = poste) |
@@ -64,7 +64,7 @@ frame:   repeated { word count (0 = end), word byte offset, word xor[count] }
 
 ## Fonts: LETTRE1.BIN, LETTRE2.BIN
 
-94 glyphs (ASCII 0x20-0x7d), 32 bytes each: 8 rows x {plane 0, 1, 2, 3 byte}. The two files differ in colours only.
+94 glyphs (ASCII 0x20-0x7d), 32 bytes each: 8 rows x {plane 0, 1, 2, 3 byte}. The two files differ in colors only.
 
 ## Map: CARTE.BIN
 
@@ -111,7 +111,7 @@ Copper palette lists (`{first, count, lines to next segment, rgb[count]}...`):
 
 | Address | Format | Used for |
 |---|---|---|
-| `1:28e0` titlePalette | ST | title: sky ramp rows 0-35, PRESENT.CPV colours from row 36 |
+| `1:28e0` titlePalette | ST | title: sky ramp rows 0-35, PRESENT.CPV colors from row 36 |
 | `0:ca94` officePalette, `0:ca6e` officePaletteDim | Amiga | office |
 | `0:7766` scorePalette | Amiga | end and score screens, GAME_SCO.IMG |
 | `0:a520` viewPalette | Amiga | driving screen (see `renderer.md`) |

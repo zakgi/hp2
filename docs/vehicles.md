@@ -44,7 +44,7 @@ Tables (copy them from the binary, the generator is not exact):
 - 0:8ee0: 257 words used. Entries 0..255 = trunc(atan(i/256)*360/pi) (verified, 0 mismatches). Entry 256 (address 0:90e0, a separate label) holds 0x00ff = 255, so an exact diagonal |x| == |y| returns a wrong angle (for x = y > 0: 180-255 = -75 -> 645 instead of 90). Atan2 of (0,0) executes `divu` by zero (68000 divide-by-zero exception). Both are original bugs.
 - Shifts use `lsr.l` on signed products; the low word of the result equals an arithmetic shift, i.e. floor((a*b)/16384) truncated to 16 bits.
 
-Random source: ReadBeamPosition (1:19a4) only. Uses here: car2 start cell `(D0 & 0xf0)>>4` (0:b1d0), player start `(D0 & 0x60)>>5`, 3 -> 0 (0:b65a), crosshair jitter (0:2f08), traffic colour `((D0 & 0xe)>>1)+1` (0:5732).
+Random source: ReadBeamPosition (1:19a4) only. Uses here: car2 start cell `(D0 & 0xf0)>>4` (0:b1d0), player start `(D0 & 0x60)>>5`, 3 -> 0 (0:b65a), crosshair jitter (0:2f08), traffic color `((D0 & 0xe)>>1)+1` (0:5732).
 
 ## 3. Main loop order (0:ba7c-0:bcc6), all per frame
 
@@ -55,7 +55,7 @@ Random source: ReadBeamPosition (1:19a4) only. Uses here: car2 start cell `(D0 &
 5. 0:bb1e (re-entry point used by 0:2dca when the suspect has no waypoint left): 0:5064 ToggleSiren, 0:4f14 CheckArrest, 0:6008 (end-of-mission), 0:d9ec (visible cells/road geometry), 0:dc36 (road/background), 0:3fa8 CheckOffRoad, 0:2452 BuildViewObjects, 0:26e8 DrawObjects, 0:2bb2 SenseSuspectObstacles.
 6. Bullet holes: for each of 0:53e2 entries in 0:53e4 (x,y words) BlitBob bank BALLE.IMG (1:27a0) (0:bb4a-0:bba8).
 7. 0:d836, 0:ce74 (HUD/dashboard, not analysed). Every 6 frames (0:540c >= 6, counter incremented in 0:50b6): clear it and 0:cdc8(1) (BCD counter 1:236a -= 1) (0:bbb4-0:bbcc).
-8. 0:e1b4 (HUD text), traffic colours 0:e5d0(1:2342) + SetPaletteColors, palette flashes (1:2344 while player +0x2a active, 1:2358 -> palette 0:a734).
+8. 0:e1b4 (HUD text), traffic colors 0:e5d0(1:2342) + SetPaletteColors, palette flashes (1:2344 while player +0x2a active, 1:2358 -> palette 0:a734).
 9. Sound requests: engine always (0:1390), siren if 0:50b4, skid if |player +0x14| >= 50 and speed >= 100 (0:bc58-0:bc7c); 0:1162; FlipScreens.
 10. 0:bcca: key 0x50 ('P') pause. Key 0x1b (ESC): 1:236a = 0 (forces end condition 0x80) and player speed = 0 (0:bcb2-0:bcc2).
 
@@ -85,7 +85,7 @@ Order inside 0:2dca (0:2dca-0:334a):
 - car3 (1:3e0c): cell (2,2), pos (0x2000,0x2000), inactive (0:5880 = 0).
 - Initial values (player / car2 / car3): +0x52 accel 10/5/5, +0x54 5/5/2, +0x56 3/2/2, +0x58 5/6/6, +0x70 400/table/400, +0x6c 10000/32000/-1, +0x7a 4000, +0x7c 5, +0x7e 20, +0x48 100, +0x5a -1 (0xffff), +0x5e 1, +0x82 2, all other state words 0.
 - aux car2 (1:3da8): +0x00 -1, +0x02 0, +0x06 1, +0x08 0, +0x0a 100, +0x0e 0, +0x10 2, +0x16 4, +0x18 0, +0x1a = car2 +0x70. aux car3 (1:3f38): same but +0x12 4, +0x14 1, +0x16 2, +0x1a 200.
-- Globals cleared: 1:2336/1:2338 (gun), 1:233c = 160, 1:233e = 80, hit counters 0:4f0e/f10/f12, 1:2342 (traffic colour), 1:2344, 1:2348 = 5, 1:234c, 1:2356 (end reason), 1:2358/1:235a/04/06, 1:2352/1:2354, 0:5880, 0:50b4 (siren), bullets 0:53e2/0:53e4[10], 0:540c, 1:22e0.
+- Globals cleared: 1:2336/1:2338 (gun), 1:233c = 160, 1:233e = 80, hit counters 0:4f0e/f10/f12, 1:2342 (traffic color), 1:2344, 1:2348 = 5, 1:234c, 1:2356 (end reason), 1:2358/1:235a/04/06, 1:2352/1:2354, 0:5880, 0:50b4 (siren), bullets 0:53e2/0:53e4[10], 0:540c, 1:22e0.
 
 ## 5. Vehicle record (0x12c bytes each: 1:3b50, 1:3c7c, 1:3e0c)
 
@@ -175,7 +175,7 @@ R = read, W = write. "AI" = car2/car3.
 | +0x12/+0x14 | w,w | target cell X/Y | 0:334c result, 0:540e |
 | +0x16 | w | entry side / crossing code (1,2,4,8) | 0:3e7e result; car2 new target (0:31a2..0:31c2); car3 spawn table |
 | +0x18 | w | last yaw delta (0:3a2e D1); not read in the analysed code | 0:2dca |
-| +0x1a | w | base cruise speed (car2 = mission max speed, car3 = 200 + 32*(colour-1)) | init, 0:540e |
+| +0x1a | w | base cruise speed (car2 = mission max speed, car3 = 200 + 32*(color-1)) | init, 0:540e |
 
 ## 7. Player control model
 
@@ -252,7 +252,7 @@ Each channel: state 0 = idle; trigger seen -> state -0x100 (active); handler run
 car2 and car3 never collide with each other.
 
 ### 8.4 Off-road test, 0:3fa8 (player, after the road is drawn, before objects)
-Reads plane 0 of backScreen at byte 0x1484 and 0x1498, bit 0x800 = pixels (100,131) and (260,131). Both set = on road: if +0x66 was set, +0x68 >>= 1 and +0x66 = 0. Otherwise, if not crashing: 0:403e (sound flag 0:13c4 on the first off-road frame at speed >= 100), +0x66 = -1, and if speed >= 100: +0x68 += 2; at 600: tires -1, +0x80 = -1 (crash), crash sound, steer x4, +0x84 = +0x68 = 0. A port needs an equivalent "road under the two wheel probes" test (the meaning of plane-0 colours is unverified).
+Reads plane 0 of backScreen at byte 0x1484 and 0x1498, bit 0x800 = pixels (100,131) and (260,131). Both set = on road: if +0x66 was set, +0x68 >>= 1 and +0x66 = 0. Otherwise, if not crashing: 0:403e (sound flag 0:13c4 on the first off-road frame at speed >= 100), +0x66 = -1, and if speed >= 100: +0x68 += 2; at 600: tires -1, +0x80 = -1 (crash), crash sound, steer x4, +0x84 = +0x68 = 0. A port needs an equivalent "road under the two wheel probes" test (the meaning of plane-0 colors is unverified).
 
 ### 8.5 End-of-mission reasons (head of 0:6008, 0:600e-0:60da), 1:2356 bits
 1: fuel +0x5a == 0; 2: no waypoint left (1:23de == 0); 4: temperature +0x6a == 0xffff; 8: damage +0x6c < 0; 0x10: tires +0x82 == 0; 0x80: BCD counter 1:236a == 0; 0x40: 1:235a (arrest success); 0x20: 1:2358 (player shot). Then both cars lose throttle, car2 copies the player's speed, both slow by 4/frame until the player stops (unless crashing) and the page for the lowest set bit is shown.
@@ -294,15 +294,15 @@ Path data (24 paths, 0:9b40-0:a51f): word n, then n segments of 5 words {x0, y0,
 
 ### 9.5 Traffic car (car3), 0:540e
 - 0:5884 = player within 2 cells of car2 (|d| < 3 on both axes); 0:5882 = player within 1 cell of car3.
-- Near the suspect: 0:5886 = 0; if car3 is active and was drawn this frame (0:2d90) with its sprite position (1:2332, 1:2334) outside [0,0x13f)x[0,0xc7): 0:5886 = -1 (both AI cars brake); otherwise car3 is deactivated (0:5880 = 0, colour 1:2342 = 0). Intent unverified.
+- Near the suspect: 0:5886 = 0; if car3 is active and was drawn this frame (0:2d90) with its sprite position (1:2332, 1:2334) outside [0,0x13f)x[0,0xc7): 0:5886 = -1 (both AI cars brake); otherwise car3 is deactivated (0:5880 = 0, color 1:2342 = 0). Intent unverified.
 - Near an active car3: when car3 reaches its target cell, new target = clamp(2*player.cell - car2.cell, 1..38); replan.
 - Otherwise spawn (every frame until it succeeds):
   - quadrant q = ((player.h + 90) mod 720)/180, facing side bit = {1,4,2,8}[q] (0:5888). Player cell type 0 -> no spawn.
   - candidates = exits[type] & ~1:2340 (side the player entered by); one bit -> that neighbor; else `&= facing bit`; else `&= 0xa`; else `&= 2`; fallback +x. Bit 1 -> cellX+1, 2 -> cellX-1, 4 -> cellY+1, 8 -> cellY-1.
   - car3: that cell, speed 200, steer/slip/+0x18 = 0; {posX, posY, heading, aux +0x16} = 0:58a2[L*0x68 + spawnCellType*8], L = {0,0,2,0,1,0,0,0,3}[facing bit] (0:5890). Four entry kinds: (0x2100,0x03e8,0xb4,8) northbound, (0x3c18,0x2100,0x168,1) westbound, (0x1f00,0x3c18,0x21c,4) southbound, (0x03e8,0x1f00,0,2) eastbound.
   - Abort (0:5880 = 0) if the in-cell distance along the player's axis is >= 8000 (|dy| for odd q, |dx| for even q; cell difference ignored).
-  - Clear collision states; target = clamp(2*player.cell - car3.cell, 1..38) (past the player); aux +0x0a = 100, +0x0c = 200; active; colour 1:2342 = rnd 1..7; aux +0x1a = 200 + 32*(colour-1).
-- Colour: 0:e5d0(D0 = 1:2342, A0 = palette 0:a520) copies 4 RGB words from 0:a6f4 + 8*D0 into colours 4..7 of the second copper segment (A0+0x34). Index 0 is red (f66,f00,a00,600), shown when no traffic car is active; car2 and car3 share these colours. Only one other car is ever inserted into the scene (car2 has priority, 0:2452/0:2cb8).
+  - Clear collision states; target = clamp(2*player.cell - car3.cell, 1..38) (past the player); aux +0x0a = 100, +0x0c = 200; active; color 1:2342 = rnd 1..7; aux +0x1a = 200 + 32*(color-1).
+- Color: 0:e5d0(D0 = 1:2342, A0 = palette 0:a520) copies 4 RGB words from 0:a6f4 + 8*D0 into colors 4..7 of the second copper segment (A0+0x34). Index 0 is red (f66,f00,a00,600), shown when no traffic car is active; car2 and car3 share these colors. Only one other car is ever inserted into the scene (car2 has priority, 0:2452/0:2cb8).
 
 ## 10. Mission classes, arrest and shooting
 
@@ -331,10 +331,10 @@ So, as far as the code shows (labels unverified): class 0 (missions 1-2) = siren
 
 - 0:2452 BuildViewObjects: for each visible cell i (count 1:2baa, cells 1:2c2c {cellX, cellY, type}, offsets 1:2c44 = cellDelta*0x4000 - player.pos): copy the COOR_OBJ.BIN list (long offset table by cell type, list = word count (low byte; -1 = empty) + 10-byte entries {x,y,z,type,extra}) into buffer 1:2ecc + i*0xfa0 with translation. Insert one car: car2 if same cell (slot 0) or in the second visible cell (slot 1); else car3 via 0:2cb8. Inserted entry {x, y, z, 2, 0}, z = 0 for car2 (the computed 100 - +0x48 is overwritten, 0:253c), z = 100 - +0x48 for car3; translated position also stored in 1:2364/1:2366; 0:2d90 = 0 (car2) or -1 (car3). Then rotate all slots by 180 - player +0x18, sense obstacles (8.1), cull (0:23e2), project with camH = 1:2368 (0:239c, entry becomes {sx, sy, depth, type, extra}), bubble sort by depth descending.
 - 0:26e8 DrawObjects: slots drawn far to near. LOD from depth: `l = max(0,depth-256)>>6; l < 4 ? l : (l>>1) < 4 ? (l>>1)+2 : (l>>2)+4`, frame = LOD table[l] (cars: 0:8192, frames 1..10). Types 3..6 via 0:1658 (clip y 0x84). Others via BlitBob after 0:2dbc (y <= 0x8a). Car view: bearing = Atan2 of the car's view-frame position - 180; rel = car +0x18 - player +0x18 - bearing; view = ((rel+15) mod 720)/30, >= 18 -> -24, +6 (24 views); bank per view from the type-2 table (VOITURE0..6); views 7..16 use mirrored frames (0:0ddc, flipped in place, per-frame flags 10 bytes per bank at 1:22e4 + 10*bank). Records 1:232c frame, 1:232e bank, 1:2332/1:2334 screen pos for shooting. Signs (8..11): q = ((player +0x18 - sign angle(+8 of entry) + 90) mod 720)/180, view = (q+1) mod 4 (0:2b50-0:2ba2, stored in 0:2dba); poles PAN_POT; type 11 with view 1/3 adds PST_STA and two poles offset by table 0:2d92 per LOD.
-- 0:1658 DrawSmallBob(bank, frame, x, y, clipY, screen): CPU masked blit of 1- or 2-word wide, 4-plane frames (colour 0 transparent), hotspot subtracted, x clipped to -16/-32..320. Height clamp bug: if y+h-1 >= clipY the last row becomes 199, not clipY-1.
+- 0:1658 DrawSmallBob(bank, frame, x, y, clipY, screen): CPU masked blit of 1- or 2-word wide, 4-plane frames (color 0 transparent), hotspot subtracted, x clipped to -16/-32..320. Height clamp bug: if y+h-1 >= clipY the last row becomes 199, not clipY-1.
 - 0:0ddc MirrorBobFrame(bank, frame, scratch): horizontal flip in place (bit-reverse table 0:0e6c, byte order reversed per row and plane), hotspot x := width*16 - hotspot x.
 - 0:2dbc ClampSpriteY: D2 = min(D2, 0x8a).
-- 0:e5d0 SetCarColours (see 9.5).
+- 0:e5d0 SetCarColors (see 9.5).
 
 ## 12. Per-function summary
 
@@ -345,7 +345,7 @@ So, as far as the code shows (labels unverified): class 0 (missions 1-2) = siren
 | 0:4f14 | CheckArrest | sets 1:235a (end bit 0x40) by class 1:232a; penalties via 0:cdc8 |
 | 0:5064 | ToggleSiren | KeyDown(0x53), latch 0:50b2, 0:50b4 -> 0:1392 |
 | 0:50b6 | SuspectShoot | every 6 frames (0:540c), class 2, bullet clip at depth 350, writes 0:53e4/0:53e2, 1:2358 |
-| 0:540e | UpdateTrafficCar | spawns/retargets 1:3e0c/1:3f38, 0:5880 active flag, 1:2342 colour |
+| 0:540e | UpdateTrafficCar | spawns/retargets 1:3e0c/1:3f38, 0:5880 active flag, 1:2342 color |
 | 0:4a88 | CollidePlayerSuspect | box test in player frame, +0x2c triggers, 1:235e/1:22e0 |
 | 0:4c10 | CollidePlayerTraffic | same with car3, 1:235c |
 | 0:2452 | BuildViewObjects | COOR_OBJ copy/rotate/cull/project/sort; player sensing into +0x86 |
@@ -357,7 +357,7 @@ So, as far as the code shows (labels unverified): class 0 (missions 1-2) = siren
 | 0:0ddc | MirrorBobFrame | bit-reverse table 0:0e6c |
 | 0:cd84 | AddScoreBCD | abcd into 1:236a |
 | 0:cdc8 | SubScoreBCD | sbcd from 1:236a, underflow clear |
-| 0:e5d0 | SetCarColours | 0:a6f4 + 8*D0 -> palette A0+0x34 |
+| 0:e5d0 | SetCarColors | 0:a6f4 + 8*D0 -> palette A0+0x34 |
 | 0:22a4 | OutCode2D | 4-bit outcode against 0:22f2..f8 |
 | 0:22fa | CopyTranslateObjects(src,dst,dx,dy) | 10-byte entries, x+=dx, y+=dy |
 | 0:2342 | CopyRotateObjects(src,dst,angle) | RotateXY inline |
@@ -386,7 +386,7 @@ So, as far as the code shows (labels unverified): class 0 (missions 1-2) = siren
 
 ## 13. Globals in this area
 
-1:232a mission number -> class; 1:232c/1:232e/da/dc last drawn car (frame, bank, screen x, y); 1:2336 gun mode, 1:2338 its complement; 1:233c/1:233e crosshair; 1:2340 player entry side; 1:2342 traffic colour; 1:2344/1:2348 car-contact palette flash; 1:234e direction-toggle request; 1:2350 toggle latch; 1:2352 same cell as suspect; 1:2354 within one cell of suspect; 1:2356 end reason; 1:2358 player shot; 1:235a arrest success; 1:235c touched traffic (unused); 1:235e touched suspect; 1:2360 crash sound request; 1:2364/1:2366 inserted car translated position; 1:2368 camera height; 1:236a BCD counter; 1:23de waypoints remaining; 1:23e0 waypoint table; 1:22e0 player was stopped at contact; 1:22e2 first-frames counter; 0:2d90 inserted car is car3; 0:2dba sign view; 0:4f0e hit this frame; 0:4f10 suspect hits; 0:4f12 traffic hits; 0:5880 traffic active; 0:5882 near traffic; 0:5884 near suspect; 0:5886 AI brake request; 0:50b4 siren; 0:53e2/0:53e4 bullet holes (max 10); 0:540c 6-frame counter; 0:22f2..f8 OutCode box.
+1:232a mission number -> class; 1:232c/1:232e/da/dc last drawn car (frame, bank, screen x, y); 1:2336 gun mode, 1:2338 its complement; 1:233c/1:233e crosshair; 1:2340 player entry side; 1:2342 traffic color; 1:2344/1:2348 car-contact palette flash; 1:234e direction-toggle request; 1:2350 toggle latch; 1:2352 same cell as suspect; 1:2354 within one cell of suspect; 1:2356 end reason; 1:2358 player shot; 1:235a arrest success; 1:235c touched traffic (unused); 1:235e touched suspect; 1:2360 crash sound request; 1:2364/1:2366 inserted car translated position; 1:2368 camera height; 1:236a BCD counter; 1:23de waypoints remaining; 1:23e0 waypoint table; 1:22e0 player was stopped at contact; 1:22e2 first-frames counter; 0:2d90 inserted car is car3; 0:2dba sign view; 0:4f0e hit this frame; 0:4f10 suspect hits; 0:4f12 traffic hits; 0:5880 traffic active; 0:5882 near traffic; 0:5884 near suspect; 0:5886 AI brake request; 0:50b4 siren; 0:53e2/0:53e4 bullet holes (max 10); 0:540c 6-frame counter; 0:22f2..f8 OutCode box.
 
 ## 14. Open questions and quirks
 

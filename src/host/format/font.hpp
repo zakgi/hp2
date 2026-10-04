@@ -18,7 +18,7 @@ struct Font {
   static constexpr auto kGlyphSize = std::uint16_t{8};
   static constexpr auto kGlyphPixels = std::size_t{kGlyphSize} * kGlyphSize;
 
-  // Colour indices (0-15), glyph after glyph, each 8 rows of 8.
+  // Color indices (0-15), glyph after glyph, each 8 rows of 8.
   std::vector<std::uint8_t> pixels;
 
   [[nodiscard]] std::size_t GlyphCount() const { return pixels.size() / kGlyphPixels; }

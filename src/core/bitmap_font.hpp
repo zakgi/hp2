@@ -9,7 +9,7 @@
 namespace hp2 {
 
 // An 8x8 font (LETTRE1.BIN, LETTRE2.BIN): one glyph per character from kFirstCharacter on, glyph
-// after glyph, colour indices row by row.
+// after glyph, color indices row by row.
 struct BitmapFont {
   static constexpr auto kFirstCharacter = std::uint8_t{0x20};
   static constexpr auto kGlyphSize = std::uint16_t{8};

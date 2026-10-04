@@ -12,19 +12,19 @@ Evidence: Ghidra `hp2` / `hp.prg`; routine names and plates are in the Ghidra pr
 
 - `Forbid()`, then the game takes the machine without disabling the OS: interrupt vectors $68 (level 2, keyboard) and $6c (level 3, vblank) are hooked and chain to the previous handlers.
 - dos.library and trackdisk.device (unit 0) are opened; Workbench is closed via intuition (`CloseWindow(ActiveWindow)`, `CloseWorkBench()`).
-- Display: two 32000-byte chip screens, an 8400-byte chip `scratchBuffer`, and a 0x34-byte copper list setting BPL1-4PT. 320x200 lowres, 4 planes, DIW 2c81-f4c1, DDF 38-d0, BPLCON0 0x4200. Colours 16-31 cleared.
+- Display: two 32000-byte chip screens, an 8400-byte chip `scratchBuffer`, and a 0x34-byte copper list setting BPL1-4PT. 320x200 lowres, 4 planes, DIW 2c81-f4c1, DDF 38-d0, BPLCON0 0x4200. Colors 16-31 cleared.
 - Each screen buffer is allocated 0x22 bytes larger and the pointer advanced by 0x22: picture decoders write a 34-byte header (word + 16 palette words) just before the bitmap.
 
 ## Display
 
 - `FlipScreens`: waits for the blitter and the next vblank (`vblankCounter`), swaps `frontScreen`/`backScreen`, rewrites the copper's bitplane pointers.
-- Palettes: `InstallPalette(list)` builds a new copper list: the 8 BPLxPT moves plus, per palette segment, a WAIT (from line 0x2c plus the accumulated `lines` values) and COLORxx moves. List format: repeated `{word first colour, word count, word lines to the next segment (0 = last), word rgb[count]}`. `SetPaletteColors` rewrites the colours in place (fades), `RemovePalette` restores the previous list.
+- Palettes: `InstallPalette(list)` builds a new copper list: the 8 BPLxPT moves plus, per palette segment, a WAIT (from line 0x2c plus the accumulated `lines` values) and COLORxx moves. List format: repeated `{word first color, word count, word lines to the next segment (0 = last), word rgb[count]}`. `SetPaletteColors` rewrites the colors in place (fades), `RemovePalette` restores the previous list.
 - `ShowSystemDisplay` / `ShowGameDisplay` exist but nothing calls them.
 
 ## Blitter routines
 
-- `BlitBob` (stack args, documented in its Ghidra plate): images from bob banks (`.IMG` files): word count, word offsets, then per image `{flags, width words, height, origin x, origin y, plane data}`. The mask is the OR of the stored planes (colour 0 transparent); flags bits 8-11 choose which of the 4 screen planes receive the stored planes, the others are cleared under the mask. Optional clipping, 16-pixel alignment, origin (hotspot).
-- `DrawLine` (x0, y0, x1, y1, colour, screen): blitter lines per plane, clipped to 0..319 x 0..199 by bisection.
+- `BlitBob` (stack args, documented in its Ghidra plate): images from bob banks (`.IMG` files): word count, word offsets, then per image `{flags, width words, height, origin x, origin y, plane data}`. The mask is the OR of the stored planes (color 0 transparent); flags bits 8-11 choose which of the 4 screen planes receive the stored planes, the others are cleared under the mask. Optional clipping, 16-pixel alignment, origin (hotspot).
+- `DrawLine` (x0, y0, x1, y1, color, screen): blitter lines per plane, clipped to 0..319 x 0..199 by bisection.
 - `ClearScreen`, `CopyScreen` (32000 bytes, CPU movem).
 
 ## Input

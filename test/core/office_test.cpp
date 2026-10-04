@@ -54,7 +54,7 @@ class OfficeTest : public ::testing::Test {
     EXPECT_EQ(office_.Step(1.0F), ComponentType::kOffice);
   }
 
-  // A point of the desk in the colour of `drawer`, away from the drawer's edges.
+  // A point of the desk in the color of `drawer`, away from the drawer's edges.
   [[nodiscard]] std::optional<Point> DrawerPoint(std::size_t drawer) const {
     const auto& picture = manager_.Engine().Picture(EnginePicture::kOffice);
     const auto color = Office::kDrawerColors[drawer];

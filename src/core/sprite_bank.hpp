@@ -8,7 +8,7 @@
 
 namespace hp2 {
 
-// One image of a sprite bank: where its colour indices lie in the bank's pixels, its size, and
+// One image of a sprite bank: where its color indices lie in the bank's pixels, its size, and
 // the hotspot BlitBob (1:001c) subtracts from the position when asked to.
 struct SpriteRange {
   std::uint32_t offset{};
@@ -20,7 +20,7 @@ struct SpriteRange {
   friend constexpr bool operator==(const SpriteRange&, const SpriteRange&) = default;
 };
 
-// A bank of images (an .IMG file), numbered from 0; the original numbers them from 1. Colour index
+// A bank of images (an .IMG file), numbered from 0; the original numbers them from 1. Color index
 // 0 is transparent when an image is drawn masked.
 struct SpriteBank {
   std::span<const std::uint8_t> pixels;

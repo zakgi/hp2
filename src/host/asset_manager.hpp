@@ -65,7 +65,7 @@ class AssetManager {
   std::vector<std::uint8_t> executable_bytes_;
   std::optional<HunkFile> executable_;
   std::array<std::vector<std::uint8_t>, kEnginePictureCount> pictures_;
-  // The pictures' header palettes, Atari ST colours.
+  // The pictures' header palettes, Atari ST colors.
   std::array<std::array<std::uint16_t, kColorRegisterCount>, kEnginePictureCount> picture_palettes_{};
   std::array<std::vector<PaletteSegment>, kEnginePaletteCount> palettes_;
   std::array<BankStorage, kEngineBankCount> banks_;

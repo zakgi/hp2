@@ -4,7 +4,7 @@ Every routine here mirrors a routine of hp.prg; its place (``hunk:offset``) is g
 docstring. Format notes and evidence are in work/analysis/frontend.md.
 
 Screen model (InitDisplay 1:0e90): 320x200, 4 bitplanes of 8000 bytes, 40 bytes per row,
-plane n at offset n*8000. Colours are Amiga 12-bit words 0x0RGB. Picture files carry Atari ST
+plane n at offset n*8000. Colors are Amiga 12-bit words 0x0RGB. Picture files carry Atari ST
 style palettes (3 bits per gun, 0..7) that PaletteSTToAmiga (0:1006) converts with the table at
 0:1066.
 """
@@ -31,7 +31,7 @@ CPV_HEADER_BYTES = 2 + 32
 ST_TO_AMIGA = (0x0, 0x2, 0x4, 0x6, 0x8, 0xA, 0xC, 0xF)
 
 Palette = Sequence[int]
-"""16 Amiga colour words (0x0RGB, 4 bits per gun)."""
+"""16 Amiga color words (0x0RGB, 4 bits per gun)."""
 RowPalettes = Sequence[Sequence[int]]
 """One 16-entry Amiga palette per screen row (what a split-palette copper list produces)."""
 
@@ -57,12 +57,12 @@ def st_to_amiga(word: int) -> int:
 
 
 def amiga_to_rgb(word: int) -> tuple[int, int, int]:
-    """Expand an Amiga 0x0RGB colour word to 8-bit RGB (each nibble times 17)."""
+    """Expand an Amiga 0x0RGB color word to 8-bit RGB (each nibble times 17)."""
     return (((word >> 8) & 0xF) * 17, ((word >> 4) & 0xF) * 17, (word & 0xF) * 17)
 
 
 def st_to_rgb(word: int) -> tuple[int, int, int]:
-    """Expand an Atari ST 0x0RGB colour word (3 bits per channel) to 8-bit RGB, each channel scaled to
+    """Expand an Atari ST 0x0RGB color word (3 bits per channel) to 8-bit RGB, each channel scaled to
     0..255 and rounded, as FromAtariSt in src/host/format/color.hpp."""
     red, green, blue = ((((word >> shift) & 0x7) * 255 + 3) // 7 for shift in (8, 4, 0))
     return red, green, blue
@@ -83,14 +83,14 @@ def fade_palette(words: Sequence[int], level: int) -> list[int]:
 class PaletteSegment:
     """One segment of a copper palette list (format read by InstallPalette 1:19b4).
 
-    ``start_row`` is the screen row the colours take effect on: segment 0 is loaded before the
+    ``start_row`` is the screen row the colors take effect on: segment 0 is loaded before the
     display window (line 0x2c), segment k waits for line 0x2c + sum of previous ``lines``.
     ``offset`` is where the segment starts, counted from the start of the list.
     """
 
     offset: int
     first: int
-    colours: tuple[int, ...]
+    colors: tuple[int, ...]
     lines: int
     start_row: int
 
@@ -103,9 +103,9 @@ def parse_palette_list(data: bytes, offset: int = 0) -> list[PaletteSegment]:
     while True:
         first, count, lines = struct.unpack_from(">HHH", data, pos)
         if first + count > 32:
-            raise FormatError(f"palette segment at +{pos:#x} writes colours {first}..{first + count - 1}")
-        colours = struct.unpack_from(f">{count}H", data, pos + 6)
-        segments.append(PaletteSegment(pos - offset, first, tuple(colours), lines, row))
+            raise FormatError(f"palette segment at +{pos:#x} writes colors {first}..{first + count - 1}")
+        colors = struct.unpack_from(f">{count}H", data, pos + 6)
+        segments.append(PaletteSegment(pos - offset, first, tuple(colors), lines, row))
         pos += 6 + 2 * count
         if lines == 0:
             return segments
@@ -113,10 +113,10 @@ def parse_palette_list(data: bytes, offset: int = 0) -> list[PaletteSegment]:
 
 
 def row_palettes(segments: Sequence[PaletteSegment], st: bool = False, height: int = SCREEN_HEIGHT) -> list[list[int]]:
-    """Return the 16 colours in effect on each screen row for a parsed palette list.
+    """Return the 16 colors in effect on each screen row for a parsed palette list.
 
-    ``st`` converts every colour with :func:`st_to_amiga` first (lists the game passes through
-    0:1006 before installing them). Colours not set by segment 0 start at 0.
+    ``st`` converts every color with :func:`st_to_amiga` first (lists the game passes through
+    0:1006 before installing them). Colors not set by segment 0 start at 0.
     """
     current = [0] * 16
     rows: list[list[int]] = []
@@ -124,7 +124,7 @@ def row_palettes(segments: Sequence[PaletteSegment], st: bool = False, height: i
     for row in range(height):
         while pending and pending[0].start_row <= row:
             seg = pending.pop(0)
-            for i, c in enumerate(seg.colours):
+            for i, c in enumerate(seg.colors):
                 if seg.first + i < 16:
                     current[seg.first + i] = st_to_amiga(c) if st else c
         rows.append(list(current))
@@ -135,10 +135,10 @@ def row_palettes(segments: Sequence[PaletteSegment], st: bool = False, height: i
 
 
 def planes_to_indices(data: bytes, width_words: int, height: int, plane_map: Sequence[int]) -> np.ndarray:
-    """Combine consecutively stored bitplanes into colour indices.
+    """Combine consecutively stored bitplanes into color indices.
 
     ``data`` holds len(plane_map) planes of height rows x width_words words each;
-    stored plane k supplies bit ``plane_map[k]`` of the colour index.
+    stored plane k supplies bit ``plane_map[k]`` of the color index.
     """
     row_bytes = width_words * 2
     plane_size = row_bytes * height
@@ -195,11 +195,11 @@ class CpvPicture:
 
     @property
     def palette(self) -> list[int]:
-        """Header palette converted to Amiga colour words (0:1006)."""
+        """Header palette converted to Amiga color words (0:1006)."""
         return [st_to_amiga(w) for w in self.palette_st]
 
     def indices(self) -> np.ndarray:
-        """200x320 colour index array."""
+        """200x320 color index array."""
         return screen_to_indices(self.planes)
 
 
@@ -281,7 +281,7 @@ class Bob:
         return targets[: self.stored_planes]
 
     def indices(self) -> np.ndarray:
-        """height x width colour indices; colour 0 is transparent when BlitBob draws masked."""
+        """height x width color indices; color 0 is transparent when BlitBob draws masked."""
         return planes_to_indices(self.data, self.width_words, self.height, self.plane_map)
 
 
@@ -307,7 +307,7 @@ def parse_bob_bank(data: bytes) -> list[Bob]:
 def blit_bob(screen: np.ndarray, bob: Bob, x: int, y: int, masked: bool = True, hotspot: bool = False) -> None:
     """Draw ``bob`` into a 200x320 index array the way BlitBob does (no clip rectangle).
 
-    Masked: pixels with colour 0 keep the background; screen planes absent from the image's
+    Masked: pixels with color 0 keep the background; screen planes absent from the image's
     plane mask are cleared under the mask. Opaque: the whole rectangle is replaced.
     """
     if hotspot:
@@ -388,7 +388,7 @@ class PixelRun:
 
 def dif_pixel_runs(frame: DifFrame) -> list[PixelRun]:
     """The frame's runs from plane words (4 interleaved per 16 pixels) to pixel masks
-    (src/host/format/dif.cpp): XORing plane bits is XORing colour index bits."""
+    (src/host/format/dif.cpp): XORing plane bits is XORing color index bits."""
     runs: list[PixelRun] = []
     for target, words in frame.runs:
         first_group = target // 8
@@ -467,17 +467,17 @@ def render(
 
     ``palette`` is either 16 Amiga words (gives a mode "P" image) or one palette per screen
     row (gives RGB/RGBA; image row r uses ``palette[first_row + r]``). With
-    ``transparent_zero`` colour 0 becomes transparent, as for masked bobs.
+    ``transparent_zero`` color 0 becomes transparent, as for masked bobs.
     """
     if is_single_palette(palette):
         return render_indexed(indices, palette, transparent_zero)
     if not is_row_palettes(palette):
-        raise TypeError("palette must be 16 colours or one 16-colour palette per row")
+        raise TypeError("palette must be 16 colors or one 16-color palette per row")
     return render_rows(indices, palette, transparent_zero, first_row)
 
 
 def is_single_palette(palette: PaletteSpec) -> TypeGuard[Palette]:
-    return all(isinstance(colour, int) for colour in palette)
+    return all(isinstance(color, int) for color in palette)
 
 
 def is_row_palettes(palette: PaletteSpec) -> TypeGuard[RowPalettes]:
@@ -485,11 +485,11 @@ def is_row_palettes(palette: PaletteSpec) -> TypeGuard[RowPalettes]:
 
 
 def render_indexed(indices: np.ndarray, palette: Palette, transparent_zero: bool) -> Image.Image:
-    """Mode "P" image with one 16-colour palette."""
+    """Mode "P" image with one 16-color palette."""
     img = Image.fromarray(indices, mode="P")
     flat: list[int] = []
-    for colour in palette:
-        flat.extend(amiga_to_rgb(colour))
+    for color in palette:
+        flat.extend(amiga_to_rgb(color))
     img.putpalette(flat + [0] * (768 - len(flat)))
     if transparent_zero:
         img.info["transparency"] = 0
@@ -500,7 +500,7 @@ def render_rows(indices: np.ndarray, palette: RowPalettes, transparent_zero: boo
     """RGB(A) image where image row r uses palette[first_row + r] (copper palettes)."""
     rows = np.array(
         [
-            [amiga_to_rgb(colour) for colour in palette[min(first_row + row, len(palette) - 1)]]
+            [amiga_to_rgb(color) for color in palette[min(first_row + row, len(palette) - 1)]]
             for row in range(indices.shape[0])
         ],
         dtype=np.uint8,
@@ -520,7 +520,7 @@ def contact_sheet(
 ) -> Image.Image:
     """Lay images out on a grid for quick inspection.
 
-    The default opaque purple background shows where colour 0 (transparent) is, so it is not
+    The default opaque purple background shows where color 0 (transparent) is, so it is not
     mistaken for black; pass (0, 0, 0, 0) for a transparent sheet.
     """
     images = [im.convert("RGBA") for im in images]

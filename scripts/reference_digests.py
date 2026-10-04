@@ -3,13 +3,13 @@
 Every digest is computed with hp2lib.images, independently of the port's decoders:
 
   logo rgb        LOGO.CPV under its header palette, RGB rows
-  name N pixels   NAME.IMG image N (1-based), colour indices row-major
+  name N pixels   NAME.IMG image N (1-based), color indices row-major
   animated pixels PRESENT.CPV after every step of PRESENT.DIF's play list (1:2870)
-  font N pixels   LETTRE<N>.BIN, colour indices glyph after glyph (8x8 each, row-major)
+  font N pixels   LETTRE<N>.BIN, color indices glyph after glyph (8x8 each, row-major)
   finished rgb    the finished title: animated picture, NAME.IMG images 2 and 3, the copied 8x8
                   cell (main 0:ad06-0:add0), under the title palette list (1:28e0), RGB rows
 
-Atari ST colour words are decoded as the port decodes them (images.st_to_rgb), not through the
+Atari ST color words are decoded as the port decodes them (images.st_to_rgb), not through the
 original's ST-to-Amiga table.
 """
 
@@ -39,13 +39,13 @@ def digest(data: bytes) -> str:
 
 
 def rgb_bytes(indices: np.ndarray, rows: Sequence[Sequence[tuple[int, int, int]]]) -> bytes:
-    """RGB bytes of `indices`, colour index i on row r taking rows[r][i]."""
+    """RGB bytes of `indices`, color index i on row r taking rows[r][i]."""
     table = np.array(rows, dtype=np.uint8)
     return table[np.arange(indices.shape[0])[:, None], indices].tobytes()
 
 
 def st_rows(rows: Sequence[Sequence[int]]) -> list[list[tuple[int, int, int]]]:
-    """Rows of ST colour words decoded as the port decodes them (images.st_to_rgb)."""
+    """Rows of ST color words decoded as the port decodes them (images.st_to_rgb)."""
     return [[images.st_to_rgb(word) for word in row] for row in rows]
 
 

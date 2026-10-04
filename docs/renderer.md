@@ -4,15 +4,15 @@ Evidence: Ghidra project `hp2`, program `hp.prg` (Quartex NTSC crack). Places in
 
 ## Screen layout
 
-One 320x200 lowres screen, 4 bitplanes (16 colours), planes 8000 bytes apart, 40 bytes per row, double buffered (`frontScreen` displayed, `backScreen` drawn, swapped by `FlipScreens` at vblank). Palettes are installed as copper lists that can change colours partway down the screen (`InstallPalette`), so the view and the dashboard can use different colours.
+One 320x200 lowres screen, 4 bitplanes (16 colors), planes 8000 bytes apart, 40 bytes per row, double buffered (`frontScreen` displayed, `backScreen` drawn, swapped by `FlipScreens` at vblank). Palettes are installed as copper lists that can change colors partway down the screen (`InstallPalette`), so the view and the dashboard can use different colors.
 
 | Rows | Content | Drawn by |
 |---|---|---|
 | 0-15 | Roof strip with HUD text (text at pixel row 4) | `DrawDashboard` (DES_TABB image 5), `DrawHudText` |
-| 0-69 | Sky, colour 8 | `ClearSkyRows` |
+| 0-69 | Sky, color 8 | `ClearSkyRows` |
 | ~50-69 | Horizon backdrop (DEC_FOND.IMG), scrolls with heading | `RenderRoadView` |
-| 70-131 | Ground, colour 14; road polygons set plane 0 (colour 15); lane stripes colour 1 | `ClearGroundRows`, `RenderRoadView` |
-| 129-131 | Hood edge cut-outs, colour 0 | `MaskBonnetEdge` |
+| 70-131 | Ground, color 14; road polygons set plane 0 (color 15); lane stripes color 1 | `ClearGroundRows`, `RenderRoadView` |
+| 129-131 | Hood edge cut-outs, color 0 | `MaskBonnetEdge` |
 | 132-199 | Dashboard (DES_TABB image 4, 320x68), gauges, hands on the wheel | `DrawDashboard` |
 
 The horizon is row 70 (`ProjectPoint` adds 70). Sprites (cars, roadside objects, signs) are drawn after the road; see "Objects and sprites" below.
@@ -21,15 +21,15 @@ The horizon is row 70 (`ProjectPoint` adds 70). Sprites (cars, roadside objects,
 
 Much of the look comes from the copper: one palette list with 39 segments.
 
-| y | Colours |
+| y | Colors |
 |---|---|
 | 0 | roof strip: 000 800 246 468 68a 8ac acf fff 222 a00 888 888 c00 600 f20 000 |
-| 15 | view: 0 black, 1 white (stripes), 3 444, 8 sky 05f, 9 484, 10 aaa, 11 c00, 12-15 sand/asphalt; 4-7 = car colours (`SetCarColours`, 8 schemes in `carColourSchemes`; 0 = the criminal's red car, 1-7 traffic) |
-| 20-68 | colour 8 (sky) every 2 lines: 06f, 07f ... 0ff, 1ff ... fff (blue at the top, white at the horizon) |
-| 70-92 | colours 12-15 every 1-4 lines, from fff fff fff fff at the horizon to 841 555 a63 555 near the car: distance haze on sand (12, 14) and asphalt (13, 15) |
+| 15 | view: 0 black, 1 white (stripes), 3 444, 8 sky 05f, 9 484, 10 aaa, 11 c00, 12-15 sand/asphalt; 4-7 = car colors (`SetCarColors`, 8 schemes in `carColorSchemes`; 0 = the criminal's red car, 1-7 traffic) |
+| 20-68 | color 8 (sky) every 2 lines: 06f, 07f ... 0ff, 1ff ... fff (blue at the top, white at the horizon) |
+| 70-92 | colors 12-15 every 1-4 lines, from fff fff fff fff at the horizon to 841 555 a63 555 near the car: distance haze on sand (12, 14) and asphalt (13, 15) |
 | 132 | dashboard: 000 f84 246 468 68a 8ac acf fff 222 444 666 888 aaa 600 c00 a40 |
 
-`viewPaletteRed` (`0:a734`) has the same layout in shades of red; it is shown for two frames after a car-to-car collision (`redFlash`) and while `playerShot` is set. The ground is colour 14 (sand) and the road colour 15 (asphalt), so the haze gradient shades both by screen row.
+`viewPaletteRed` (`0:a734`) has the same layout in shades of red; it is shown for two frames after a car-to-car collision (`redFlash`) and while `playerShot` is set. The ground is color 14 (sand) and the road color 15 (asphalt), so the haze gradient shades both by screen row.
 
 ## Frame order (main loop at `0:ba7c`)
 
@@ -62,8 +62,8 @@ Types 11/12 are the 20 stations (*unverified* link to "ALL THE STATION HAVE BEEN
 3. **Near clip** (`ClipPolygonNear`): against z >= 200, crossing found by bisection (`ClipEdgeNearBisect`).
 4. **Projection** (`ProjectPoint`): sx = (x << 8) / z + 160, sy = ((y + cameraHeight) << 8) / z + 70. Focal length 256 pixels. `cameraHeight` is `1:2368` = player `+48`: 100 at rest, plus a 40-step suspension wobble of -6..+6 (x4 off the road) or a bump profile when hitting stones (up to +80); it also lowers the backdrop when >= 100.
 5. **2D clip** (`ClipPolygon2D`): Sutherland-Hodgman against x 0..319, then y 70..131, intersections by bisection (`ClipEdgeX`, `ClipEdgeY`).
-6. **Fill**: `DropDegeneratePoints`, then an XOR edge fill in `scratchBuffer` (one pixel per scanline per edge: `XorPolygonEdges`/`XorEdgeLine`; vertex parity fix: `FixPolygonVertices`; horizontal edges are filled directly with `FillHSpan`). `FillRoadRows` walks rows 70..131, turns the edge bits into filled spans with byte tables (`fillPrefixXor`, `fillPrefixXorInverted`, `fillParity`), ORs them into plane 0 of `backScreen` (ground colour 14 + plane 0 = colour 15) and records each row's span edges (up to two spans) in `roadSpanBuffer`.
-7. **Lane stripes** (end of `RenderRoadView`): `stripePhase` += speed << 9 / 0x69 per frame (mod 0x1400; subtracted when the player's `+6e` reverse flag is set). Per screen row 76..131, `roadStripeTable[stripePhase >> 7][row - 76]` says whether a dash is visible (40 phases, dashes longer near the bottom). For every recorded span, a stripe `roadStripeWidths[row]` pixels wide (1 at the horizon, 16 at the bottom) is drawn just inside the left and right edges, colour 1. The stripes are edge lines, not a center line.
+6. **Fill**: `DropDegeneratePoints`, then an XOR edge fill in `scratchBuffer` (one pixel per scanline per edge: `XorPolygonEdges`/`XorEdgeLine`; vertex parity fix: `FixPolygonVertices`; horizontal edges are filled directly with `FillHSpan`). `FillRoadRows` walks rows 70..131, turns the edge bits into filled spans with byte tables (`fillPrefixXor`, `fillPrefixXorInverted`, `fillParity`), ORs them into plane 0 of `backScreen` (ground color 14 + plane 0 = color 15) and records each row's span edges (up to two spans) in `roadSpanBuffer`.
+7. **Lane stripes** (end of `RenderRoadView`): `stripePhase` += speed << 9 / 0x69 per frame (mod 0x1400; subtracted when the player's `+6e` reverse flag is set). Per screen row 76..131, `roadStripeTable[stripePhase >> 7][row - 76]` says whether a dash is visible (40 phases, dashes longer near the bottom). For every recorded span, a stripe `roadStripeWidths[row]` pixels wide (1 at the horizon, 16 at the bottom) is drawn just inside the left and right edges, color 1. The stripes are edge lines, not a center line.
 8. **Backdrop**: DEC_FOND.IMG, image index from heading: `heading*16/6` split into image (quotient by 320) and x (remainder - 320); drawn twice so it wraps; y = 50, or 50 + (cameraHeight - 100)/10 when cameraHeight >= 100; clipped to rows < 70.
 
 ## Dashboard (`DrawDashboard`, `0:ce74`)

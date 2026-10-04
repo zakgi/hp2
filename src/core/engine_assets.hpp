@@ -32,7 +32,7 @@ enum class EnginePicture : std::uint8_t {
   kCount,
 };
 
-// Palette lists: a picture's own (the header of its .CPV, one segment of Atari ST colours) or one
+// Palette lists: a picture's own (the header of its .CPV, one segment of Atari ST colors) or one
 // of the executable's (docs/formats.md, "Palettes in the executable").
 enum class EnginePalette : std::uint8_t {
   kLogo,
@@ -43,7 +43,7 @@ enum class EnginePalette : std::uint8_t {
   kOverheated,
   kWrecked,
   kArrest,
-  kTitle,      // 1:28e0: sky gradient rows 0-35, PRESENT.CPV's colours from row 36
+  kTitle,      // 1:28e0: sky gradient rows 0-35, PRESENT.CPV's colors from row 36
   kOffice,     // 0:ca94
   kOfficeDim,  // 0:ca6e
   kScore,      // 0:7766: end and score screens
@@ -84,7 +84,7 @@ enum class EngineBank : std::uint8_t {
   kCount,
 };
 
-// The two fonts differ in colours only.
+// The two fonts differ in colors only.
 enum class EngineFont : std::uint8_t {
   kLettre1,  // LETTRE1.BIN
   kLettre2,  // LETTRE2.BIN

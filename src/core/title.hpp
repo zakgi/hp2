@@ -8,7 +8,6 @@
 #include "core/component.hpp"
 #include "core/engine_assets.hpp"
 #include "core/key_events.hpp"
-#include "core/palette.hpp"
 #include "core/presentation.hpp"
 #include "core/screen.hpp"
 #include "core/xor_animation.hpp"
@@ -21,8 +20,6 @@ namespace hp2 {
 namespace original_timing {
 
 inline constexpr auto kCpuHz = 7'159'090.0F;
-// One vertical blank, which FlipScreens (1:0afa) waits for; NTSC, taken as 60 Hz.
-inline constexpr auto kVerticalBlankSeconds = 1.0F / 60.0F;
 // One taken `dbf` of a delay loop.
 inline constexpr auto kDbfCycles = 10U;
 // STScreenToPlanar (0:1124) and the reverse loop at 0:ac52: 200 rows of 20 x 4 word moves.
@@ -34,8 +31,6 @@ inline constexpr auto kScreenCopyCycles = 158'800U;
   return static_cast<float>(cycles) / kCpuHz;
 }
 
-// One fade level (main 0:a9f6 and its copies): two FlipScreens, then 65536 dbf.
-inline constexpr auto kFadeStepSeconds = (2.0F * kVerticalBlankSeconds) + Seconds(65'536U * kDbfCycles);
 // Title shown, before the animation (0:ac42-0:acce, then PlayDIF 0:106e up to its first
 // frame): 16 x 65536 dbf, the conversion to Atari ST layout and back, a screen copy, 7 x 61441 dbf.
 inline constexpr auto kAnimationLeadSeconds =
@@ -85,13 +80,17 @@ class Title {
 
   // NAME.IMG images 2 and 3 (1-based, as BlitBob takes them) and where main draws them, masked,
   // in screen coordinates (0:ad06-0:ad88).
-  static constexpr Point kLowerNameAt{.x = 10, .y = 189};
-  static constexpr Point kRightNameAt{.x = 258, .y = 143};
+  static constexpr Point kLowerNamePosition{.x = 10, .y = 189};
+  static constexpr Point kRightNamePosition{.x = 258, .y = 143};
   // Then the 8 x 8 cell at kCellFrom is copied to kCellTo (0:ad92), turning the lettering's
   // "LICENCE" into "LICENSE".
   static constexpr Point kCellFrom{.x = 240, .y = 192};
   static constexpr Point kCellTo{.x = 160, .y = 192};
   static constexpr std::uint16_t kCellSize = 8;
+  // The title palette changes at row 36, below the sky: its second segment takes the entries from
+  // kPictureIndexOffset on, and everything drawn below the sky uses that offset.
+  static constexpr std::uint16_t kSkyRows = 36;
+  static constexpr std::uint8_t kPictureIndexOffset = 16;
 
   Title(const EngineAssets& assets, Screen& screen, KeyEvents& keys, AudioEngine& audio)
       : assets_(assets), screen_(screen), keys_(keys), audio_(audio) {}
@@ -103,7 +102,7 @@ class Title {
  private:
   enum class Stage : std::uint8_t {
     kLogo,       // LOGO.CPV fades in and stays
-    kLogoGone,   // the original clears the logo, then fades its palette out on the black screen
+    kLogoGone,   // the logo fades out
     kTitle,      // PRESENT.CPV fades in and stays
     kAnimation,  // PRESENT.DIF
     kNames,      // the lettering; waits for Space or Enter
@@ -112,12 +111,13 @@ class Title {
   };
 
   static constexpr std::size_t kActionCapacity = 4;
-  using Actions = ActionStack<kActionCapacity, Hold, PaletteFade, PlayAnimation>;
+  using Actions = ActionStack<kActionCapacity, Hold, Fade, PlayAnimation>;
 
   // Enters `stage`: composes its picture and pushes its timed actions.
   void Enter(Stage stage);
   [[nodiscard]] Stage Next() const;
-  // The title picture with the screen split where the title palette's second segment starts.
+  // The title picture under the title palette: the sky with the first segment's entries, the rest
+  // with the second's.
   void ComposeTitle();
   void DrawNames();
   // Abandons the presentation for the finished title: picture, every animation step, lettering.

@@ -6,13 +6,9 @@
 #include <tuple>
 #include <utility>
 
+#include "core/image_view.hpp"
+
 namespace hp2 {
-
-namespace {
-
-constexpr auto kFadeStep = original_timing::kFadeStepSeconds;
-
-}  // namespace
 
 void PlayAnimation::Init() {
   step_ = 0;
@@ -89,21 +85,19 @@ void Title::Enter(Stage stage) {
       screen_.Palette(Viewport::kUpper).Reset();
       screen_.Clear(0);
       screen_.Blit(assets_.Picture(EnginePicture::kLogo), Point{});
+      screen_.ShowPalette(assets_.Palette(EnginePalette::kLogo));
       std::ignore = actions_.Push<Hold>(kLogoHoldSeconds);
-      std::ignore = actions_.Push<PaletteFade>(screen_, assets_.Palette(EnginePalette::kLogo), kDarkest,
-                                               kFullBrightness, kFadeStep);
+      std::ignore = actions_.Push<Fade>(screen_, 0.0F, 1.0F, kFadeSeconds);
       break;
 
     case Stage::kLogoGone:
-      screen_.Clear(0);
-      std::ignore = actions_.Push<Hold>(static_cast<float>(kFadeLevels) * original_timing::kFadeStepSeconds);
+      std::ignore = actions_.Push<Fade>(screen_, 1.0F, 0.0F, kFadeSeconds);
       break;
 
     case Stage::kTitle:
       ComposeTitle();
       audio_.PlayMusic(assets_.title_music);
-      std::ignore = actions_.Push<PaletteFade>(screen_, assets_.Palette(EnginePalette::kTitle), kDarkest,
-                                               kFullBrightness, kFadeStep);
+      std::ignore = actions_.Push<Fade>(screen_, 0.0F, 1.0F, kFadeSeconds);
       break;
 
     case Stage::kAnimation:
@@ -117,8 +111,7 @@ void Title::Enter(Stage stage) {
 
     case Stage::kFadeOut:
       audio_.StopMusic();
-      std::ignore = actions_.Push<PaletteFade>(screen_, assets_.Palette(EnginePalette::kTitle), kFullBrightness,
-                                               kDarkest, kFadeStep);
+      std::ignore = actions_.Push<Fade>(screen_, 1.0F, 0.0F, kFadeSeconds);
       break;
 
     case Stage::kDone:
@@ -127,31 +120,35 @@ void Title::Enter(Stage stage) {
 }
 
 void Title::ComposeTitle() {
-  const auto program = assets_.Palette(EnginePalette::kTitle);
-  const auto split_row = program.size() > 1 ? program[1].first_row : std::uint16_t{0};
-  screen_.EnableSplit(split_row);
-  for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
-    screen_.Palette(viewport).Reset();
-    screen_.SetViewport(viewport);
-    screen_.Clear(0);
-    screen_.Blit(assets_.Picture(EnginePicture::kTitle),
-                 Point{.x = 0, .y = static_cast<std::int16_t>(-screen_.FirstRow(viewport))});
+  const auto segments = assets_.Palette(EnginePalette::kTitle);
+  auto& palette = screen_.Palette(Viewport::kUpper);
+  screen_.DisableSplit();
+  palette.Reset();
+  if (segments.size() > 1) {
+    palette.Overlay(segments[0]);
+    palette.Overlay(segments[1], kPictureIndexOffset);
+  }
+  screen_.Clear(0);
+  const auto picture = assets_.Picture(EnginePicture::kTitle);
+  if (picture.height > kSkyRows) {
+    const auto sky_pixels = std::size_t{kSkyRows} * picture.width;
+    screen_.Blit(ImageView{.width = picture.width, .height = kSkyRows, .pixels = picture.pixels.first(sky_pixels)},
+                 Point{});
+    screen_.Blit(ImageView{.width = picture.width,
+                           .height = static_cast<std::uint16_t>(picture.height - kSkyRows),
+                           .pixels = picture.pixels.subspan(sky_pixels)},
+                 Point{.x = 0, .y = static_cast<std::int16_t>(kSkyRows)}, kPictureIndexOffset);
   }
 }
 
-// Everything here lies below the split, so it is drawn in the lower viewport.
+// Everything here lies below the sky, so it is drawn with the picture's offset.
 void Title::DrawNames() {
-  screen_.SetViewport(Viewport::kLower);
-  const auto top = static_cast<std::int16_t>(screen_.FirstRow(Viewport::kLower));
-  const auto in_viewport = [top](Point point) {
-    return Point{.x = point.x, .y = static_cast<std::int16_t>(point.y - top)};
-  };
   const auto& names = assets_.Bank(EngineBank::kNames);
   if (names.sprites.size() >= 3) {
-    screen_.BlitMasked(names.GetImage(1), in_viewport(kLowerNameAt));
-    screen_.BlitMasked(names.GetImage(2), in_viewport(kRightNameAt));
+    screen_.BlitMasked(names.GetImage(1), kLowerNamePosition, kPictureIndexOffset);
+    screen_.BlitMasked(names.GetImage(2), kRightNamePosition, kPictureIndexOffset);
   }
-  screen_.Copy(in_viewport(kCellFrom), in_viewport(kCellTo), kCellSize, kCellSize);
+  screen_.Copy(kCellFrom, kCellTo, kCellSize, kCellSize);
 }
 
 void Title::Finish() {
@@ -163,7 +160,6 @@ void Title::Finish() {
       screen_.ApplyFrame(assets_.title_animation, frames[step.frame]);
     }
   }
-  screen_.ShowPalette(assets_.Palette(EnginePalette::kTitle), kFullBrightness);
   if (not audio_.MusicPlaying()) {
     audio_.PlayMusic(assets_.title_music);
   }

@@ -52,9 +52,9 @@ def main() -> int:
             kind = grid[y * 64 + x]
             if kind >= CELL_TYPES or not shapes[kind]:
                 continue
-            colour = (200, 40, 40) if kind in STATION_TYPES else (60, 60, 60)
+            color = (200, 40, 40) if kind in STATION_TYPES else (60, 60, 60)
             points = [(x * s + px * s / CELL_UNITS, y * s + pz * s / CELL_UNITS) for px, pz in shapes[kind]]
-            draw.polygon(points, fill=colour)
+            draw.polygon(points, fill=color)
     for i in range(0, 65, 8):
         draw.line([(i * s, 0), (i * s, 64 * s)], fill=(150, 120, 80))
         draw.line([(0, i * s), (64 * s, i * s)], fill=(150, 120, 80))

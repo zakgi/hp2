@@ -7,7 +7,7 @@
 
 namespace hp2::host {
 
-// Bitplane deinterleaving. One byte of a bitplane holds 8 pixels, leftmost in bit 7; a colour
+// Bitplane deinterleaving. One byte of a bitplane holds 8 pixels, leftmost in bit 7; a color
 // index is built from one bit of each plane. The table turns a nibble into 4 bytes of 0 or 1,
 // leftmost pixel first, so that a plane byte deinterleaves with two lookups.
 consteval std::array<std::uint32_t, 16> MakeDeinterleaveTable() {
@@ -25,7 +25,7 @@ consteval std::array<std::uint32_t, 16> MakeDeinterleaveTable() {
 inline constexpr auto kDeinterleaveTable = MakeDeinterleaveTable();
 
 // The 8 pixels of `planar_byte`, each 1 << `shift` where its bit is set: the contribution of
-// bitplane `shift` to the colour indices.
+// bitplane `shift` to the color indices.
 [[nodiscard]] constexpr std::array<std::uint8_t, 8> DeinterleaveShift(std::uint8_t planar_byte,
                                                                       std::uint8_t shift = 0) {
   const auto halves = std::array<std::uint32_t, 2>{kDeinterleaveTable[planar_byte >> 4] << shift,

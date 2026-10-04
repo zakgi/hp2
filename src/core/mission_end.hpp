@@ -37,16 +37,16 @@ class MissionEnd {
   static constexpr std::size_t kGameOverImage = 0;
   static constexpr std::size_t kScoreLabelImage = 1;
   static constexpr std::size_t kFirstDigitImage = 2;
-  static constexpr Point kGameOverAt{.x = 32, .y = 20};
-  static constexpr Point kScoreLabelAt{.x = 55, .y = 100};
-  static constexpr Point kFirstDigitAt{.x = 172, .y = 100};
+  static constexpr Point kGameOverPosition{.x = 32, .y = 20};
+  static constexpr Point kScoreLabelPosition{.x = 55, .y = 100};
+  static constexpr Point kFirstDigitPosition{.x = 172, .y = 100};
   static constexpr std::int16_t kDigitAdvance = 19;
   static constexpr std::size_t kScoreDigits = 5;
   static constexpr std::string_view kLastPosterText = "YOUR MISSION IS OVER...";
   static constexpr Point kLastPosterCell{.x = 8, .y = 22};
-
-  // The screens change faster than the original's: a fade step of 1/16 s instead of about 1/8.
-  static constexpr float kFadeStepSeconds = 1.0F / 16.0F;
+  // The score palette changes at row 168, below everything but the ending's text: its second
+  // segment takes the entries from kTextIndexOffset on, and the text is drawn with that offset.
+  static constexpr std::uint8_t kTextIndexOffset = 16;
 
   MissionEnd(const EngineAssets& assets, Screen& screen, KeyEvents& keys, GameState& game)
       : assets_(assets), screen_(screen), keys_(keys), game_(game) {}
@@ -62,7 +62,7 @@ class MissionEnd {
   enum class Stage : std::uint8_t { kPicture, kPictureShown, kPictureOut, kScore, kScoreShown, kScoreOut, kDone };
 
   static constexpr std::size_t kActionCapacity = 2;
-  using Actions = ActionStack<kActionCapacity, PaletteFade>;
+  using Actions = ActionStack<kActionCapacity, Fade>;
 
   void Enter(Stage stage);
   void ComposeScore();
