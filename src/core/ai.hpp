@@ -67,12 +67,12 @@ struct AiDriver {
 // The decisions a mission can swap: the criminal's choice of station and its reactions to the
 // player, where traffic appears and where it heads. Each kind is a concept, and a mission runs with
 // one policy of each kind (AiPolicies). Policies hold no state and draw random numbers only from
-// the simulation's generator, so a mission still replays from its seed.
+// the mission's generator, so a mission still replays from its seed.
 
 // What every policy may look at.
 struct PolicyContext {
   const Road& road;
-  MissionType mission;
+  ArrestMethod arrest;
   const Vehicle& player;
   const Vehicle& target;  // the criminal's car
   const std::bitset<kStationCount>& robbed;

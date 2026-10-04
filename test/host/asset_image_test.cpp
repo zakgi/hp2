@@ -92,6 +92,8 @@ TEST(AssetImage, MatchesTheAssetManager) {
   EXPECT_TRUE(Same(actual.road_map.cells, expected.road_map.cells));
   EXPECT_TRUE(Same(actual.scenery.objects, expected.scenery.objects));
   EXPECT_EQ(actual.scenery.cell_types, expected.scenery.cell_types);
+  EXPECT_TRUE(Same(actual.road_shapes.points, expected.road_shapes.points));
+  EXPECT_EQ(actual.road_shapes.cell_types, expected.road_shapes.cell_types);
 }
 
 }  // namespace

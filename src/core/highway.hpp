@@ -7,13 +7,13 @@
 #include "core/engine_assets.hpp"
 #include "core/game_state.hpp"
 #include "core/key_events.hpp"
+#include "core/mission.hpp"
 #include "core/screen.hpp"
-#include "core/simulation.hpp"
 
 namespace hp2 {
 
 // The mission on the road, the original's main loop (0:ba7c): the keys become commands for the
-// simulation, which runs whole ticks of the elapsed time; its events become sounds and scenes, and
+// mission, which runs whole ticks of the elapsed time; its events become sounds and scenes, and
 // the stop at a station or the end of the mission hands over to Station or MissionEnd. The arrows
 // steer, accelerate and brake; Space fires while aiming; S switches the siren, T the gun, P pauses,
 // M shows the map; Escape abandons the mission (the bounty drops to 0).
@@ -35,7 +35,7 @@ class Highway {
   void OnExit() {}
   ComponentType Step(float delta_seconds);
 
-  [[nodiscard]] const Simulation& GetSimulation() const { return simulation_; }
+  [[nodiscard]] const Mission& GetMission() const { return mission_; }
 
  private:
   enum class Phase : std::uint8_t {
@@ -59,7 +59,7 @@ class Highway {
   // The commands for the next tick; single presses count once.
   [[nodiscard]] PlayerCommands TakeCommands();
   // Sounds, phase changes and the component to switch to for one tick's events.
-  [[nodiscard]] ComponentType Handle(SimulationEvents events);
+  [[nodiscard]] ComponentType Handle(MissionEvents events);
   void Draw();
 
   const EngineAssets& assets_;
@@ -67,7 +67,7 @@ class Highway {
   KeyEvents& keys_;
   AudioEngine& audio_;
   GameState& game_;
-  Simulation simulation_;
+  Mission mission_;
   AiPolicies policies_;
   // Each mission's seed is drawn from it.
   Random seeds_;

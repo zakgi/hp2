@@ -48,10 +48,10 @@ class Lane {
   std::uint8_t count_{};
 };
 
-// The 20 cells of types 11 and 12; the original lists the same cells at 1:23e0.
+// At most this many station cells: the map has 20, the same the original lists at 1:23e0.
 inline constexpr std::size_t kStationCount = 20;
 
-// Everything about the ground, for the simulation and the views: the road map (CARTE.BIN), the
+// Everything about the ground, for the mission and the views: the road map (CARTE.BIN), the
 // road shapes, the lanes, the stations and the scenery (COOR_OBJ.BIN). A value over views of the
 // assets, cheap to copy.
 class Road {
@@ -72,7 +72,10 @@ class Road {
   // In a station cell, the way from `entry` through the driveway and back onto the road.
   [[nodiscard]] std::optional<Lane> GetDriveway(Cell cell, Side entry) const;
 
-  [[nodiscard]] const std::array<Cell, kStationCount>& GetStations() const { return stations_; }
+  // The station cells, row by row.
+  [[nodiscard]] std::span<const Cell> GetStations() const {
+    return std::span<const Cell>{stations_}.first(station_count_);
+  }
   // The index into GetStations() of the station at `cell`, if there is one.
   [[nodiscard]] std::optional<std::size_t> GetStationIndex(Cell cell) const;
   // Whether `point` is at a station's pumps, where a car stops to be served or to rob
@@ -87,6 +90,7 @@ class Road {
   RoadShapes shapes_;
   Scenery scenery_;
   std::array<Cell, kStationCount> stations_{};
+  std::size_t station_count_{};
 };
 
 }  // namespace hp2

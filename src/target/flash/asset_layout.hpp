@@ -20,9 +20,9 @@ struct Section {
   std::size_t count;
 };
 
-inline constexpr std::size_t kImageSize = 0x178ac2;
+inline constexpr std::size_t kImageSize = 0x178f8c;
 inline constexpr Digest kImageDigest =
-    Sha256FromHex("987aa5a14a23b2a4f0b31ede7cc2a233b1fbaf52b82fb6712a7bb2b6dab84dac");
+    Sha256FromHex("b44a738d39cf6b21d8e07c73a6de567114fc91fc393dacb49bd231716de901dc");
 
 inline constexpr Section kPicturePixels{.offset = 0x0, .count = 640000};
 inline constexpr Section kPaletteSegments{.offset = 0x9c400, .count = 92};
@@ -40,6 +40,7 @@ inline constexpr Section kMusicPositions{.offset = 0x172528, .count = 9};
 inline constexpr Section kMusicNotes{.offset = 0x172534, .count = 1792};
 inline constexpr Section kRoadMap{.offset = 0x174f34, .count = 4096};
 inline constexpr Section kSceneryObjects{.offset = 0x175f34, .count = 1115};
+inline constexpr Section kRoadShapePoints{.offset = 0x178ac4, .count = 306};
 
 // Valid only once the image verified, or over a copy of assets.bin.
 [[nodiscard]] inline EngineAssets FlashAssets(std::uintptr_t base) {
@@ -170,6 +171,22 @@ inline constexpr Section kSceneryObjects{.offset = 0x175f34, .count = 1115};
                       {.first = 901, .count = 107},
                       {.first = 1008, .count = 107},
                   }}},
+      .road_shapes = {.points = TableView<ShapePoint>(base + 0x178ac4, 306),
+                      .cell_types = {{
+                          {.first = 0, .count = 0},
+                          {.first = 0, .count = 7},
+                          {.first = 7, .count = 7},
+                          {.first = 14, .count = 53},
+                          {.first = 67, .count = 53},
+                          {.first = 120, .count = 53},
+                          {.first = 173, .count = 53},
+                          {.first = 226, .count = 11},
+                          {.first = 237, .count = 11},
+                          {.first = 248, .count = 11},
+                          {.first = 259, .count = 17},
+                          {.first = 276, .count = 15},
+                          {.first = 291, .count = 15},
+                      }}},
   };
 }
 

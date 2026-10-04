@@ -62,8 +62,8 @@ struct VehicleTuning {
   float acceleration{};       // units per second squared
   float braking{};            // units per second squared
   float drag{};               // fraction of the speed lost per second without throttle
-  float max_steering{};       // the front wheels' angle at full lock, radians
-  float wheelbase{};          // units
+  float off_road_drag{};      // fraction of the speed lost per second off the road
+  float turning_radius{};     // units, at full lock
   float grip{};               // units per second squared sideways before the car slides
 };
 

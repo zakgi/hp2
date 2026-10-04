@@ -1,7 +1,8 @@
-"""Decoders for the road map (CARTE.BIN) and the scenery placement (COOR_OBJ.BIN).
+"""Decoders for the road map (CARTE.BIN), the scenery placement (COOR_OBJ.BIN) and the road shapes in hp.prg.
 
-They mirror src/host/format/road_map.cpp and object_placement.cpp; the formats are described in
-docs/formats.md ("Map: CARTE.BIN", "Object placement: COOR_OBJ.BIN").
+They mirror src/host/format/road_map.cpp, object_placement.cpp and road_shapes.cpp; the formats are
+described in docs/formats.md ("Map: CARTE.BIN", "Object placement: COOR_OBJ.BIN", "Road shapes in
+the executable").
 """
 
 from __future__ import annotations
@@ -57,3 +58,36 @@ def decode_object_placement(data: bytes) -> list[list[PlacedObject]]:
             ]
         )
     return lists
+
+
+NO_OUTLINE = 0xFFFF
+OUTLINE_POINT = struct.Struct(">hhh")
+
+
+@dataclass(frozen=True)
+class ShapePoint:
+    x: int
+    y: int
+
+
+def decode_road_shape(data: bytes) -> list[ShapePoint]:
+    """One road outline from the start of ``data``, as TranslatePolygon3D (0:1c98) reads it: a word
+    count n (low byte; 0xffff for none), then n + 1 points of words {x, z, y}, the last equal to
+    the first. x and z are kept, z running along the map's y; y must be 0."""
+    if len(data) < 2:
+        raise FormatError("road outline is truncated")
+    count_word = struct.unpack_from(">H", data, 0)[0]
+    if count_word == NO_OUTLINE:
+        return []
+    count = (count_word & 0xFF) + 1
+    if len(data) < 2 + count * OUTLINE_POINT.size:
+        raise FormatError(f"road outline of {count} points is truncated")
+    points: list[ShapePoint] = []
+    for index in range(count):
+        east, north, height = OUTLINE_POINT.unpack_from(data, 2 + index * OUTLINE_POINT.size)
+        if height != 0:
+            raise FormatError(f"road outline point {index} is at height {height}")
+        points.append(ShapePoint(east, north))
+    if points[0] != points[-1]:
+        raise FormatError("road outline is not closed")
+    return points

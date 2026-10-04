@@ -8,26 +8,27 @@
 
 namespace hp2 {
 
-enum class MissionType : std::uint8_t {
+// How the criminal is arrested in a mission.
+enum class ArrestMethod : std::uint8_t {
   kPullOver,   // stop the criminal with the siren on
   kRoadblock,  // let the criminal ram you while you stand still
   kShoot,      // five hits with the gun
 };
 
-struct Mission {
-  MissionType type;
+struct MissionType {
+  ArrestMethod arrest;
   std::uint16_t target_max_speed;
   std::uint32_t bounty;
 };
 
 // The six wanted posters, in poster order (missionTable, 1:23ae; docs/game.md, "Missions").
-inline constexpr auto kMissions = std::to_array<Mission>({
-    {.type = MissionType::kPullOver, .target_max_speed = 200, .bounty = 2000},
-    {.type = MissionType::kPullOver, .target_max_speed = 250, .bounty = 2000},
-    {.type = MissionType::kRoadblock, .target_max_speed = 300, .bounty = 5000},
-    {.type = MissionType::kRoadblock, .target_max_speed = 350, .bounty = 5000},
-    {.type = MissionType::kShoot, .target_max_speed = 350, .bounty = 10000},
-    {.type = MissionType::kShoot, .target_max_speed = 400, .bounty = 10000},
+inline constexpr auto kMissions = std::to_array<MissionType>({
+    {.arrest = ArrestMethod::kPullOver, .target_max_speed = 200, .bounty = 2000},
+    {.arrest = ArrestMethod::kPullOver, .target_max_speed = 250, .bounty = 2000},
+    {.arrest = ArrestMethod::kRoadblock, .target_max_speed = 300, .bounty = 5000},
+    {.arrest = ArrestMethod::kRoadblock, .target_max_speed = 350, .bounty = 5000},
+    {.arrest = ArrestMethod::kShoot, .target_max_speed = 350, .bounty = 10000},
+    {.arrest = ArrestMethod::kShoot, .target_max_speed = 400, .bounty = 10000},
 });
 inline constexpr auto kMissionCount = kMissions.size();
 

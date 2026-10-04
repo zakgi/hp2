@@ -121,6 +121,16 @@ void Screen::DrawHorizontalLine(std::int16_t left, std::int16_t right, std::int1
   }
 }
 
+void Screen::DrawVerticalLine(std::int16_t top, std::int16_t bottom, std::int16_t column, std::uint8_t index) {
+  const auto first = std::max<std::int32_t>(top, 0);
+  const auto last = std::min<std::int32_t>(bottom, Rows(selected_) - 1);
+  if (column >= 0 and column < kWidth) {
+    for (auto row = first; row <= last; ++row) {
+      Row(static_cast<std::uint16_t>(row))[static_cast<std::size_t>(column)] = index;
+    }
+  }
+}
+
 void Screen::XorScreen(std::uint32_t offset, std::span<const std::uint8_t> masks) {
   if (offset < pixels_.size()) {
     const auto count = std::min<std::size_t>(masks.size(), pixels_.size() - offset);

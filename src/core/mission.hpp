@@ -26,7 +26,7 @@ struct PlayerCommands {
 };
 
 // What happened during a tick, for the sounds and the scenes.
-enum class SimulationEvent : std::uint8_t {
+enum class MissionEvent : std::uint8_t {
   kCrash,          // the player's car hit something
   kShot,           // the player fired
   kTargetHit,      // the shot hit the criminal's car
@@ -37,10 +37,10 @@ enum class SimulationEvent : std::uint8_t {
   kMissionOver,    // the reason is in GetProgress().end_reason
   kCount,
 };
-using SimulationEvents = std::bitset<std::to_underlying(SimulationEvent::kCount)>;
+using MissionEvents = std::bitset<std::to_underlying(MissionEvent::kCount)>;
 
 // A direction from the player's eye relative to the body, for the sight and the bullet holes: the
-// simulation decides what they hit, the views place them.
+// mission decides what they hit, the views place them.
 struct ViewDirection {
   float bearing{};    // radians, left positive
   float elevation{};  // radians, up positive
@@ -50,7 +50,7 @@ struct ViewDirection {
 struct MissionProgress {
   static constexpr std::size_t kMaxWindshieldHoles = 10;
 
-  Mission mission{};
+  MissionType mission{};
   // Dollars: drains with time and penalties, and doubles as the score.
   std::int32_t bounty{};
   std::bitset<kStationCount> robbed;
@@ -68,21 +68,21 @@ struct MissionProgress {
 // component feeds it commands and turns its state and events into pictures and noise, so a mission
 // runs headless and replays exactly from its seed and commands. A value: copying it snapshots the
 // mission.
-class Simulation {
+class Mission {
  public:
   static constexpr float kTickSeconds = 1.0F / 60.0F;
   static constexpr std::size_t kMaxTraffic = 4;
 
-  explicit Simulation(Road road) : road_(road) {}
+  explicit Mission(Road road) : road_(road) {}
 
   // A new mission run with `policies`: the player at one of three starts (0:b76e), the criminal at
   // one of 16 crossroads (1:236e), no traffic yet.
-  void Start(const Mission& mission, const AiPolicies& policies, std::uint64_t seed);
+  void Start(const MissionType& mission, const AiPolicies& policies, std::uint64_t seed);
   // Back on the road after the station, with the fuel and tires the station left, at the driveway's
   // exit (0:328e).
   void LeaveStation(float fuel, std::uint8_t tires);
   // One tick.
-  SimulationEvents Step(const PlayerCommands& commands);
+  MissionEvents Step(const PlayerCommands& commands);
 
   [[nodiscard]] const Road& GetRoad() const { return road_; }
   [[nodiscard]] const Vehicle& GetPlayer() const { return player_; }
@@ -98,15 +98,15 @@ class Simulation {
   [[nodiscard]] std::uint32_t GetTick() const { return tick_; }
 
  private:
-  void StepPlayer(const PlayerCommands& commands, SimulationEvents& events);
-  void StepTarget(SimulationEvents& events);
+  void StepPlayer(const PlayerCommands& commands, MissionEvents& events);
+  void StepTarget(MissionEvents& events);
   void StepTraffic();
   // Scenery and car-to-car contacts of every car, into impacts and damage.
-  void ResolveContacts(SimulationEvents& events);
+  void ResolveContacts(MissionEvents& events);
   // The player's shots and the criminal's.
-  void ResolveShots(const PlayerCommands& commands, SimulationEvents& events);
+  void ResolveShots(const PlayerCommands& commands, MissionEvents& events);
   // Arrest, bounty, and the end of the mission.
-  void ApplyRules(SimulationEvents& events);
+  void ApplyRules(MissionEvents& events);
 
   Road road_;
   Random random_;

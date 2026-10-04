@@ -117,3 +117,7 @@ Copper palette lists (`{first, count, lines to next segment, rgb[count]}...`):
 | `0:a520` viewPalette | Amiga | driving screen (see `renderer.md`) |
 | `0:a734` viewPaletteRed | Amiga | driving screen, red flash |
 | `0:c338` protectionPalette | Amiga | removed protection screen, MODULE.IMG |
+
+## Road shapes in the executable
+
+`roadCellShapes` (`0:7812`) holds 13 long pointers, one per road cell type, to outlines that follow it in hunk 0 from `0:7846`. An outline is a word count n (only the low byte is used; 0xffff for none, as for type 0) and n + 1 points of three signed words {x, z, y} in cell units, the last equal to the first; y is 0 for every shape. `TranslatePolygon3D` (`0:1c98`) reads one outline. Each is followed by a 0xffff word the code does not read (an end-of-list marker, *unverified*). The port lists the 13 places (`kRoadShapePlaces` in `asset_manager.cpp`) instead of following the pointers. The shape of each type: `renderer.md`, "World".

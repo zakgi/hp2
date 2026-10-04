@@ -35,7 +35,7 @@ The port's `Office`, `Station` and `MissionEnd` components (`src/core/`) share a
 - **Station** (`station.cpp`): STATION.CPV under its own palette, no fade; the attendant (image 8 at 64,64) or, when robbed, the attendant tied up (image 1 at 256,96); the panel (image 2 at 160,4), FILL UP (image 3, greyed 6) at 168,13, REPAIR TYRE (4, greyed 7) at 168,26, EXIT (5) at 168,48; the cursor as two colour-11 lines per item (`stationCursorLines`, `0:39fe`), starting on EXIT. Up and Down move it one item per key press (the original repeats while the joystick is held); Space or Enter choose.
 - **Endings** (`mission_end.cpp`): the picture of the ending, if any, faded in under its own palette, held until Space or Enter, faded out; then the score screen under `scorePalette` (split at row 168): GAME OVER (GAME_SCO image 1 at 32,20) except after an arrest, SCORE : (image 2 at 55,100), five digits (images 3-12 at 172 + 19 i, 100), and the ending's text in LETTRE1 on the 8 x 8 grid. Fades step every 1/16 s, twice the original's pace. Left out: "QUARTEX 1990!", the crack's line at (13,24); "ALL THE STATION HAVE BEEN ROBBED..." reads STATIONS.
 
-The highway is not ported yet; `build/hp2 --start station` or `--start ending --ending <reason>` open the other screens directly (`building.md`).
+The highway shows only a live map so far (`highway.md`); `build/hp2 --start highway`, `--start station` or `--start ending --ending <reason>` open those screens directly (`building.md`).
 
 ## Missions
 

@@ -158,13 +158,17 @@ if(HP2_BUILD_TESTS)
     test/core/audio_engine_test.cpp
     test/core/component_test.cpp
     test/core/key_events_test.cpp
+    test/core/map_view_test.cpp
+    test/core/mission_test.cpp
     test/core/mission_end_test.cpp
     test/core/music_player_test.cpp
     test/core/office_test.cpp
     test/core/palette_test.cpp
+    test/core/road_test.cpp
     test/core/screen_test.cpp
     test/core/station_test.cpp
     test/core/title_test.cpp
+    test/core/vehicle_test.cpp
     test/core/voice_test.cpp
     test/format/amiga_hunk_test.cpp
     test/format/bob_bank_test.cpp

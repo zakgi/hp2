@@ -10,12 +10,14 @@
 #include <filesystem>
 #include <iostream>
 #include <optional>
+#include <random>
 #include <string>
 #include <unordered_map>
 
 #include "core/audio_engine.hpp"
 #include "core/component.hpp"
 #include "core/game_state.hpp"
+#include "core/highway.hpp"
 #include "core/key_events.hpp"
 #include "core/mission_end.hpp"
 #include "core/office.hpp"
@@ -39,8 +41,8 @@ KeyEvents key_events;
 AudioEngine audio;
 GameState game;
 
-// Where the program starts and the game state it starts with: the station and the endings are
-// reached only from the highway, which is not ported yet, so they can be opened directly.
+// Where the program starts and the game state it starts with: the highway, the station and the
+// endings can be opened directly, without playing up to them.
 struct Options {
   std::filesystem::path disk_image;
   std::uint32_t scaling{};
@@ -86,9 +88,12 @@ int Run(const Options& options) {
       game.fuel = 0.5F;
     }
     const auto& assets = asset_manager.Engine();
-    auto engine = Engine<Title, Office, Station, MissionEnd>{
+    auto device = std::random_device{};
+    const auto seed = (std::uint64_t{device()} << 32U) | device();
+    auto engine = Engine<Title, Office, Highway, Station, MissionEnd>{
         Title{assets, screen, key_events, audio}, Office{assets, screen, key_events, game},
-        Station{assets, screen, key_events, game}, MissionEnd{assets, screen, key_events, game}};
+        Highway{assets, screen, key_events, audio, game, seed}, Station{assets, screen, key_events, game},
+        MissionEnd{assets, screen, key_events, game}};
     auto running = engine.Start(options.start);
     auto clock = sf::Clock{};
     while (running and window.isOpen()) {
@@ -99,9 +104,6 @@ int Run(const Options& options) {
       }
       const auto elapsed = clock.restart();
       running = engine.Step(elapsed.asSeconds()) and engine.Running();
-      if (not running and engine.Running()) {
-        spdlog::info("The highway is not ported yet");
-      }
       audio.Step(static_cast<std::uint32_t>(elapsed.asMicroseconds()));
       ReportAudioGaps(audio_output);
       renderer.Render(screen);
@@ -120,10 +122,11 @@ int main(int argc, char* argv[]) try {
   auto disk = args::ValueFlag<std::string>{parser, "disk", "Game disk image (ADF)", {'d', "disk"}, "assets/hp2.adf"};
   const auto screens = std::unordered_map<std::string, hp2::ComponentType>{{"title", hp2::ComponentType::kTitle},
                                                                            {"office", hp2::ComponentType::kOffice},
+                                                                           {"highway", hp2::ComponentType::kHighway},
                                                                            {"station", hp2::ComponentType::kStation},
                                                                            {"ending", hp2::ComponentType::kMissionEnd}};
   auto start = args::MapFlag<std::string, hp2::ComponentType>{
-      parser,    "screen", "Screen to start on: title, office, station or ending",
+      parser,    "screen", "Screen to start on: title, office, highway, station or ending",
       {"start"}, screens,  hp2::ComponentType::kTitle};
   const auto endings = std::unordered_map<std::string, hp2::EndReason>{
       {"out-of-fuel", hp2::EndReason::kOutOfFuel}, {"stations-robbed", hp2::EndReason::kStationsRobbed},

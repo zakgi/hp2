@@ -93,6 +93,18 @@ TEST(Screen, SelectingLowerWithoutSplitIsIgnored) {
   EXPECT_EQ(screen.SelectedViewport(), Viewport::kUpper);
 }
 
+TEST(Screen, DrawsClippedVerticalLines) {
+  auto screen = Screen{};
+  screen.Clear(0);
+  screen.DrawVerticalLine(-5, 2, 3, 7);
+  EXPECT_EQ(screen.ScreenRow(0)[3], 7);
+  EXPECT_EQ(screen.ScreenRow(2)[3], 7);
+  EXPECT_EQ(screen.ScreenRow(3)[3], 0);
+  EXPECT_EQ(screen.ScreenRow(0)[4], 0);
+  screen.DrawVerticalLine(198, 250, Screen::kWidth, 7);  // right of the screen: nothing
+  EXPECT_EQ(screen.ScreenRow(199)[Screen::kWidth - 1], 0);
+}
+
 TEST(ScreenPalette, OverlaysAtAnOffset) {
   auto palette = ScreenPalette{};
   palette.ClearDirty();

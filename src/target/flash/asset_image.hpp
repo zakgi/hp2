@@ -34,6 +34,7 @@ static_assert(sizeof(ModuleNote) == 6 and offsetof(ModuleNote, sample) == 2 and 
               offsetof(ModuleNote, parameter) == 4);
 static_assert(sizeof(PlacedObject) == 10 and offsetof(PlacedObject, y) == 2 and offsetof(PlacedObject, z) == 4 and
               offsetof(PlacedObject, type) == 6 and offsetof(PlacedObject, extra) == 8);
+static_assert(sizeof(ShapePoint) == 4 and offsetof(ShapePoint, y) == 2);
 
 // `count` records of T at `address`, which must be aligned for T. Runtime only: forming a pointer
 // from an integer is not a constant expression.
