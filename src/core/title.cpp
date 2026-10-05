@@ -85,7 +85,7 @@ void Title::Enter(Stage stage) {
       screen_.Palette(Viewport::kUpper).Reset();
       screen_.Clear(0);
       screen_.Blit(assets_.Picture(EnginePicture::kLogo), Point{});
-      screen_.ShowPalette(assets_.Palette(EnginePalette::kLogo));
+      screen_.Palette(Viewport::kUpper).Overlay(assets_.Palette(EnginePalette::kLogo), 0);
       std::ignore = actions_.Push<Hold>(kLogoHoldSeconds);
       std::ignore = actions_.Push<Fade>(screen_, 0.0F, 1.0F, kFadeSeconds);
       break;
@@ -120,14 +120,10 @@ void Title::Enter(Stage stage) {
 }
 
 void Title::ComposeTitle() {
-  const auto segments = assets_.Palette(EnginePalette::kTitle);
   auto& palette = screen_.Palette(Viewport::kUpper);
   screen_.DisableSplit();
   palette.Reset();
-  if (segments.size() > 1) {
-    palette.Overlay(segments[0]);
-    palette.Overlay(segments[1], kPictureIndexOffset);
-  }
+  palette.Overlay(assets_.Palette(EnginePalette::kTitle), 0);
   screen_.Clear(0);
   const auto picture = assets_.Picture(EnginePicture::kTitle);
   if (picture.height > kSkyRows) {

@@ -160,7 +160,7 @@ ROAD_SHAPES = (
 
 # Record layouts of the engine types (little-endian, as on the RP2350 and the hosts); the C++ side
 # static_asserts the same sizes and offsets (src/target/flash/asset_image.hpp).
-PALETTE_SEGMENT = struct.Struct(f"<HBB{COLOR_REGISTERS * 3}B")
+RGB = struct.Struct("<3B")
 SPRITE_RANGE = struct.Struct("<IHHhh")
 XOR_RUN = struct.Struct("<III")
 XOR_FRAME = struct.Struct("<III")
@@ -278,29 +278,33 @@ def palette_colors(words: Sequence[int], color_format: int) -> list[int]:
     return channels + [0] * (COLOR_REGISTERS * 3 - len(channels))
 
 
-def palette_segments(game: Game, source: PaletteSource, headers: list[tuple[int, ...]]) -> list[bytes]:
+def palette_sets(game: Game, source: PaletteSource, headers: list[tuple[int, ...]]) -> list[int]:
+    """The palette's channels: a picture's colors, or one set of COLOR_REGISTERS colors per segment of a
+    list, each the colors in effect from its segment on."""
     if source.picture is not None:
-        colors = palette_colors(headers[source.picture], ATARI_ST_FORMAT)
-        return [PALETTE_SEGMENT.pack(0, 0, COLOR_REGISTERS, *colors)]
+        return palette_colors(headers[source.picture], ATARI_ST_FORMAT)
     assert source.place is not None
-    records: list[bytes] = []
+    channels: list[int] = []
+    current = [0] * (COLOR_REGISTERS * 3)
     for segment in images.parse_palette_list(game.executable.read(source.place, 0x400)):
         if segment.first + len(segment.colors) > COLOR_REGISTERS:
             raise FormatError(f"palette list at {source.place} writes past register {COLOR_REGISTERS - 1}")
+        written = len(segment.colors) * 3
         colors = palette_colors(segment.colors, source.color_format)
-        records.append(PALETTE_SEGMENT.pack(segment.start_row, segment.first, len(segment.colors), *colors))
-    return records
+        current[segment.first * 3 : segment.first * 3 + written] = colors[:written]
+        channels.extend(current)
+    return channels
 
 
 def pack_palettes(image: Image, game: Game, headers: list[tuple[int, ...]], layout: Layout) -> None:
-    records: list[bytes] = []
+    channels: list[int] = []
     spans: list[Span] = []
     for source in PALETTES:
-        segments = palette_segments(game, source, headers)
-        spans.append(Span(len(records), len(segments)))
-        records.extend(segments)
-    base = image.append("palette_segments", concatenated(records), len(records))
-    layout.palettes = [Span(base + span.offset * PALETTE_SEGMENT.size, span.count) for span in spans]
+        palette = palette_sets(game, source, headers)
+        spans.append(Span(len(channels), len(palette) // RGB.size))
+        channels.extend(palette)
+    base = image.append("palette_colors", bytes(channels), len(channels) // RGB.size)
+    layout.palettes = [Span(base + span.offset, span.count) for span in spans]
 
 
 def pack_banks(image: Image, game: Game, layout: Layout) -> None:
@@ -513,7 +517,7 @@ inline constexpr Digest kImageDigest =
 """
 SECTION_TEMPLATE: str = "inline constexpr Section k{identifier}{{.offset = {offset:#x}, .count = {count}}};"
 PICTURE_TEMPLATE: str = "          {{.width = {width}, .height = {height}, .pixels = {pixels}}},"
-PALETTE_TEMPLATE: str = "          {segments},"
+PALETTE_TEMPLATE: str = "          {colors},"
 BANK_TEMPLATE: str = """          {{.pixels = {pixels},
            .sprites = {sprites}}},"""
 FONT_TEMPLATE: str = "          {{.pixels = {pixels}}},"
@@ -570,7 +574,7 @@ def render_pictures(layout: Layout) -> str:
 
 
 def render_palettes(layout: Layout) -> str:
-    return "\n".join(PALETTE_TEMPLATE.format(segments=view("PaletteSegment", span)) for span in layout.palettes)
+    return "\n".join(PALETTE_TEMPLATE.format(colors=view("Rgb", span)) for span in layout.palettes)
 
 
 def render_banks(layout: Layout) -> str:

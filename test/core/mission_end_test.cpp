@@ -3,7 +3,6 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <span>
 
 #include "assets.hpp"
 #include "core/game_state.hpp"
@@ -34,11 +33,10 @@ class MissionEndTest : public ::testing::Test {
     return end_.Step(0.0F);
   }
 
-  // Whether the score palette shows: its second segment in the text's entries.
+  // Whether the score palette shows, both its sets.
   [[nodiscard]] bool ShowsTheScorePalette() {
-    const auto& segment = manager_.Engine().Palette(EnginePalette::kScore)[1];
-    const auto shown = screen_.Palette(Viewport::kUpper).Colors().subspan(MissionEnd::kTextIndexOffset, segment.count);
-    return std::ranges::equal(shown, std::span{segment.colors}.first(segment.count));
+    const auto score = manager_.Engine().Palette(EnginePalette::kScore);
+    return std::ranges::equal(screen_.Palette(Viewport::kUpper).Colors().first(score.size()), score);
   }
 
   host::AssetManager manager_;

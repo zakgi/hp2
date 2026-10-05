@@ -20,7 +20,7 @@ Point Office::Pointer() const {
 void Office::OnEnter() {
   screen_.DisableSplit();
   screen_.Palette(Viewport::kUpper).Reset();
-  screen_.ShowPalette(assets_.Palette(EnginePalette::kOfficeDim));
+  screen_.Palette(Viewport::kUpper).Overlay(assets_.Palette(EnginePalette::kOfficeDim), 0);
   phase_ = Phase::kLightsOn;
   phase_seconds_ = 0.0F;
   pointer_x_ = static_cast<float>(kPointerStart.x);
@@ -41,7 +41,7 @@ ComponentType Office::Step(float delta_seconds) {
   switch (phase_) {
     case Phase::kLightsOn:
       if (phase_seconds_ >= kLightsSeconds) {
-        screen_.ShowPalette(assets_.Palette(EnginePalette::kOffice));
+        screen_.Palette(Viewport::kUpper).Overlay(assets_.Palette(EnginePalette::kOffice), 0);
         phase_ = Phase::kPointing;
       }
       break;
@@ -123,7 +123,7 @@ void Office::Click() {
     if (poster_ and kPosterAreas[*poster_ / 2].Contains(pointer)) {
       game_.missions_available[*poster_] = false;
       game_.mission = *poster_;
-      screen_.ShowPalette(assets_.Palette(EnginePalette::kOfficeDim));
+      screen_.Palette(Viewport::kUpper).Overlay(assets_.Palette(EnginePalette::kOfficeDim), 0);
       phase_ = Phase::kLightsOff;
       phase_seconds_ = 0.0F;
     } else {

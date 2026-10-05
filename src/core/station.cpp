@@ -8,7 +8,7 @@ namespace hp2 {
 void Station::OnEnter() {
   screen_.DisableSplit();
   screen_.Palette(Viewport::kUpper).Reset();
-  screen_.ShowPalette(assets_.Palette(EnginePalette::kStation));
+  screen_.Palette(Viewport::kUpper).Overlay(assets_.Palette(EnginePalette::kStation), 0);
   cursor_ = Item::kExit;
   fill_up_used_ = false;
   repair_used_ = false;

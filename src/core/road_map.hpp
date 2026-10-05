@@ -32,7 +32,7 @@ struct PlacedObject {
   // The station sign's angle; 0 for the others.
   std::uint16_t extra{};
 
-  friend constexpr bool operator==(const PlacedObject&, const PlacedObject&) = default;
+  constexpr bool operator==(const PlacedObject&) const = default;
 };
 
 // The elements [first, first + count) of a span.
@@ -40,7 +40,7 @@ struct IndexRange {
   std::uint32_t first{};
   std::uint32_t count{};
 
-  friend constexpr bool operator==(const IndexRange&, const IndexRange&) = default;
+  constexpr bool operator==(const IndexRange&) const = default;
 };
 
 // The scenery of every road cell type (COOR_OBJ.BIN): every cell of a type has the same objects,
@@ -59,7 +59,7 @@ struct ShapePoint {
   std::int16_t x{};
   std::int16_t y{};
 
-  friend constexpr bool operator==(const ShapePoint&, const ShapePoint&) = default;
+  constexpr bool operator==(const ShapePoint&) const = default;
 };
 
 // The road's outline for every road cell type (roadCellShapes, 0:7812): one closed polygon each,

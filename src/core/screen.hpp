@@ -80,10 +80,6 @@ class Screen {
   // XORs frame `frame` of `animation` into the screen.
   void ApplyFrame(const XorAnimation& animation, const XorFrame& frame);
 
-  // Shows `segments`: each viewport takes the segments in effect on its first row. Segments starting
-  // inside a viewport would need palette entries of their own; the screens' lists have none.
-  void ShowPalette(std::span<const PaletteSegment> segments);
-
   [[nodiscard]] ScreenPalette& Palette(Viewport viewport) { return palettes_[Index(viewport)]; }
   [[nodiscard]] const ScreenPalette& Palette(Viewport viewport) const { return palettes_[Index(viewport)]; }
 

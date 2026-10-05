@@ -27,6 +27,7 @@ Synchronous operations use direct verbs: `Load`, `Decode`, `Read`, `Render`. `On
 
 - Declare initialized variables with `auto`: `auto count = std::size_t{0};`, `const auto hunks = HunkFile::FromBytes(...)`, `for (const auto& hunk : file.hunks)`. Spell the type inside the initializer, not before the name.
 - Prefer braced initialization and designated initializers for aggregates.
+- Parameter names appear in declarations and always match their definitions. Mark unused parameters `[[maybe_unused]]`; do not replace their names with comments.
 - `std::optional<T>` when absence is the only failure information; `std::expected<T, Error>` when callers distinguish errors. No sentinel results, no error out-parameters. `[[nodiscard]]` where ignoring a result would lose validation.
 - Prefer a single return at the end of a function: assign a `result` and return it. An entry guard is acceptable when it removes deep nesting.
 - `and`, `or`, `not` for boolean logic. Brace every `if`, `else`, `for`, `while` and `do` body.

@@ -93,8 +93,8 @@ class OfficeTest : public ::testing::Test {
 };
 
 TEST_F(OfficeTest, TurnsTheLightsOn) {
-  const auto& segment = manager_.Engine().Palette(EnginePalette::kOffice).front();
-  EXPECT_EQ(screen_.Palette(Viewport::kUpper).Color(15), segment.Color(15));
+  const auto colors = manager_.Engine().Palette(EnginePalette::kOffice);
+  EXPECT_EQ(screen_.Palette(Viewport::kUpper).Color(15), colors[15]);
   EXPECT_FALSE(office_.Poster().has_value());
 }
 

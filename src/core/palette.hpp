@@ -17,7 +17,7 @@ struct Rgb {
   std::uint8_t green{};
   std::uint8_t blue{};
 
-  friend constexpr bool operator==(const Rgb&, const Rgb&) = default;
+  constexpr bool operator==(const Rgb&) const = default;
 };
 
 static_assert(std::is_standard_layout_v<Rgb>);
@@ -33,19 +33,6 @@ static_assert(sizeof(Rgb) == 3);
 // The original's screen has 4 bitplanes, so its pictures use 16 color registers (InitDisplay
 // 1:0e90).
 inline constexpr auto kColorRegisterCount = std::size_t{16};
-
-// One segment of an original palette list, its colors decoded: from screen row `first_row` on,
-// registers first_register .. first_register + count - 1 take `colors`.
-struct PaletteSegment {
-  std::uint16_t first_row{};
-  std::uint8_t first_register{};
-  std::uint8_t count{};
-  std::array<Rgb, kColorRegisterCount> colors{};
-
-  // Color `index` of the segment.
-  [[nodiscard]] constexpr Rgb Color(std::size_t index) const { return colors[index]; }
-  friend constexpr bool operator==(const PaletteSegment&, const PaletteSegment&) = default;
-};
 
 // The colors one viewport's pixels are shown in: one for every value a pixel can take, black
 // until set.
@@ -63,12 +50,6 @@ class ScreenPalette {
       const auto count = std::min(colors.size(), colors_.size() - offset);
       std::ranges::copy(colors.first(count), colors_.begin() + static_cast<std::ptrdiff_t>(offset));
     }
-  }
-
-  // Sets the entries of `segment`'s registers, plus `index_offset`, to its colors.
-  void Overlay(const PaletteSegment& segment, std::size_t index_offset = 0) {
-    const auto count = std::min<std::size_t>(segment.count, segment.colors.size());
-    Overlay(std::span{segment.colors}.first(count), index_offset + segment.first_register);
   }
 
   void SetColor(std::uint8_t index, Rgb color) { colors_[index] = color; }

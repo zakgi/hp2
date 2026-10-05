@@ -32,8 +32,8 @@ enum class EnginePicture : std::uint8_t {
   kCount,
 };
 
-// Palette lists: a picture's own (the header of its .CPV, one segment of Atari ST colors) or one
-// of the executable's (docs/formats.md, "Palettes in the executable").
+// Palettes: a picture's own (the header of its .CPV) or one of the executable's lists
+// (docs/formats.md, "Palettes in the executable").
 enum class EnginePalette : std::uint8_t {
   kLogo,
   kStation,
@@ -43,7 +43,7 @@ enum class EnginePalette : std::uint8_t {
   kOverheated,
   kWrecked,
   kArrest,
-  kTitle,      // 1:28e0: sky gradient rows 0-35, PRESENT.CPV's colors from row 36
+  kTitle,      // 1:28e0: the sky's colors, then PRESENT.CPV's
   kOffice,     // 0:ca94
   kOfficeDim,  // 0:ca6e
   kScore,      // 0:7766: end and score screens
@@ -111,8 +111,9 @@ inline constexpr std::size_t kEngineSoundCount = std::to_underlying(EngineSound:
 // on the target; components receive it by reference and pick what they need.
 struct EngineAssets {
   std::array<ImageView, kEnginePictureCount> pictures;
-  // Each a palette list: segments in row order, the first at row 0.
-  std::array<std::span<const PaletteSegment>, kEnginePaletteCount> palettes;
+  // Each palette as sets of kColorRegisterCount colors, one after the other: a list's segments in
+  // order, each set the colors in effect from its segment on.
+  std::array<std::span<const Rgb>, kEnginePaletteCount> palettes;
   std::array<SpriteBank, kEngineBankCount> banks;
   std::array<BitmapFont, kEngineFontCount> fonts;
   std::array<SoundSample, kEngineSoundCount> sounds;
@@ -130,7 +131,7 @@ struct EngineAssets {
   [[nodiscard]] constexpr const ImageView& Picture(EnginePicture picture) const {
     return pictures[std::to_underlying(picture)];
   }
-  [[nodiscard]] constexpr std::span<const PaletteSegment> Palette(EnginePalette palette) const {
+  [[nodiscard]] constexpr std::span<const Rgb> Palette(EnginePalette palette) const {
     return palettes[std::to_underlying(palette)];
   }
   [[nodiscard]] constexpr const SpriteBank& Bank(EngineBank bank) const { return banks[std::to_underlying(bank)]; }

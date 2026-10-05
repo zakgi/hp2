@@ -12,19 +12,5 @@ TEST(Palette, ScalesColorsByBrightness) {
   EXPECT_EQ(ScaleColor(color, 0.0F), Rgb{});
 }
 
-TEST(Palette, OverlaysASegmentAtItsRegisters) {
-  const auto red = Rgb{.red = 0xff, .green = 0x00, .blue = 0x00};
-  const auto green = Rgb{.red = 0x00, .green = 0xff, .blue = 0x00};
-  const auto segment = PaletteSegment{.first_register = 2, .count = 2, .colors = {red, green}};
-  auto palette = ScreenPalette{};
-  palette.Overlay(segment, 16);
-  EXPECT_EQ(palette.Color(18), red);
-  EXPECT_EQ(palette.Color(19), green);
-  EXPECT_EQ(palette.Color(20), Rgb{});
-  palette.Overlay(segment);
-  EXPECT_EQ(palette.Color(2), red);
-  EXPECT_EQ(palette.Color(3), green);
-}
-
 }  // namespace
 }  // namespace hp2

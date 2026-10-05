@@ -23,7 +23,7 @@ Evidence: Ghidra `hp2` / `hp.prg`; routine names and plates are in the Ghidra pr
 
 ## Blitter routines
 
-- `BlitBob` (stack args, documented in its Ghidra plate): images from bob banks (`.IMG` files): word count, word offsets, then per image `{flags, width words, height, origin x, origin y, plane data}`. The mask is the OR of the stored planes (color 0 transparent); flags bits 8-11 choose which of the 4 screen planes receive the stored planes, the others are cleared under the mask. Optional clipping, 16-pixel alignment, origin (hotspot).
+- `BlitBob` (stack args, documented in its Ghidra plate): images from bob banks (`.IMG` files): word count, word offsets, then per image `{flags, width words, height, origin x, origin y, plane data}`. Each call chooses masked or opaque. Masked: the mask is the OR of the stored planes (color 0 transparent), and the screen planes flags bits 8-11 leave out are cleared under it. Opaque: the whole rectangle is replaced. Flags bits 8-11 choose which of the 4 screen planes receive the stored planes. Optional clipping, 16-pixel alignment, origin (hotspot).
 - `DrawLine` (x0, y0, x1, y1, color, screen): blitter lines per plane, clipped to 0..319 x 0..199 by bisection.
 - `ClearScreen`, `CopyScreen` (32000 bytes, CPU movem).
 

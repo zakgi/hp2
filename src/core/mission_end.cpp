@@ -118,7 +118,7 @@ void MissionEnd::Enter(Stage stage) {
       screen_.Palette(Viewport::kUpper).Reset();
       screen_.Clear(0);
       screen_.Blit(assets_.Picture(*ending_.picture), Point{});
-      screen_.ShowPalette(palette);
+      screen_.Palette(Viewport::kUpper).Overlay(palette, 0);
       std::ignore = actions_.Push<Fade>(screen_, 0.0F, 1.0F, kFadeSeconds);
       break;
     }
@@ -140,14 +140,10 @@ void MissionEnd::Enter(Stage stage) {
 }
 
 void MissionEnd::ComposeScore() {
-  const auto segments = assets_.Palette(EnginePalette::kScore);
   auto& palette = screen_.Palette(Viewport::kUpper);
   screen_.DisableSplit();
   palette.Reset();
-  if (segments.size() > 1) {
-    palette.Overlay(segments[0]);
-    palette.Overlay(segments[1], kTextIndexOffset);
-  }
+  palette.Overlay(assets_.Palette(EnginePalette::kScore), 0);
   screen_.Clear(0);
   const auto& bank = assets_.Bank(EngineBank::kScore);
   if (ending_.game_over) {

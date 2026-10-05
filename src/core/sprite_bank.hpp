@@ -17,7 +17,7 @@ struct SpriteRange {
   std::int16_t origin_x{};
   std::int16_t origin_y{};
 
-  friend constexpr bool operator==(const SpriteRange&, const SpriteRange&) = default;
+  constexpr bool operator==(const SpriteRange&) const = default;
 };
 
 // A bank of images (an .IMG file), numbered from 0; the original numbers them from 1. Color index

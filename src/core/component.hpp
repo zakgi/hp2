@@ -114,7 +114,7 @@ class Engine {
 
   // Calls `visitor` on the component whose kType is `type`. `type` must be registered.
   template <typename Visitor, std::size_t... Indices>
-  auto VisitComponent(ComponentType type, Visitor&& visitor, std::index_sequence<Indices...> /*indices*/) {
+  auto VisitComponent(ComponentType type, Visitor&& visitor, [[maybe_unused]] std::index_sequence<Indices...> indices) {
     using Result = decltype(visitor(std::get<0>(components_)));
     if constexpr (std::is_void_v<Result>) {
       ((kTypes[Indices] == type ? (visitor(std::get<Indices>(components_)), void()) : void()), ...);

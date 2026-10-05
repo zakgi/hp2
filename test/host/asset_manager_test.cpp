@@ -8,6 +8,7 @@
 
 #include "assets.hpp"
 #include "core/engine_assets.hpp"
+#include "core/palette.hpp"
 #include "core/road_map.hpp"
 
 namespace hp2::host {
@@ -23,10 +24,9 @@ TEST(AssetManager, LoadsEveryAsset) {
   for (const auto& picture : assets.pictures) {
     EXPECT_EQ(picture.pixels.size(), 64000U);
   }
-  EXPECT_EQ(assets.Palette(EnginePalette::kTitle).size(), 2U);
-  EXPECT_EQ(assets.Palette(EnginePalette::kView).size(), 39U);
-  ASSERT_EQ(assets.Palette(EnginePalette::kLogo).size(), 1U);
-  EXPECT_EQ(assets.Palette(EnginePalette::kLogo)[0].count, 16);
+  EXPECT_EQ(assets.Palette(EnginePalette::kTitle).size(), 2 * kColorRegisterCount);
+  EXPECT_EQ(assets.Palette(EnginePalette::kView).size(), 39 * kColorRegisterCount);
+  EXPECT_EQ(assets.Palette(EnginePalette::kLogo).size(), kColorRegisterCount);
   for (const auto& palette : assets.palettes) {
     EXPECT_FALSE(palette.empty());
   }

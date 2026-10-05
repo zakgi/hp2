@@ -205,10 +205,9 @@ bool AssetManager::LoadPalettes() {
   for (auto index = std::size_t{0}; loaded and index < kEnginePaletteCount; ++index) {
     const auto& source = kPaletteSources[index];
     if (source.picture) {
-      auto segment = PaletteSegment{.count = kColorRegisterCount};
-      std::ranges::transform(picture_palettes_[std::to_underlying(*source.picture)], segment.colors.begin(),
-                             FromAtariSt);
-      palettes_[index] = {segment};
+      const auto& words = picture_palettes_[std::to_underlying(*source.picture)];
+      palettes_[index].resize(words.size());
+      std::ranges::transform(words, palettes_[index].begin(), FromAtariSt);
     } else {
       auto list = ReadPaletteList(executable_->hunks[source.list.hunk], source.list.offset, source.format);
       loaded = list.has_value();

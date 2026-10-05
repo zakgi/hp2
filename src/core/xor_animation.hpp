@@ -12,7 +12,7 @@ struct XorRun {
   std::uint32_t mask_first{};
   std::uint32_t mask_count{};
 
-  friend constexpr bool operator==(const XorRun&, const XorRun&) = default;
+  constexpr bool operator==(const XorRun&) const = default;
 };
 
 // One delta frame: runs[run_first, run_first + run_count). `source_words` and the number of runs
@@ -22,7 +22,7 @@ struct XorFrame {
   std::uint32_t run_count{};
   std::uint32_t source_words{};
 
-  friend constexpr bool operator==(const XorFrame&, const XorFrame&) = default;
+  constexpr bool operator==(const XorFrame&) const = default;
 };
 
 // One step of a play list: apply `frame` (an index into the frames), then wait. `delay` is the
@@ -31,7 +31,7 @@ struct AnimationStep {
   std::uint16_t frame{};
   std::uint16_t delay{};
 
-  friend constexpr bool operator==(const AnimationStep&, const AnimationStep&) = default;
+  constexpr bool operator==(const AnimationStep&) const = default;
 };
 
 // A delta animation over a picture and the order its frames are shown in (frames may repeat).

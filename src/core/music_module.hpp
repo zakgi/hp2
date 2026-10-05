@@ -27,7 +27,7 @@ struct ModuleSample {
   // A loop of one word is the format's "no loop".
   [[nodiscard]] constexpr bool Loops() const { return loop_length > 2; }
 
-  friend constexpr bool operator==(const ModuleSample&, const ModuleSample&) = default;
+  constexpr bool operator==(const ModuleSample&) const = default;
 };
 
 // One channel's entry of a pattern row.
@@ -42,7 +42,7 @@ struct ModuleNote {
   std::uint8_t effect{};
   std::uint8_t parameter{};
 
-  friend constexpr bool operator==(const ModuleNote&, const ModuleNote&) = default;
+  constexpr bool operator==(const ModuleNote&) const = default;
 };
 
 // A 15-sample Soundtracker module: the instruments, the order the patterns play in, the patterns

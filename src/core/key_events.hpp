@@ -17,7 +17,7 @@ struct KeyEvent {
   Key key{Key::kNone};
   KeyAction action{KeyAction::kPress};
 
-  friend constexpr bool operator==(const KeyEvent&, const KeyEvent&) = default;
+  constexpr bool operator==(const KeyEvent&) const = default;
 };
 
 // Keystrokes recorded by the platform backend, in arrival order, until the engine consumes them.

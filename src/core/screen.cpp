@@ -74,7 +74,7 @@ void Screen::BlitWith(const ImageView& image, Point origin, Combine combine) {
 }
 
 void Screen::Blit(const ImageView& image, Point origin, std::uint8_t index_offset) {
-  BlitWith(image, origin, [index_offset](std::uint8_t index, std::uint8_t /*pixel*/) {
+  BlitWith(image, origin, [index_offset](std::uint8_t index, [[maybe_unused]] std::uint8_t pixel) {
     return static_cast<std::uint8_t>(index + index_offset);
   });
 }
@@ -88,17 +88,6 @@ void Screen::BlitMasked(const ImageView& image, Point origin, std::uint8_t index
 void Screen::ApplyFrame(const XorAnimation& animation, const XorFrame& frame) {
   for (const auto& run : animation.GetRuns(frame)) {
     XorScreen(run.offset, animation.GetMasks(run));
-  }
-}
-
-void Screen::ShowPalette(std::span<const PaletteSegment> segments) {
-  for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
-    auto& palette = Palette(viewport);
-    for (const auto& segment : segments) {
-      if (segment.first_row <= FirstRow(viewport)) {
-        palette.Overlay(segment);
-      }
-    }
   }
 }
 
