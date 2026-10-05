@@ -117,7 +117,9 @@ Built: the held keys, the fixed ticks, pause (P), the map (M) and abandoning (Es
 - **The car** (`cockpit.hpp`): the hood's edge and the roof strip over the view, then the dashboard picture, the steering wheel, the needles and the two hands in the lower viewport. The hands ride a circle about the wheel's hub and turn with the wheel, 30 degrees either way at full lock, from `Controls::steer`. While the car moves the wheel and the hands shift a pixel up and back every 3 ticks, the original's vibration at its assumed 20 frames a second.
 - **Needles**: the speedometer's turns with the size of the car's speed, 235.7 degrees at 8000 units a second (the original's 400 a frame); the tachometer's with `CarCondition::rpm` in the original's units; the two small gauges point at one of the original's 16 tips for the fuel and the temperature.
 
-Not drawn yet: the cars, the gauges' warning lights, the roof strip's text, the hand that takes the gun, the sight and the bullet holes, the red flash.
+- **Roof text**: the map cell the player's car is in, column then row, two digits each in the strip's first two boxes (`DrawRoofText`), in LETTRE2.BIN's digits and the roof's colors.
+
+Not drawn yet: the cars, the gauges' warning lights, the rest of the roof strip's text (the player's compass, the criminal's cell and compass, the bounty, the stations left), the hand that takes the gun, the sight and the bullet holes, the red flash.
 
 Open: the strip one unit wide at the far end of a station's driveway (see "Road") shows as a line of sand across the driveway's mouth on the rare frame where a line across the view falls inside it. Closing it where the shapes are decoded would fix the view and `IsOnRoad` together.
 

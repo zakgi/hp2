@@ -1,7 +1,9 @@
 #pragma once
 
+#include "core/bitmap_font.hpp"
 #include "core/screen.hpp"
 #include "core/sprite_bank.hpp"
+#include "core/world.hpp"
 
 namespace hp2 {
 
@@ -29,6 +31,12 @@ void DrawDashboard(const SpriteBank& cockpit, const DashboardInput& input, Scree
 
 // The roof strip, on the first rows of the selected viewport, in the roof's colors.
 void DrawRoofStrip(const SpriteBank& cockpit, Screen& screen);
+
+// The roof strip's text (DrawHudText, 0:e1b4), so far the map cell the player's car is in: its
+// column and its row, two digits each, in the strip's first two boxes, in `font` (LETTRE2.BIN for
+// the player) and the roof's colors. The compass, the criminal's cell, the bounty and the stations
+// left are not drawn yet. Draws into the selected viewport, the view's.
+void DrawRoofText(const BitmapFont& font, Cell player, Screen& screen);
 
 // The hood's edge: black on the right of the last three rows above the dashboard, where the hood
 // rises out of the dashboard picture. Draws into the selected viewport, the view's.

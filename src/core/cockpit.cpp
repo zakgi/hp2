@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <numbers>
 #include <span>
+#include <string_view>
 
 #include "core/view_palette.hpp"
 
@@ -104,6 +105,11 @@ constexpr auto kTemperatureTips = std::to_array<Point>({
 static_assert(kFuelTips.size() == kGaugeTipCount);
 static_assert(kTemperatureTips.size() == kGaugeTipCount);
 
+// The roof strip's text stands on its fifth row; the player's cell goes in the first two boxes.
+constexpr auto kRoofTextRow = std::int16_t{4};
+constexpr auto kPlayerColumnText = std::int16_t{40};
+constexpr auto kPlayerRowText = std::int16_t{64};
+
 // The hood's edge: on each row, black from a column to the window's right edge.
 struct HoodRun {
   std::int16_t row;
@@ -151,6 +157,16 @@ void DrawGauge(Point hub, std::span<const Point, kGaugeTipCount> tips, float lev
   screen.DrawLine(hub, tips[std::min(tip, kGaugeTipCount - 1)], kNeedleColor);
 }
 
+// Draws `value`, held within 0 to 99, as two digits of the roof's text from `column` on.
+void DrawTwoDigits(const BitmapFont& font, int value, std::int16_t column, Screen& screen) {
+  constexpr auto kTen = 10;
+  const auto shown = std::clamp(value, 0, (kTen * kTen) - 1);
+  const auto digits =
+      std::array<char, 2>{static_cast<char>('0' + (shown / kTen)), static_cast<char>('0' + (shown % kTen))};
+  screen.DrawText(font, std::string_view{digits.data(), digits.size()}, Point{.x = column, .y = kRoofTextRow},
+                  kRoofOffset);
+}
+
 }  // namespace
 
 void DrawDashboard(const SpriteBank& cockpit, const DashboardInput& input, Screen& screen) {
@@ -175,6 +191,11 @@ void DrawRoofStrip(const SpriteBank& cockpit, Screen& screen) {
   if (cockpit.sprites.size() >= kImageCount) {
     screen.Blit(cockpit.GetImage(kRoofImage), Point{}, kRoofOffset);
   }
+}
+
+void DrawRoofText(const BitmapFont& font, Cell player, Screen& screen) {
+  DrawTwoDigits(font, player.x, kPlayerColumnText, screen);
+  DrawTwoDigits(font, player.y, kPlayerRowText, screen);
 }
 
 void DrawHoodEdge(Screen& screen) {

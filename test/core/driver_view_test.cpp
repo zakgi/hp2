@@ -95,6 +95,24 @@ TEST_F(DriverViewTest, DrawsTheCarAroundTheView) {
       ASSERT_LT(pixel, kRoofOffset + kColorRegisterCount) << "row " << row << " column " << column;
     }
   }
+  // On it the cell the car is in, column then row, two digits each from columns 40 and 64 on row 4.
+  const auto cell = GetCell(mission.GetPlayer().position);
+  const auto& font = assets.Font(EngineFont::kLettre2);
+  const auto expect_digit = [this, &font](int digit, std::int16_t first_column) {
+    const auto glyph = font.GetGlyph(static_cast<char>('0' + digit));
+    for (auto row = std::uint16_t{0}; row < BitmapFont::kGlyphSize; ++row) {
+      for (auto column = std::uint16_t{0}; column < BitmapFont::kGlyphSize; ++column) {
+        ASSERT_EQ(GetPixel(static_cast<std::int16_t>(first_column + column), static_cast<std::int16_t>(4 + row)),
+                  glyph.Row(row)[column] + kRoofOffset)
+            << "digit " << digit << " at column " << first_column;
+      }
+    }
+  };
+  ASSERT_GE(cell.x, 10);
+  expect_digit(cell.x / 10, 40);
+  expect_digit(cell.x % 10, 48);
+  expect_digit(cell.y / 10, 64);
+  expect_digit(cell.y % 10, 72);
   // The hood's edge: black from a column on, on the three rows above the dashboard.
   EXPECT_NE(GetPixel(247, 129), 0);
   EXPECT_EQ(GetPixel(248, 129), 0);

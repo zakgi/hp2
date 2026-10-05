@@ -52,6 +52,7 @@ void DriverView::Draw(const Mission& mission) {
   const auto& cockpit = assets_.Bank(EngineBank::kCockpit);
   DrawHoodEdge(screen_);
   DrawRoofStrip(cockpit, screen_);
+  DrawRoofText(assets_.Font(EngineFont::kLettre2), GetCell(player.position), screen_);
   // While the car moves the wheel and the hands shake: up a pixel and back, kShakeTicks each.
   const auto shaken = player.speed != 0.0F and (mission.GetTick() / kShakeTicks) % 2 == 1;
   const auto& condition = mission.GetCondition();
