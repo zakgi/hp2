@@ -105,6 +105,22 @@ TEST(Screen, DrawsClippedVerticalLines) {
   EXPECT_EQ(screen.ScreenRow(199)[Screen::kWidth - 1], 0);
 }
 
+TEST(Screen, HandsOutEachViewportsPixels) {
+  auto screen = Screen{};
+  EXPECT_EQ(screen.Pixels(Viewport::kUpper).size(), std::size_t{Screen::kWidth} * Screen::kHeight);
+  EXPECT_TRUE(screen.Pixels(Viewport::kLower).empty());
+  screen.EnableSplit(132);
+  screen.SetViewport(Viewport::kLower);
+  screen.Clear(9);
+  const auto upper = screen.Pixels(Viewport::kUpper);
+  const auto lower = screen.Pixels(Viewport::kLower);
+  EXPECT_EQ(upper.size(), std::size_t{132} * Screen::kWidth);
+  EXPECT_EQ(lower.size(), std::size_t{68} * Screen::kWidth);
+  EXPECT_EQ(upper.back(), 0);
+  EXPECT_EQ(lower.front(), 9);
+  EXPECT_EQ(lower.data(), screen.ScreenRow(132).data());
+}
+
 TEST(Screen, DrawsLinesWithBothEnds) {
   auto screen = Screen{};
   screen.Clear(0);

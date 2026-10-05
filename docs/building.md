@@ -10,7 +10,7 @@ cmake --build --preset host
 ctest --preset host
 ```
 
-Run `build/hp2` from the repository root, or pass the game disk: `build/hp2 --disk assets/hp2.adf`. The game files are read straight from the ADF (ADFlib); the extracted copy under `assets/hp2/` is for the Python tools. `--scaling 1`-`8` sets the window size (default 3). The program plays the opening presentation with its music (Space or Enter skip it), then the office, where a mission is chosen; Escape quits. Choosing a mission opens the highway, for now a live map with the player's car and the criminal's; the arrows drive, P pauses, M shows the map, Escape abandons the mission. `--start office`, `--start highway`, `--start station` (with `--robbed` for a robbed station) and `--start ending --ending <reason>` (out-of-fuel, stations-robbed, overheated, wrecked, tires-gone, shot, arrest, bounty-gone; `--score <n>` for the score) open the other screens directly.
+Run `build/hp2` from the repository root, or pass the game disk: `build/hp2 --disk assets/hp2.adf`. The game files are read straight from the ADF (ADFlib); the extracted copy under `assets/hp2/` is for the Python tools. `--scaling 1`-`8` sets the window size (default 3). The program plays the opening presentation with its music (Space or Enter skip it), then the office, where a mission is chosen; Escape quits. Choosing a mission opens the highway, seen from the driver's seat; the arrows drive, P pauses, M shows the map with the player's car and the criminal's, Escape abandons the mission. `--start office`, `--start highway`, `--start station` (with `--robbed` for a robbed station) and `--start ending --ending <reason>` (out-of-fuel, stations-robbed, overheated, wrecked, tires-gone, shot, arrest, bounty-gone; `--score <n>` for the score) open the other screens directly.
 
 `compile_commands.json` at the repository root is a symlink to the last configured build, for clangd.
 
@@ -20,8 +20,8 @@ Run `build/hp2` from the repository root, or pass the game disk: `build/hp2 --di
 - `src/host/format/`: decoders for the original files: AmigaDOS hunk executables (read unrelocated, by hunk and offset), `.CPV` pictures, `.IMG` bob banks, `.DIF` delta animations (as pixel XOR masks) and their play list, `.MUS` music, IFF 8SVX sounds, the `LETTRE*.BIN` fonts, the `CARTE.BIN` road map, the `COOR_OBJ.BIN` object placement, copper palette lists, bitplane deinterleaving.
 - `src/host/`: the disk image reader (`adf.hpp`), the asset manager (reads and decodes the game files once, owns the storage behind the engine's views), the SFML renderer, keyboard input and the SFML audio stream that drains the engine's ring.
 - `src/target/flash/`: the flash asset image's contract (record layouts, `asset_image.hpp`), its generated layout (`asset_layout.hpp`) and the boot check (`asset_check.hpp`).
-- `src/target/rp2350/`, `src/boards/<board>/`: the firmware's board interface, cycle counter, hardware SHA-256, and per board its pins and clocks, partition table and `main.cpp`.
-- `cmake/`: the core source list, and the rp2350 toolchain bring-up, pico-sdk fetch, embedded flags and firmware target.
+- `src/target/rp2350/`, `src/boards/<board>/`: the firmware's board interface, cycle counter, hardware SHA-256, the SPI panel driver with its palette-lookup PIO program (`display/`), the presenter that sends the screen to the panel, keys over USB CDC, and per board its pins and clocks, the panel's init sequence, partition table and `main.cpp`.
+- `cmake/`: the core source list, and the rp2350 toolchain bring-up, pico-sdk fetch, embedded flags and firmware target (with the PIO header generation).
 - `test/`: GoogleTest suite. Tests that need the game files read the disk image `HP2_DISK_IMAGE` (default `assets/hp2.adf`) and skip when it is absent; decoded data is checked against digests from the Python reference decoders (`scripts/reference_digests.py` prints them).
 
 ## RP2350 firmware
@@ -33,15 +33,19 @@ cmake --build --preset rp2350-adafruit-feather
 
 Prerequisites: `arm-none-eabi-gcc`, `picotool` and Ninja on the path, and the `.venv` (the partition header is generated with it). The first configure fetches pico-sdk 2.3.1 with its tinyusb submodule into `.cache/fetchcontent/`. The output is `build-rp2350-adafruit-feather/hp2_rp2350.uf2`, which carries the partition table from the board's `partitions.json`. The presets set `PICO_COPY_TO_RAM`: the image runs from SRAM, XIP execution being slow on the RP2350. The core sources compile into the firmware too, so the cross-compiler reports what is not portable.
 
-Current state: the board boots at 300 MHz, waits up to ten seconds for a USB-CDC terminal, checks the asset image and, when it verifies, binds `EngineAssets` to it; no display or audio backend yet. Expected output:
+Current state: the board boots at 300 MHz, brings up the 480x320 SPI panel, waits up to ten seconds for a USB-CDC terminal, fills the panel blue through blocking SPI, starts the palette-lookup path and checks the asset image. When it verifies, `EngineAssets` is bound to it and the game runs from the title, 320x200 in the middle of the panel; without an image a test pattern of 16 color bars scrolls instead. There is no audio backend yet. The panel path and the engine loop have not been run on a board yet (*unverified*). Expected output with an image:
 
 ```text
 [hp2] built <date> <time>
 [board] sys_clk = 300000000 Hz, cycle counter available
 [assets] PASS: 1542850 bytes at 0x10100000, verified in <n> cycles
 [assets] 10 pictures, 27 sprite banks, title music of 1792 notes
-[heartbeat] 1
+[budget] frame 120: period <n> cycles, step <n> avg <n> worst, 0 dropped, component 0
 ```
+
+The screen holds color indices; the panel takes RGB565. A PIO state machine turns each index into the address of its entry in a 256-entry table and a chained DMA pair feeds the entries to the SPI, so the CPU only writes the table (`src/target/rp2350/display/st7789v.hpp`, `palette_lut.pio`). A split screen goes out as one push per viewport, the table rewritten from the viewport's palette in between (`panel_presenter.hpp`).
+
+Keys come from the serial terminal (`src/target/rp2350/cdc_input.hpp`): letters and digits are their own keys, Enter and Space too, the terminal's arrow sequences are the arrows and a lone ESC is Escape. A terminal sends no releases, so each byte is a press released at the next frame: a held key arrives as the terminal's repeats.
 
 ## Asset image
 

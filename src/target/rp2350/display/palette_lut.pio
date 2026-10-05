@@ -1,0 +1,48 @@
+; SPDX-License-Identifier: MIT
+;
+; Palette lookup address generator for the ST7789V index-framebuffer path.
+;
+; DMA feeds one palette index per TX FIFO word (low byte valid); the state
+; machine composes the byte address of the matching 16-bit palette entry
+; and autopushes it to the RX FIFO, where a chained DMA pair uses it as
+; the read pointer of a pixel transfer into the SPI data register.
+;
+; X is preloaded once at init with the palette base address >> 9; the
+; 256 x uint16 table is 512-byte aligned, so reassembling the low 9 bits
+; from the index lands exactly on &palette[index]:
+;
+;   address = (X << 9) | (index << 1)
+;
+; The blocking pull is load-bearing: 'in osr' reads the OSR without
+; consuming it and never triggers a FIFO pull, so an autopull design would
+; emit one bogus address from the empty OSR at start-up and shift the whole
+; pixel stream by one. 'pull block' cannot proceed without a real word
+; present, and the next iteration's pull overwrites the OSR.
+
+.pio_version 0
+
+.program palette_lut8
+.wrap_target
+    pull block    ; one index per FIFO word; stalls until data present
+    in x, 23      ; palette base address, bits 31:9
+    in osr, 8     ; index = low byte; high bits implicitly discarded
+    in null, 1    ; * sizeof(uint16_t); 23+8+1 = 32 fires the autopush
+.wrap
+
+% c-sdk {
+
+// ISR shifts left with autopush at 32 bits, no autopull (the program pulls
+// explicitly). X is preloaded with the table base >> 9 through the TX FIFO.
+// The state machine starts enabled and parks on 'pull block' until DMA
+// delivers the first index. palette_base must be 512-byte aligned.
+static inline void palette_lut8_program_init(PIO pio, uint sm, uint offset, uint32_t palette_base) {
+    pio_sm_config config = palette_lut8_program_get_default_config(offset);
+    sm_config_set_in_shift(&config, false, true, 32);
+    pio_sm_init(pio, sm, offset, &config);
+    pio_sm_put(pio, sm, palette_base >> 9);
+    pio_sm_exec(pio, sm, pio_encode_pull(false, true));
+    pio_sm_exec(pio, sm, pio_encode_mov(pio_x, pio_osr));
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+%}

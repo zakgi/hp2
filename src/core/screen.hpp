@@ -54,6 +54,9 @@ class Screen {
   [[nodiscard]] std::span<std::uint8_t, kWidth> Row(std::uint16_t row);
   // A screen row, whatever the viewports.
   [[nodiscard]] std::span<const std::uint8_t, kWidth> ScreenRow(std::uint16_t row) const;
+  // The pixels of `viewport`, row after row: what a display backend sends with that viewport's
+  // palette.
+  [[nodiscard]] std::span<const std::uint8_t> Pixels(Viewport viewport) const;
 
   // Fills the selected viewport with color index `index`.
   void Clear(std::uint8_t index);

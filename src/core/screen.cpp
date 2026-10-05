@@ -51,6 +51,10 @@ std::span<const std::uint8_t, Screen::kWidth> Screen::ScreenRow(std::uint16_t ro
                                                kWidth};
 }
 
+std::span<const std::uint8_t> Screen::Pixels(Viewport viewport) const {
+  return std::span{pixels_}.subspan(std::size_t{FirstRow(viewport)} * kWidth, std::size_t{Rows(viewport)} * kWidth);
+}
+
 void Screen::Clear(std::uint8_t index) {
   const auto first = std::size_t{FirstRow(selected_)} * kWidth;
   std::fill_n(pixels_.begin() + static_cast<std::ptrdiff_t>(first), std::size_t{Rows(selected_)} * kWidth, index);

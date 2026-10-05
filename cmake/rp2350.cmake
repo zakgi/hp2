@@ -1,7 +1,7 @@
 # rp2350 post-project setup. The root CMakeLists has called project() with the pico-sdk
 # cross-toolchain plumbed in by rp2350_toolchain.cmake. Owns: pico_sdk_init(), the embedded flag
-# pass, and the hp2_rp2350 firmware target: sources, include paths, link libraries, USB-CDC stdio,
-# the partition table and the extra outputs.
+# pass, and the hp2_rp2350 firmware target: sources, include paths, link libraries, the PIO
+# programs, USB-CDC stdio, the partition table and the extra outputs.
 
 # pico-sdk has assembly sources (boot stage 2, vector table, startup).
 enable_language(ASM)
@@ -37,7 +37,21 @@ set_source_files_properties(
 # Board headers shadow target-wide ones: the board directory comes first.
 target_include_directories(hp2_rp2350 PRIVATE ${HP2_BOARD_DIR} ${CMAKE_SOURCE_DIR}/src ${HP2_RP2350_DIR})
 
-target_link_libraries(hp2_rp2350 PRIVATE pico_stdlib pico_multicore pico_sha256 hardware_vreg)
+target_link_libraries(
+  hp2_rp2350
+  PRIVATE pico_stdlib
+          pico_multicore
+          pico_rand
+          pico_sha256
+          hardware_dma
+          hardware_pio
+          hardware_pwm
+          hardware_spi
+          hardware_vreg)
+
+# --- PIO programs ---------------------------------------------------------------------------------
+# pioasm turns each .pio into a header the drivers include by name.
+pico_generate_pio_header(hp2_rp2350 ${HP2_RP2350_DIR}/display/palette_lut.pio)
 
 pico_enable_stdio_usb(hp2_rp2350 1)
 pico_enable_stdio_uart(hp2_rp2350 0)

@@ -5,7 +5,9 @@
 #include <cstdint>
 
 #include "hardware/clocks.h"
+#include "hardware/dma.h"
 #include "hardware/gpio.h"
+#include "hardware/irq.h"
 #include "hardware/structs/qmi.h"
 #include "hardware/vreg.h"
 #include "pico/stdlib.h"
@@ -13,6 +15,31 @@
 #include "cyccnt.hpp"
 
 namespace hp2 {
+
+namespace {
+
+// "The" panel of this board: the driver type is not a singleton, the board declares one instance
+// and hands it out through Board::DisplayInstance().
+AdafruitFeatherRp2350Board::Display panel;
+
+// The palette lookup table the display DMA reads.
+AdafruitFeatherRp2350Board::PaletteLut palette_lut;
+
+// irq_set_exclusive_handler takes a context-free function, so this board-local function reaches
+// the instance by name.
+void DisplayDmaIrqTrampoline() {
+  panel.HandleDmaIrq();
+}
+
+}  // namespace
+
+AdafruitFeatherRp2350Board::Display& AdafruitFeatherRp2350Board::DisplayInstance() {
+  return panel;
+}
+
+AdafruitFeatherRp2350Board::PaletteLut& AdafruitFeatherRp2350Board::PaletteLutInstance() {
+  return palette_lut;
+}
 
 void AdafruitFeatherRp2350Board::InitCore0() {
   // Voltage tiers: 1.20 V at 200 MHz, 1.25 V carries 280 and 300, 1.30 V is the regulator's
@@ -49,6 +76,14 @@ void AdafruitFeatherRp2350Board::InitCore0() {
   gpio_init(kStatusLedPin);
   gpio_set_dir(kStatusLedPin, GPIO_OUT);
   gpio_put(kStatusLedPin, false);
+
+  panel.Init();
+  panel.SetBrightness(100);
+
+  // The push completion is taken on this core, the one that presents: the interrupt sets its event
+  // register, so a wait for the push can sleep in WFE.
+  irq_set_exclusive_handler(DMA_IRQ_0, DisplayDmaIrqTrampoline);
+  irq_set_enabled(DMA_IRQ_0, true);
 }
 
 void AdafruitFeatherRp2350Board::InitCore1() {
