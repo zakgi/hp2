@@ -105,6 +105,38 @@ constexpr auto kTemperatureTips = std::to_array<Point>({
 static_assert(kFuelTips.size() == kGaugeTipCount);
 static_assert(kTemperatureTips.size() == kGaugeTipCount);
 
+// The warning lights: two 8 x 8 pictures in the executable (1:2d54 for the fuel, 1:2d74 for the
+// temperature), drawn opaque by the text routine under each small gauge, with the pixels of the
+// dashboard around the symbol in them. A light shows at the last sixteenth of its gauge.
+constexpr auto kLightSize = std::uint16_t{8};
+constexpr auto kWarningLevel = 1.0F / 16.0F;
+constexpr auto kFuelLightPosition = Point{.x = 88, .y = 56};
+constexpr auto kTemperatureLightPosition = Point{.x = 224, .y = 55};
+// clang-format off
+constexpr auto kFuelLight = std::to_array<std::uint8_t>({
+    11,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0, 14, 14, 14,  0,
+     0,  0,  0,  0, 14,  0, 14, 14,
+     0,  0,  0,  0, 14, 14, 14,  0,
+     0,  0,  0,  0, 14, 14, 14,  0,
+     0,  0,  0, 14, 14, 14, 14, 14,
+     0,  0,  0,  0,  0,  0,  0,  0,
+     0,  0,  0,  0, 12, 12, 12,  0,
+});
+constexpr auto kTemperatureLight = std::to_array<std::uint8_t>({
+     0,  0,  0,  0,  0,  0, 14, 14,
+     0,  0, 14,  0,  0,  0,  0, 11,
+     0,  0, 14,  0,  0,  0,  0,  0,
+     0,  0, 14,  0,  0,  0,  0,  0,
+     0, 13, 14, 13,  0,  0,  0,  0,
+     0, 14, 14, 14,  0,  0, 12,  0,
+     0, 13, 14, 13,  0, 12,  0, 12,
+     0,  0,  0,  0,  0,  0,  0,  0,
+});
+// clang-format on
+static_assert(kFuelLight.size() == std::size_t{kLightSize} * kLightSize);
+static_assert(kTemperatureLight.size() == std::size_t{kLightSize} * kLightSize);
+
 // The roof strip's text stands on its fifth row, each piece in its box (DrawHudText, 0:e1b4).
 constexpr auto kRoofTextRow = std::int16_t{4};
 constexpr auto kPlayerColumnText = std::int16_t{40};
@@ -221,6 +253,13 @@ void DrawDashboard(const SpriteBank& cockpit, const DashboardInput& input, Scree
     screen.Blit(cockpit.GetImage(kDashboardImage), Point{});
     screen.BlitMasked(cockpit.GetImage(kWheelImage),
                       Point{.x = kWheelColumn, .y = static_cast<std::int16_t>(kWheelRow - lift)});
+    if (input.warning_blink and input.fuel < kWarningLevel) {
+      screen.Blit(ImageView{.width = kLightSize, .height = kLightSize, .pixels = kFuelLight}, kFuelLightPosition);
+    }
+    if (input.warning_blink and input.temperature >= 1.0F - kWarningLevel) {
+      screen.Blit(ImageView{.width = kLightSize, .height = kLightSize, .pixels = kTemperatureLight},
+                  kTemperatureLightPosition);
+    }
     DrawGauge(kFuelHub, kFuelTips, input.fuel, screen);
     DrawGauge(kTemperatureHub, kTemperatureTips, input.temperature, screen);
     DrawNeedle(kSpeedometerHub, kSpeedometerRestAngle - (kSpeedometerSweep * std::abs(input.speed) / kSpeedometerSpeed),

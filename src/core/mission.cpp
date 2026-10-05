@@ -51,6 +51,7 @@ constexpr auto kTrafficSchemes = std::uint32_t{7};
 constexpr auto kTrafficSpeed = 200.0F;
 constexpr auto kTrafficSpeedStep = 32.0F;
 constexpr auto kTrafficRange = 2;
+constexpr auto kChaseRange = 2;
 
 // The rules (docs/game.md, "Missions"; docs/vehicles.md, sections 7.6, 8.2, 8.4 and 8.5), the
 // original's amounts a frame turned into rates.
@@ -667,16 +668,32 @@ void Mission::StepTarget([[maybe_unused]] MissionEvents& events) {
   tuning.top_speed = driver.cruise_speed;
   target_.controls = FollowLane(driver, target_, tuning);
   Drive(target_, tuning, road_, kTickSeconds);
+  if (progress_.end_reason and target_.impact.kind == ImpactKind::kNone) {
+    // Once the mission is over the criminal's car takes the player's speed, so the two roll to a
+    // stop together (CheckMissionEnd, 0:6008).
+    target_.speed = std::abs(player_.speed);
+  }
 }
 
 void Mission::StepTraffic() {
   const auto player_cell = GetCell(player_.position);
+  // With the player within two cells of the criminal the road is kept clear for the two of them:
+  // no new traffic, and a traffic car goes once the player cannot see it. The original takes it
+  // away at once unless it is in the list of drawn objects but off the screen, in which case both
+  // computer cars brake instead (0:540e); what that was for is not known.
+  const auto target_cell = GetCell(target_.position);
+  const auto chasing =
+      std::abs(target_cell.x - player_cell.x) <= kChaseRange and std::abs(target_cell.y - player_cell.y) <= kChaseRange;
   auto index = std::size_t{0};
   while (index < traffic_count_) {
     auto& car = traffic_[index];
     auto& driver = traffic_drivers_[index];
     const auto cell = GetCell(car.position);
-    if (std::abs(cell.x - player_cell.x) > kTrafficRange or std::abs(cell.y - player_cell.y) > kTrafficRange) {
+    const auto seen = GetBodyPoint(player_, car.position);
+    const auto in_view = seen.ahead > 0.0F and seen.ahead < kCellUnits and
+                         std::abs(seen.right) < (seen.ahead * kViewSlope) + (2.0F * kHitBoxHalfLength);
+    if (std::abs(cell.x - player_cell.x) > kTrafficRange or std::abs(cell.y - player_cell.y) > kTrafficRange or
+        (chasing and not in_view)) {
       // Out of range: gone, and the last car takes its place in the list.
       --traffic_count_;
       if (index != traffic_count_) {
@@ -700,7 +717,7 @@ void Mission::StepTraffic() {
       ++index;
     }
   }
-  if (traffic_count_ < kTrafficCars) {
+  if (traffic_count_ < kTrafficCars and not chasing) {
     SpawnTraffic();
   }
 }

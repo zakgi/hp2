@@ -89,8 +89,18 @@ class Screen {
   // XORs frame `frame` of `animation` into the screen.
   void ApplyFrame(const XorAnimation& animation, const XorFrame& frame);
 
-  [[nodiscard]] ScreenPalette& Palette(Viewport viewport) { return palettes_[Index(viewport)]; }
-  [[nodiscard]] const ScreenPalette& Palette(Viewport viewport) const { return palettes_[Index(viewport)]; }
+  [[nodiscard]] ScreenPalette& Palette(Viewport viewport) {
+    return palettes_[Index(viewport)][shown_[Index(viewport)]];
+  }
+  [[nodiscard]] const ScreenPalette& Palette(Viewport viewport) const {
+    return palettes_[Index(viewport)][shown_[Index(viewport)]];
+  }
+  // Each viewport has a second palette in the shadow, for a change of all its colors at once:
+  // SwapPalettes makes the shadow the viewport's palette and the palette its shadow.
+  [[nodiscard]] ScreenPalette& ShadowPalette(Viewport viewport) {
+    return palettes_[Index(viewport)][1U - shown_[Index(viewport)]];
+  }
+  void SwapPalettes(Viewport viewport) { shown_[Index(viewport)] = 1U - shown_[Index(viewport)]; }
 
  private:
   [[nodiscard]] static constexpr std::size_t Index(Viewport viewport) { return static_cast<std::size_t>(viewport); }
@@ -100,7 +110,9 @@ class Screen {
   void BlitWith(const ImageView& image, Point origin, bool mirrored, Combine combine);
 
   std::array<std::uint8_t, std::size_t{kWidth} * kHeight> pixels_{};
-  std::array<ScreenPalette, 2> palettes_;
+  // For each viewport its palette and the shadow, and which of the two is the palette now.
+  std::array<std::array<ScreenPalette, 2>, 2> palettes_;
+  std::array<std::size_t, 2> shown_{};
   std::uint16_t split_row_{};  // 0: no split
   Viewport selected_{Viewport::kUpper};
 };

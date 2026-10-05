@@ -266,6 +266,38 @@ TEST_F(DriverViewTest, TheLeftHandGoesForTheGunAndTheSightComesUp) {
   }
 }
 
+TEST_F(DriverViewTest, TheWarningLightsBlinkAtTheEndsOfTheirGauges) {
+  const auto& cockpit = manager_.Engine().Bank(EngineBank::kCockpit);
+  const auto draw = [this, &cockpit](float fuel, float temperature, bool blink) {
+    screen_.EnableSplit(kDashboardRow);
+    screen_.SetViewport(Viewport::kLower);
+    DrawDashboard(cockpit, DashboardInput{.fuel = fuel, .temperature = temperature, .warning_blink = blink}, screen_);
+    return GetScreenPixels();
+  };
+  // The pixels of the 8 x 8 box at `column`, `row` of the dashboard that differ between two draws.
+  const auto count = [](const auto& first, const auto& second, std::size_t column, std::size_t row) {
+    auto changed = 0;
+    for (auto index = std::size_t{0}; index < first.size(); ++index) {
+      const auto in_box = index % Screen::kWidth >= column and index % Screen::kWidth < column + 8 and
+                          index / Screen::kWidth >= kDashboardRow + row and
+                          index / Screen::kWidth < kDashboardRow + row + 8;
+      if (first[index] != second[index]) {
+        EXPECT_TRUE(in_box) << "pixel " << index;
+        ++changed;
+      }
+    }
+    return changed;
+  };
+  // A fifteenth of a tank left: the fuel's light, in its box under the left gauge, and only while
+  // the blink is on.
+  const auto dark = draw(0.06F, 0.5F, false);
+  EXPECT_GT(count(dark, draw(0.06F, 0.5F, true), 88, 56), 0);
+  EXPECT_EQ(draw(0.07F, 0.5F, true), draw(0.07F, 0.5F, false));
+  // The engine nearly overheated: the temperature's light under the right gauge.
+  EXPECT_GT(count(draw(0.5F, 0.95F, false), draw(0.5F, 0.95F, true), 224, 55), 0);
+  EXPECT_EQ(draw(0.5F, 0.93F, true), draw(0.5F, 0.93F, false));
+}
+
 TEST_F(DriverViewTest, TheHandsFollowTheWheel) {
   const auto& cockpit = manager_.Engine().Bank(EngineBank::kCockpit);
   const auto draw = [this, &cockpit](float steer, bool shaken) {

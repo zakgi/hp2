@@ -53,6 +53,21 @@ TEST(Screen, MaskedBlitKeepsIndexZero) {
   EXPECT_EQ(screen.ScreenRow(2)[2], 9);
 }
 
+TEST(Screen, SwapsAViewportsPaletteWithItsShadow) {
+  auto screen = Screen{};
+  const auto white = Rgb{.red = 255, .green = 255, .blue = 255};
+  const auto red = Rgb{.red = 255};
+  screen.Palette(Viewport::kUpper).SetColor(1, white);
+  screen.ShadowPalette(Viewport::kUpper).SetColor(1, red);
+  screen.SwapPalettes(Viewport::kUpper);
+  EXPECT_EQ(screen.Palette(Viewport::kUpper).Color(1), red);
+  EXPECT_EQ(screen.ShadowPalette(Viewport::kUpper).Color(1), white);
+  // The other viewport keeps its own.
+  EXPECT_EQ(screen.Palette(Viewport::kLower).Color(1), Rgb{});
+  screen.SwapPalettes(Viewport::kUpper);
+  EXPECT_EQ(screen.Palette(Viewport::kUpper).Color(1), white);
+}
+
 TEST(Screen, BlitsAMaskedImageFlippedLeftToRight) {
   auto screen = Screen{};
   screen.Clear(9);

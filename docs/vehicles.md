@@ -266,7 +266,7 @@ Reads plane 0 of backScreen at byte 0x1484 and 0x1498, bit 0x800 = pixels (100,1
   - player within one cell (1:2354): pick a new nearest target without marking the old one; aux +0x12 = D0 then aux +0x12 = D1 (bug: +0x14 not updated, target becomes (newY, oldY)); replan.
   - else, once car2 has stopped (speed 0): mark the target visited, 1:23de -= 1, pick the next; if none: jump to 0:bb1e (rest of the frame skipped; next frame ends the mission with bit 2). Else set the target, replan, +0x50 = 0, and aux +0x16 = 1/2 (type-11 cell, by sign of dx) or 4/8 (by sign of dy) to choose the leaving direction.
 - Inputs come from 0:3f26: 0:5a44 (route) then 0:5c56 (follow); if 0:5886 is set, throttle = -1 and fire = -1.
-- Special case in 0:5a44: for car2 only, cells (2,2) and (3,2) are treated as types 13 and 14.
+- Special case in 0:5a44: for car2 only, cells (2,2) and (3,2) are treated as types 13 and 14. Both are crossroads, side by side, and each has a loop of three cells hanging off two of its sides that leads nowhere else: (1,2), (1,1), (2,1) off the west and south sides of (2,2), and (3,3), (4,3), (4,2) off the north and east sides of (3,2) (checked on CARTE.BIN). Type 13 leaves (2,2) its east and north sides and type 14 leaves (3,2) its west and south sides, so the suspect cannot enter either loop, where the greedy choice of 9.2 could keep it circling (inferred from the map; the circling itself is unverified).
 
 ### 9.2 Route choice per cell, 0:5a44 (A0 car, A1 aux), only when aux +0x00 != 0
 1. aux +0x0e = arrived (cell == target); aux +0x0c = +0x1a/2 if arrived else +0x1a.

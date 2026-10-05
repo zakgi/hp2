@@ -9,8 +9,7 @@ namespace hp2 {
 
 // What the driver sees of the car, from the cockpit bank (DES_TABB.IMG): the dashboard with its
 // needles, the steering wheel and the hands on it, the roof strip along the top of the screen, and
-// the hood's edge above the dashboard (DrawDashboard 0:ce74, MaskBonnetEdge 0:d836). The gauges'
-// warning lights are not drawn yet.
+// the hood's edge above the dashboard (DrawDashboard 0:ce74, MaskBonnetEdge 0:d836).
 
 // What the dashboard shows of the car.
 struct DashboardInput {
@@ -25,6 +24,9 @@ struct DashboardInput {
   // How far the left hand has left its place on the wheel for the gun: 0 on the wheel, 1 where it
   // holds the gun, which is where it would be at full left lock.
   float aim{};
+  // The warning lights' blink: while set, the fuel's light shows under a sixteenth of a tank and
+  // the temperature's over fifteen sixteenths of the way to overheating.
+  bool warning_blink{};
 };
 
 // The dashboard picture, the steering wheel over it, the needles of the four gauges, and the two

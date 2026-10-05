@@ -15,13 +15,12 @@
 
 namespace hp2 {
 
-void DriverView::InstallPalette() {
-  const auto colors = assets_.Palette(EnginePalette::kView);
+void DriverView::InstallPalette(EnginePalette source, ScreenPalette& upper, ScreenPalette& lower) const {
+  const auto colors = assets_.Palette(source);
   if (colors.size() == kViewSetCount * kColorRegisterCount) {
     const auto set = [colors](std::size_t index) {
       return colors.subspan(index * kColorRegisterCount, kColorRegisterCount);
     };
-    auto& upper = screen_.Palette(Viewport::kUpper);
     upper.Reset();
     upper.Overlay(set(kViewSet), 0);
     upper.Overlay(set(kRoofSet), kRoofOffset);
@@ -31,7 +30,6 @@ void DriverView::InstallPalette() {
     for (auto ground = std::size_t{0}; ground < kGroundSetCount; ++ground) {
       upper.Overlay(set(kFirstGroundSet + ground), kGroundFirstOffset + (ground * kColorRegisterCount));
     }
-    auto& lower = screen_.Palette(Viewport::kLower);
     lower.Reset();
     lower.Overlay(set(kDashboardSet), 0);
   }
@@ -87,8 +85,16 @@ void DriverView::Draw(const Mission& mission) {
   aim_ = std::clamp(aim_ + ((progress.aiming ? ticks : -ticks) / kAimTicks), 0.0F, 1.0F);
 
   screen_.EnableSplit(kDashboardRow);
-  InstallPalette();
+  InstallPalette(EnginePalette::kView, screen_.Palette(Viewport::kUpper), screen_.Palette(Viewport::kLower));
   InstallCarColors(mission);
+  // The red flash (viewPaletteRed, 0:a734) waits in the shadow: it takes the screen while a contact
+  // with another car flashes, and for good once the driver has been shot.
+  InstallPalette(EnginePalette::kViewRed, screen_.ShadowPalette(Viewport::kUpper),
+                 screen_.ShadowPalette(Viewport::kLower));
+  if (progress.flash_seconds > 0.0F or progress.end_reason == EndReason::kShot) {
+    screen_.SwapPalettes(Viewport::kUpper);
+    screen_.SwapPalettes(Viewport::kLower);
+  }
   DrawSkyHorizon(kDriverView, assets_.Bank(EngineBank::kBackdrop), input.heading, player.body_lift, screen_);
   projection_.Project(input, rows_);
   DrawRoadSurface(rows_, travel_, screen_);
@@ -128,7 +134,8 @@ void DriverView::Draw(const Mission& mission) {
                                .fuel = condition.fuel,
                                .temperature = condition.temperature,
                                .shaken = shaken,
-                               .aim = aim_},
+                               .aim = aim_,
+                               .warning_blink = (mission.GetTick() / kShakeTicks) % 2 == 1},
                 screen_);
   screen_.SetViewport(Viewport::kUpper);
 }

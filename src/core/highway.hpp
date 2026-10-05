@@ -114,6 +114,8 @@ class Highway {
   bool mission_under_way_{};
   // Off the road at the last frame: leaving it at speed makes the tires squeal once.
   bool was_off_road_{};
+  // The crash's sound is still on the voice it shares with the shots.
+  bool crash_sounding_{};
 };
 
 static_assert(ComponentLike<Highway>);

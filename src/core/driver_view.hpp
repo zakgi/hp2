@@ -33,8 +33,9 @@ class DriverView {
   void Draw(const Mission& mission);
 
  private:
-  // Places the sets of the driving screen's colors in the two viewports (core/view_palette.hpp).
-  void InstallPalette();
+  // Places the sets of the driving screen's colors, from the list `source`, in the palettes of the
+  // two viewports (core/view_palette.hpp).
+  void InstallPalette(EnginePalette source, ScreenPalette& upper, ScreenPalette& lower) const;
   // Places the paint of the criminal's car and of the traffic's (core/view_palette.hpp).
   void InstallCarColors(const Mission& mission);
 

@@ -424,6 +424,35 @@ TEST_F(MissionRulesTest, TheCriminalShootsADriverComingUpItsLine) {
   EXPECT_EQ(GetCell(mission.GetPlayer().position), GetCell(mission.GetTarget().position));
 }
 
+TEST_F(MissionRulesTest, NoTrafficWhileThePlayerIsCloseToTheCriminal) {
+  auto mission = Mission{MakeRoad(1)};
+  ASSERT_TRUE(StartBehindTarget(mission, kMissions[0]));
+  mission.Step(PlayerCommands{});
+  EXPECT_EQ(mission.GetTraffic().size(), 1U);
+  // A cell behind the criminal: the traffic car there was goes once it is out of sight, and no
+  // other comes.
+  StopBehindTarget(mission, 2300.0F);
+  for (auto tick = 0; tick < 10 * 60; ++tick) {
+    mission.Step(PlayerCommands{});
+  }
+  for (auto tick = 0; tick < 10 * 60; ++tick) {
+    mission.Step(PlayerCommands{});
+    ASSERT_TRUE(mission.GetTraffic().empty()) << "tick " << tick;
+  }
+}
+
+TEST_F(MissionRulesTest, TheCriminalRollsToAStopWithThePlayerOnceTheMissionIsOver) {
+  auto mission = Mission{MakeRoad(1)};
+  mission.Start(MissionType{.arrest = ArrestMethod::kPullOver, .target_max_speed = 200, .bounty = 10}, AiPolicies{}, 1);
+  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::kMissionOver, 5));
+  mission.Step(kFlatOut);
+  EXPECT_GT(mission.GetPlayer().speed, 4000.0F);
+  EXPECT_FLOAT_EQ(mission.GetTarget().speed, mission.GetPlayer().speed);
+  RunUntil(mission, kFlatOut, MissionEvent::kMissionOver, 10);
+  EXPECT_EQ(mission.GetPlayer().speed, 0.0F);
+  EXPECT_EQ(mission.GetTarget().speed, 0.0F);
+}
+
 TEST_F(MissionRulesTest, TheBountyDrainsADollarEveryEighteenTicks) {
   auto mission = Mission{MakeRoad(1)};
   mission.Start(kMissions[0], AiPolicies{}, 1);

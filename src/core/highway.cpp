@@ -165,10 +165,13 @@ ComponentType Highway::Handle(MissionEvents events) {
   const auto happened = [events](MissionEvent event) {
     return events.test(std::to_underlying(event));
   };
-  // A crash drowns a shot: they share a voice.
+  // A crash and a shot share a voice, and the crash comes first: a shot neither replaces it nor
+  // cuts it short (the original's priorities, 5 for the crash and 3 for the shot).
+  crash_sounding_ = crash_sounding_ and audio_.GetVoice(kEffectVoice).Active();
   if (happened(MissionEvent::kCrash)) {
     Play(EngineSound::kCrash, kEffectVoice, kLoudVolume);
-  } else if (happened(MissionEvent::kShot) or happened(MissionEvent::kWindshieldHit)) {
+    crash_sounding_ = true;
+  } else if ((happened(MissionEvent::kShot) or happened(MissionEvent::kWindshieldHit)) and not crash_sounding_) {
     Play(EngineSound::kShot, kEffectVoice, kLoudVolume);
   }
   if (happened(MissionEvent::kMissionOver)) {
