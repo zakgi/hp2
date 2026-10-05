@@ -18,6 +18,17 @@ project(
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_COLOR_DIAGNOSTICS ON)
 
+# Repo-root compile_commands.json symlink, refreshed to this build's database on every configure.
+# clangd finds a database by walking up from the source file, so the last-configured build (host
+# or a board) is the one code intelligence follows. A regular file at the link path is left alone.
+set(HP2_COMPILE_COMMANDS_LINK ${CMAKE_SOURCE_DIR}/compile_commands.json)
+if(IS_SYMLINK ${HP2_COMPILE_COMMANDS_LINK} OR NOT EXISTS ${HP2_COMPILE_COMMANDS_LINK})
+  file(REMOVE ${HP2_COMPILE_COMMANDS_LINK})
+  file(CREATE_LINK ${CMAKE_BINARY_DIR}/compile_commands.json ${HP2_COMPILE_COMMANDS_LINK} SYMBOLIC)
+else()
+  message(WARNING "compile_commands.json at the repo root is a regular file; not relinking it.")
+endif()
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)

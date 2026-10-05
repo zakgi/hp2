@@ -6,11 +6,13 @@
 Writes assets.bin, the image laid out as the engine's types are in memory (src/core/*.hpp; the
 record layouts are the contract src/target/flash/asset_image.hpp checks), assets.uf2 targeting the
 "assets" partition, and the layout header: the image size and SHA-256 the firmware checks before
-using the image, the section offsets, and FlashAssets(base), the engine's EngineAssets over the
-image at `base`. Sections are 4-byte aligned. The host test compares the image with what the C++
-asset manager decodes from the disk, so the two decoders cannot drift apart unnoticed.
+using the image, AssetImage, the image as a structure with one member per asset, and
+FlashAssets(image), the engine's EngineAssets over it. Tables are 4-byte aligned. The host test
+compares the image with what the C++ asset manager decodes from the disk, so the two decoders
+cannot drift apart unnoticed.
 
-The contents follow EngineAssets (src/core/engine_assets.hpp), in the order of its enums.
+The contents follow EngineAssets (src/core/engine_assets.hpp), in the order of its enums; an
+asset's name here is the name of its member in AssetImage.
 """
 
 from __future__ import annotations
@@ -32,7 +34,7 @@ from hp2lib.uf2 import UF2Packer
 LOGGER = logging.getLogger("pack_assets")
 
 DEFAULT_GAME = Path(__file__).resolve().parents[1] / "assets" / "hp2" / "Highway Patrol II"
-SECTION_ALIGNMENT = 4
+TABLE_ALIGNMENT = 4
 SCREEN_WIDTH = 320
 SCREEN_HEIGHT = 200
 COLOR_REGISTERS = 16
@@ -40,18 +42,27 @@ NTSC_PAULA_CLOCK_HZ = 3_579_545
 AMIGA_FORMAT = 0
 ATARI_ST_FORMAT = 1
 
+
+@dataclass(frozen=True)
+class FileSource:
+    """An asset read from one game file."""
+
+    name: str
+    file: str
+
+
 # In EnginePicture order.
 PICTURES = (
-    "LOGO.CPV",
-    "PRESENT.CPV",
-    "BUREAU.CPV",
-    "STATION.CPV",
-    "PAGE_F1.CPV",
-    "PAGE_F2.CPV",
-    "PAGE_F3.CPV",
-    "PAGE_F4.CPV",
-    "PAGE_F5.CPV",
-    "PAGE_F6.CPV",
+    FileSource("logo", "LOGO.CPV"),
+    FileSource("title", "PRESENT.CPV"),
+    FileSource("office", "BUREAU.CPV"),
+    FileSource("station", "STATION.CPV"),
+    FileSource("spin_out", "PAGE_F1.CPV"),
+    FileSource("tires_gone", "PAGE_F2.CPV"),
+    FileSource("out_of_fuel", "PAGE_F3.CPV"),
+    FileSource("overheated", "PAGE_F4.CPV"),
+    FileSource("wrecked", "PAGE_F5.CPV"),
+    FileSource("arrest", "PAGE_F6.CPV"),
 )
 
 
@@ -59,6 +70,7 @@ PICTURES = (
 class PaletteSource:
     """A picture's header palette (`picture`, an index into PICTURES) or a list in hp.prg."""
 
+    name: str
     picture: int | None = None
     place: HunkOffset | None = None
     color_format: int = AMIGA_FORMAT
@@ -66,55 +78,58 @@ class PaletteSource:
 
 # In EnginePalette order.
 PALETTES = (
-    PaletteSource(picture=0),  # logo
-    PaletteSource(picture=3),  # station
-    PaletteSource(picture=4),  # spin-out
-    PaletteSource(picture=5),  # tires gone
-    PaletteSource(picture=6),  # out of fuel
-    PaletteSource(picture=7),  # overheated
-    PaletteSource(picture=8),  # wrecked
-    PaletteSource(picture=9),  # arrest
-    PaletteSource(place=HunkOffset(1, 0x28E0), color_format=ATARI_ST_FORMAT),  # titlePalette
-    PaletteSource(place=HunkOffset(0, 0xCA94)),  # officePalette
-    PaletteSource(place=HunkOffset(0, 0xCA6E)),  # officePaletteDim
-    PaletteSource(place=HunkOffset(0, 0x7766)),  # scorePalette
-    PaletteSource(place=HunkOffset(0, 0xA520)),  # viewPalette
-    PaletteSource(place=HunkOffset(0, 0xA734)),  # viewPaletteRed
+    PaletteSource("logo", picture=0),
+    PaletteSource("station", picture=3),
+    PaletteSource("spin_out", picture=4),
+    PaletteSource("tires_gone", picture=5),
+    PaletteSource("out_of_fuel", picture=6),
+    PaletteSource("overheated", picture=7),
+    PaletteSource("wrecked", picture=8),
+    PaletteSource("arrest", picture=9),
+    PaletteSource("title", place=HunkOffset(1, 0x28E0), color_format=ATARI_ST_FORMAT),  # titlePalette
+    PaletteSource("office", place=HunkOffset(0, 0xCA94)),  # officePalette
+    PaletteSource("office_dim", place=HunkOffset(0, 0xCA6E)),  # officePaletteDim
+    PaletteSource("score", place=HunkOffset(0, 0x7766)),  # scorePalette
+    PaletteSource("view", place=HunkOffset(0, 0xA520)),  # viewPalette
+    PaletteSource("view_red", place=HunkOffset(0, 0xA734)),  # viewPaletteRed
 )
 
 # In EngineBank order.
 BANKS = (
-    "NAME.IMG",
-    "BUREAU.IMG",
-    "STATION.IMG",
-    "GAME_SCO.IMG",
-    "BALLE.IMG",
-    "CACTUS.IMG",
-    "BUISSON.IMG",
-    "CAILLOUX.IMG",
-    "DEC_FOND.IMG",
-    "DES_TABB.IMG",
-    "PAN_POT.IMG",
-    "PAN_GAU.IMG",
-    "PAN_CRO.IMG",
-    "PAN_DRO.IMG",
-    "PAN_ARR.IMG",
-    "PAN_PRO.IMG",
-    "PST_FLG.IMG",
-    "PST_FLD.IMG",
-    "PST_PRO.IMG",
-    "PST_STA.IMG",
-    "VOITURE0.IMG",
-    "VOITURE1.IMG",
-    "VOITURE2.IMG",
-    "VOITURE3.IMG",
-    "VOITURE4.IMG",
-    "VOITURE5.IMG",
-    "VOITURE6.IMG",
+    FileSource("names", "NAME.IMG"),
+    FileSource("office", "BUREAU.IMG"),
+    FileSource("station", "STATION.IMG"),
+    FileSource("score", "GAME_SCO.IMG"),
+    FileSource("gun", "BALLE.IMG"),
+    FileSource("cactus", "CACTUS.IMG"),
+    FileSource("bush", "BUISSON.IMG"),
+    FileSource("stones", "CAILLOUX.IMG"),
+    FileSource("backdrop", "DEC_FOND.IMG"),
+    FileSource("cockpit", "DES_TABB.IMG"),
+    FileSource("sign_pole", "PAN_POT.IMG"),
+    FileSource("sign_left", "PAN_GAU.IMG"),
+    FileSource("sign_junction", "PAN_CRO.IMG"),
+    FileSource("sign_right", "PAN_DRO.IMG"),
+    FileSource("sign_back", "PAN_ARR.IMG"),
+    FileSource("sign_edge", "PAN_PRO.IMG"),
+    FileSource("station_arrow_left", "PST_FLG.IMG"),
+    FileSource("station_arrow_right", "PST_FLD.IMG"),
+    FileSource("station_edge", "PST_PRO.IMG"),
+    FileSource("station_board", "PST_STA.IMG"),
+    FileSource("car0", "VOITURE0.IMG"),
+    FileSource("car1", "VOITURE1.IMG"),
+    FileSource("car2", "VOITURE2.IMG"),
+    FileSource("car3", "VOITURE3.IMG"),
+    FileSource("car4", "VOITURE4.IMG"),
+    FileSource("car5", "VOITURE5.IMG"),
+    FileSource("car6", "VOITURE6.IMG"),
 )
 
 # In EngineFont order.
-FONTS = ("LETTRE1.BIN", "LETTRE2.BIN")
+FONTS = (
+    FileSource("lettre1", "LETTRE1.BIN"),
+    FileSource("lettre2", "LETTRE2.BIN"),
+)
 
 
 @dataclass(frozen=True)
@@ -122,17 +137,18 @@ class SoundSource:
     """An 8SVX sound (period 0) or a bare one played at its period on the NTSC clock."""
 
     name: str
+    file: str
     period: int = 0
     looped: bool = False
 
 
 # In EngineSound order (src/host/asset_manager.cpp, kSoundSources).
 SOUNDS = (
-    SoundSource("MOTEUR.SND"),
-    SoundSource("SIRENE.SND", period=864, looped=True),
-    SoundSource("TIR.SND", period=427),
-    SoundSource("DERAP.SND"),
-    SoundSource("CHOC.SND", period=640),
+    SoundSource("engine", "MOTEUR.SND"),
+    SoundSource("siren", "SIRENE.SND", period=864, looped=True),
+    SoundSource("shot", "TIR.SND", period=427),
+    SoundSource("skid", "DERAP.SND"),
+    SoundSource("crash", "CHOC.SND", period=640),
 )
 
 TITLE_ANIMATION = "PRESENT.DIF"
@@ -176,39 +192,44 @@ class FormatError(ValueError):
 
 
 @dataclass(frozen=True)
-class Section:
-    name: str
+class Table:
+    """A member of AssetImage: `count` records of the C++ type `record`, `offset` bytes into the
+    image. `path` names the member from the image ("banks.office.pixels")."""
+
+    path: str
+    record: str
     offset: int
     count: int
 
+    @property
+    def name(self) -> str:
+        return self.path.rpartition(".")[2]
 
-@dataclass(frozen=True)
-class Span:
-    """A run of `count` records starting `offset` bytes into the image."""
 
-    offset: int
-    count: int
+NO_TABLE = Table(path="", record="", offset=0, count=0)
 
 
 @dataclass
 class Image:
-    """The image under construction: sections appended 4-byte aligned."""
+    """The image under construction: tables appended 4-byte aligned."""
 
     data: bytearray = field(default_factory=bytearray)
-    sections: list[Section] = field(default_factory=list)
+    tables: list[Table] = field(default_factory=list)
 
-    def append(self, name: str, payload: bytes, count: int) -> int:
-        """Appends a section and returns its offset."""
-        self.data.extend(bytes(-len(self.data) % SECTION_ALIGNMENT))
-        offset = len(self.data)
-        self.sections.append(Section(name=name, offset=offset, count=count))
+    def append(self, path: str, record: str, payload: bytes, count: int) -> Table:
+        self.pad()
+        table = Table(path=path, record=record, offset=len(self.data), count=count)
+        self.tables.append(table)
         self.data.extend(payload)
-        return offset
+        return table
+
+    def pad(self) -> None:
+        self.data.extend(bytes(-len(self.data) % TABLE_ALIGNMENT))
 
 
 @dataclass(frozen=True)
 class SoundEntry:
-    samples: Span
+    samples: Table
     rate: int
     loop_start: int
     loop_length: int
@@ -216,26 +237,27 @@ class SoundEntry:
 
 @dataclass(frozen=True)
 class BankEntry:
-    pixels: Span
-    sprites: Span
+    name: str
+    pixels: Table
+    sprites: Table
 
 
 @dataclass
 class Layout:
-    """Where everything of EngineAssets lies in the image."""
+    """The tables of the image, grouped as EngineAssets groups its views."""
 
-    pictures: list[Span] = field(default_factory=list)
-    palettes: list[Span] = field(default_factory=list)
+    pictures: list[Table] = field(default_factory=list)
+    palettes: list[Table] = field(default_factory=list)
     banks: list[BankEntry] = field(default_factory=list)
-    fonts: list[Span] = field(default_factory=list)
+    fonts: list[Table] = field(default_factory=list)
     sounds: list[SoundEntry] = field(default_factory=list)
-    animation: dict[str, Span] = field(default_factory=dict)
-    music: dict[str, Span] = field(default_factory=dict)
+    animation: dict[str, Table] = field(default_factory=dict)
+    music: dict[str, Table] = field(default_factory=dict)
     music_timer: int = 0
-    road_map: Span = Span(0, 0)
-    scenery_objects: Span = Span(0, 0)
+    road_map: Table = NO_TABLE
+    scenery_objects: Table = NO_TABLE
     scenery_ranges: list[tuple[int, int]] = field(default_factory=list)
-    road_shape_points: Span = Span(0, 0)
+    road_shape_points: Table = NO_TABLE
     road_shape_ranges: list[tuple[int, int]] = field(default_factory=list)
 
 
@@ -259,15 +281,14 @@ def concatenated(parts: Iterable[bytes]) -> bytes:
 
 def pack_pictures(image: Image, game: Game, layout: Layout) -> list[tuple[int, ...]]:
     """Every picture as color indices; returns the header palettes."""
-    pixels = bytearray()
     headers: list[tuple[int, ...]] = []
-    for name in PICTURES:
-        picture = images.decode_cpv(game.read(name))
-        layout.pictures.append(Span(len(pixels), SCREEN_WIDTH * SCREEN_HEIGHT))
-        pixels.extend(picture.indices().tobytes())
+    for source in PICTURES:
+        picture = images.decode_cpv(game.read(source.file))
+        pixels = picture.indices().tobytes()
+        if len(pixels) != SCREEN_WIDTH * SCREEN_HEIGHT:
+            raise FormatError(f"{source.file} is not a {SCREEN_WIDTH} x {SCREEN_HEIGHT} picture")
+        layout.pictures.append(image.append(f"pictures.{source.name}", "std::uint8_t", pixels, len(pixels)))
         headers.append(picture.palette_st)
-    base = image.append("picture_pixels", bytes(pixels), len(pixels))
-    layout.pictures = [Span(base + span.offset, span.count) for span in layout.pictures]
     return headers
 
 
@@ -297,55 +318,40 @@ def palette_sets(game: Game, source: PaletteSource, headers: list[tuple[int, ...
 
 
 def pack_palettes(image: Image, game: Game, headers: list[tuple[int, ...]], layout: Layout) -> None:
-    channels: list[int] = []
-    spans: list[Span] = []
     for source in PALETTES:
-        palette = palette_sets(game, source, headers)
-        spans.append(Span(len(channels), len(palette) // RGB.size))
-        channels.extend(palette)
-    base = image.append("palette_colors", bytes(channels), len(channels) // RGB.size)
-    layout.palettes = [Span(base + span.offset, span.count) for span in spans]
+        channels = palette_sets(game, source, headers)
+        layout.palettes.append(
+            image.append(f"palettes.{source.name}", "Rgb", bytes(channels), len(channels) // RGB.size)
+        )
 
 
 def pack_banks(image: Image, game: Game, layout: Layout) -> None:
-    """Every bank's images as color indices, each bank's sprite offsets from its own first pixel."""
-    pixels = bytearray()
-    sprites: list[bytes] = []
-    entries: list[tuple[int, int, int, int]] = []
-    for name in BANKS:
-        bank_start = len(pixels)
-        sprite_start = len(sprites)
-        for bob in images.parse_bob_bank(game.read(name)):
-            indices = bob.indices().tobytes()
-            sprites.append(
-                SPRITE_RANGE.pack(len(pixels) - bank_start, bob.width, bob.height, bob.origin_x, bob.origin_y)
+    """Every bank's images as color indices, its sprites as ranges of them."""
+    for source in BANKS:
+        pixels = bytearray()
+        sprites: list[bytes] = []
+        for bob in images.parse_bob_bank(game.read(source.file)):
+            sprites.append(SPRITE_RANGE.pack(len(pixels), bob.width, bob.height, bob.origin_x, bob.origin_y))
+            pixels.extend(bob.indices().tobytes())
+        path = f"banks.{source.name}"
+        layout.banks.append(
+            BankEntry(
+                name=source.name,
+                pixels=image.append(f"{path}.pixels", "std::uint8_t", bytes(pixels), len(pixels)),
+                sprites=image.append(f"{path}.sprites", "SpriteRange", concatenated(sprites), len(sprites)),
             )
-            pixels.extend(indices)
-        entries.append((bank_start, len(pixels) - bank_start, sprite_start, len(sprites) - sprite_start))
-    pixel_base = image.append("bank_pixels", bytes(pixels), len(pixels))
-    sprite_base = image.append("bank_sprites", concatenated(sprites), len(sprites))
-    layout.banks = [
-        BankEntry(Span(pixel_base + start, count), Span(sprite_base + first * SPRITE_RANGE.size, sprite_count))
-        for start, count, first, sprite_count in entries
-    ]
+        )
 
 
 def pack_fonts(image: Image, game: Game, layout: Layout) -> None:
-    pixels = bytearray()
-    spans: list[Span] = []
-    for name in FONTS:
-        glyphs = concatenated(glyph.tobytes() for glyph in images.decode_font(game.read(name)))
-        spans.append(Span(len(pixels), len(glyphs)))
-        pixels.extend(glyphs)
-    base = image.append("font_pixels", bytes(pixels), len(pixels))
-    layout.fonts = [Span(base + span.offset, span.count) for span in spans]
+    for source in FONTS:
+        glyphs = concatenated(glyph.tobytes() for glyph in images.decode_font(game.read(source.file)))
+        layout.fonts.append(image.append(f"fonts.{source.name}", "std::uint8_t", glyphs, len(glyphs)))
 
 
 def pack_sounds(image: Image, game: Game, layout: Layout) -> None:
-    samples = bytearray()
-    entries: list[tuple[int, int, int, int, int]] = []
     for source in SOUNDS:
-        data = game.read(source.name)
+        data = game.read(source.file)
         sound = audio.Sound8Svx.from_data(data)
         if sound is not None:
             body = sound.samples
@@ -358,14 +364,9 @@ def pack_sounds(image: Image, game: Game, layout: Layout) -> None:
             loop_start = 0
             loop_length = len(data) if source.looped else 0
         else:
-            raise FormatError(f"{source.name} is neither an 8SVX sound nor a known bare one")
-        entries.append((len(samples), len(body), rate, loop_start, loop_length))
-        samples.extend(body)
-    base = image.append("sound_samples", bytes(samples), len(samples))
-    layout.sounds = [
-        SoundEntry(Span(base + offset, count), rate, loop_start, loop_length)
-        for offset, count, rate, loop_start, loop_length in entries
-    ]
+            raise FormatError(f"{source.file} is neither an 8SVX sound nor a known bare one")
+        samples = image.append(f"sounds.{source.name}", "std::int8_t", bytes(body), len(body))
+        layout.sounds.append(SoundEntry(samples, rate, loop_start, loop_length))
 
 
 def pack_title_animation(image: Image, game: Game, layout: Layout) -> None:
@@ -385,10 +386,10 @@ def pack_title_animation(image: Image, game: Game, layout: Layout) -> None:
         raise FormatError("the play list names a frame PRESENT.DIF does not have")
     step_records = [ANIMATION_STEP.pack(frame - 1, delay) for frame, delay in steps]
     layout.animation = {
-        "masks": Span(image.append("animation_masks", bytes(masks), len(masks)), len(masks)),
-        "runs": Span(image.append("animation_runs", concatenated(runs), len(runs)), len(runs)),
-        "frames": Span(image.append("animation_frames", concatenated(frame_records), len(frames)), len(frames)),
-        "steps": Span(image.append("animation_steps", concatenated(step_records), len(steps)), len(steps)),
+        "masks": image.append("title_animation.masks", "std::uint8_t", bytes(masks), len(masks)),
+        "runs": image.append("title_animation.runs", "XorRun", concatenated(runs), len(runs)),
+        "frames": image.append("title_animation.frames", "XorFrame", concatenated(frame_records), len(frames)),
+        "steps": image.append("title_animation.steps", "AnimationStep", concatenated(step_records), len(steps)),
     }
 
 
@@ -403,28 +404,28 @@ def pack_title_music(image: Image, game: Game, layout: Layout) -> None:
     notes = [MODULE_NOTE.pack(note.period, note.sample, note.effect, note.parameter) for note in music.notes]
     data = music.sample_data
     layout.music = {
-        "sample_data": Span(image.append("music_sample_data", data, len(data)), len(data)),
-        "samples": Span(image.append("music_samples", concatenated(samples), len(samples)), len(samples)),
-        "positions": Span(image.append("music_positions", music.positions, len(music.positions)), len(music.positions)),
-        "notes": Span(image.append("music_notes", concatenated(notes), len(notes)), len(notes)),
+        "sample_data": image.append("title_music.sample_data", "std::int8_t", data, len(data)),
+        "samples": image.append("title_music.samples", "ModuleSample", concatenated(samples), len(samples)),
+        "positions": image.append("title_music.positions", "std::uint8_t", music.positions, len(music.positions)),
+        "notes": image.append("title_music.notes", "ModuleNote", concatenated(notes), len(notes)),
     }
     layout.music_timer = music.timer
 
 
 def pack_world(image: Image, game: Game, layout: Layout) -> None:
     cells = world.decode_road_map(game.read(ROAD_MAP))
-    layout.road_map = Span(image.append("road_map", cells, len(cells)), len(cells))
+    layout.road_map = image.append("road_map", "std::uint8_t", cells, len(cells))
     records: list[bytes] = []
     for objects in world.decode_object_placement(game.read(SCENERY)):
         layout.scenery_ranges.append((len(records), len(objects)))
         records.extend(PLACED_OBJECT.pack(item.x, item.y, item.z, item.type, item.extra) for item in objects)
-    layout.scenery_objects = Span(image.append("scenery_objects", concatenated(records), len(records)), len(records))
+    layout.scenery_objects = image.append("scenery_objects", "PlacedObject", concatenated(records), len(records))
     points: list[bytes] = []
     for place in ROAD_SHAPES:
         outline = world.decode_road_shape(bytes(game.executable.hunks[place.hunk].data[place.offset :]))
         layout.road_shape_ranges.append((len(points), len(outline)))
         points.extend(SHAPE_POINT.pack(point.x, point.y) for point in outline)
-    layout.road_shape_points = Span(image.append("road_shape_points", concatenated(points), len(points)), len(points))
+    layout.road_shape_points = image.append("road_shape_points", "ShapePoint", concatenated(points), len(points))
 
 
 def build_image(root: Path) -> tuple[Image, Layout]:
@@ -439,21 +440,25 @@ def build_image(root: Path) -> tuple[Image, Layout]:
     pack_title_animation(image, game, layout)
     pack_title_music(image, game, layout)
     pack_world(image, game, layout)
+    # AssetImage's size is a multiple of its alignment.
+    image.pad()
     return image, layout
 
 
-def view(type_name: str, span: Span) -> str:
-    return f"TableView<{type_name}>(base + {span.offset:#x}, {span.count})"
+def view(table: Table) -> str:
+    """The C++ expression of `table` in FlashAssets."""
+    return f"image.{table.path}"
 
 
 HEADER_TEMPLATE: str = """// Generated by scripts/pack_assets.py; do not edit by hand.
 //
 // The asset image in the "assets" partition: its size and SHA-256 for the boot-time check
-// (src/target/flash/asset_check.hpp), where each section lies, and FlashAssets(base), the
-// engine's view of the image at `base`, every span a constant offset from it.
+// (src/target/flash/asset_check.hpp), AssetImage, the image as a structure, and
+// FlashAssets(image), the engine's views of it.
 
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -463,19 +468,62 @@ HEADER_TEMPLATE: str = """// Generated by scripts/pack_assets.py; do not edit by
 
 namespace hp2::flash::asset_layout {{
 
-struct Section {{
-  std::size_t offset;
-  std::size_t count;
-}};
-
 inline constexpr std::size_t kImageSize = {args.image_size:#x};
 inline constexpr Digest kImageDigest =
     Sha256FromHex("{args.digest}");
 
-{args.sections}
+// The image: every asset a member, each table {args.alignment}-byte aligned as the packer lays them.
+struct AssetImage {{
+  struct Pictures {{
+{args.picture_tables}
+  }};
 
-// Valid only once the image verified, or over a copy of assets.bin.
-[[nodiscard]] inline EngineAssets FlashAssets(std::uintptr_t base) {{
+  struct Palettes {{
+{args.palette_tables}
+  }};
+
+  // A sprite bank: its pixels, and its sprites as ranges of them.
+  template <std::size_t PixelCount, std::size_t SpriteCount>
+  struct Bank {{
+    alignas({args.alignment}) std::array<std::uint8_t, PixelCount> pixels;
+    alignas({args.alignment}) std::array<SpriteRange, SpriteCount> sprites;
+  }};
+
+  struct Banks {{
+{args.bank_members}
+  }};
+
+  struct Fonts {{
+{args.font_tables}
+  }};
+
+  struct Sounds {{
+{args.sound_tables}
+  }};
+
+  struct TitleAnimation {{
+{args.animation_tables}
+  }};
+
+  struct TitleMusic {{
+{args.music_tables}
+  }};
+
+  Pictures pictures;
+  Palettes palettes;
+  Banks banks;
+  Fonts fonts;
+  Sounds sounds;
+  TitleAnimation title_animation;
+  TitleMusic title_music;
+{args.world_tables}
+}};
+
+static_assert(sizeof(AssetImage) == kImageSize);
+{args.offsets}
+
+// The engine's views of `image`: the partition once it verified, or a copy of assets.bin.
+[[nodiscard]] constexpr EngineAssets FlashAssets(const AssetImage& image) {{
   return EngineAssets{{
       .pictures = {{{{
 {args.pictures}
@@ -515,25 +563,36 @@ inline constexpr Digest kImageDigest =
 
 }}  // namespace hp2::flash::asset_layout
 """
-SECTION_TEMPLATE: str = "inline constexpr Section k{identifier}{{.offset = {offset:#x}, .count = {count}}};"
+TABLE_TEMPLATE: str = "{indent}alignas({alignment}) std::array<{record}, {count}> {name};"
+BANK_MEMBER_TEMPLATE: str = "    Bank<{pixels}, {sprites}> {name};"
+OFFSET_TEMPLATE: str = "static_assert(offsetof(AssetImage, {name}) == {offset:#x});"
 PICTURE_TEMPLATE: str = "          {{.width = {width}, .height = {height}, .pixels = {pixels}}},"
 PALETTE_TEMPLATE: str = "          {colors},"
-BANK_TEMPLATE: str = """          {{.pixels = {pixels},
-           .sprites = {sprites}}},"""
+BANK_TEMPLATE: str = "          {{.pixels = {pixels}, .sprites = {sprites}}},"
 FONT_TEMPLATE: str = "          {{.pixels = {pixels}}},"
-SOUND_TEMPLATE: str = """          {{.samples = {samples},
-           .rate_hz = {rate}, .loop_start = {loop_start}, .loop_length = {loop_length}}},"""
+SOUND_TEMPLATE: str = (
+    "          {{.samples = {samples}, .rate_hz = {rate}, .loop_start = {loop_start}, .loop_length = {loop_length}}},"
+)
 SCENERY_RANGE_TEMPLATE: str = "                      {{.first = {first}, .count = {count}}},"
 SHAPE_RANGE_TEMPLATE: str = "                          {{.first = {first}, .count = {count}}},"
 
 
 @dataclass(frozen=True)
 class HeaderArgs:
-    """What HEADER_TEMPLATE is filled with; views are TableView expressions."""
+    """What HEADER_TEMPLATE is filled with: the members of AssetImage, then the views over them."""
 
     image_size: int
     digest: str
-    sections: str
+    alignment: int
+    picture_tables: str
+    palette_tables: str
+    bank_members: str
+    font_tables: str
+    sound_tables: str
+    animation_tables: str
+    music_tables: str
+    world_tables: str
+    offsets: str
     pictures: str
     palettes: str
     banks: str
@@ -555,43 +614,65 @@ class HeaderArgs:
     road_shape_ranges: str
 
 
-def render_sections(image: Image) -> str:
+def render_tables(tables: Iterable[Table], indent: str = "    ") -> str:
+    """The tables as members of AssetImage or of one of its structures."""
     return "\n".join(
-        SECTION_TEMPLATE.format(
-            identifier="".join(piece.capitalize() for piece in section.name.split("_")),
-            offset=section.offset,
-            count=section.count,
+        TABLE_TEMPLATE.format(
+            indent=indent, alignment=TABLE_ALIGNMENT, record=table.record, count=table.count, name=table.name
         )
-        for section in image.sections
+        for table in tables
     )
 
 
-def render_pictures(layout: Layout) -> str:
+def render_bank_members(layout: Layout) -> str:
     return "\n".join(
-        PICTURE_TEMPLATE.format(width=SCREEN_WIDTH, height=SCREEN_HEIGHT, pixels=view("std::uint8_t", span))
-        for span in layout.pictures
-    )
-
-
-def render_palettes(layout: Layout) -> str:
-    return "\n".join(PALETTE_TEMPLATE.format(colors=view("Rgb", span)) for span in layout.palettes)
-
-
-def render_banks(layout: Layout) -> str:
-    return "\n".join(
-        BANK_TEMPLATE.format(pixels=view("std::uint8_t", bank.pixels), sprites=view("SpriteRange", bank.sprites))
+        BANK_MEMBER_TEMPLATE.format(pixels=bank.pixels.count, sprites=bank.sprites.count, name=bank.name)
         for bank in layout.banks
     )
 
 
+def render_offsets(layout: Layout) -> str:
+    """Where each member of AssetImage lies: the offset of its first table."""
+    members = {
+        "pictures": layout.pictures[0],
+        "palettes": layout.palettes[0],
+        "banks": layout.banks[0].pixels,
+        "fonts": layout.fonts[0],
+        "sounds": layout.sounds[0].samples,
+        "title_animation": layout.animation["masks"],
+        "title_music": layout.music["sample_data"],
+        "road_map": layout.road_map,
+        "scenery_objects": layout.scenery_objects,
+        "road_shape_points": layout.road_shape_points,
+    }
+    return "\n".join(OFFSET_TEMPLATE.format(name=name, offset=table.offset) for name, table in members.items())
+
+
+def render_pictures(layout: Layout) -> str:
+    return "\n".join(
+        PICTURE_TEMPLATE.format(width=SCREEN_WIDTH, height=SCREEN_HEIGHT, pixels=view(table))
+        for table in layout.pictures
+    )
+
+
+def render_palettes(layout: Layout) -> str:
+    return "\n".join(PALETTE_TEMPLATE.format(colors=view(table)) for table in layout.palettes)
+
+
+def render_banks(layout: Layout) -> str:
+    return "\n".join(
+        BANK_TEMPLATE.format(pixels=view(bank.pixels), sprites=view(bank.sprites)) for bank in layout.banks
+    )
+
+
 def render_fonts(layout: Layout) -> str:
-    return "\n".join(FONT_TEMPLATE.format(pixels=view("std::uint8_t", span)) for span in layout.fonts)
+    return "\n".join(FONT_TEMPLATE.format(pixels=view(table)) for table in layout.fonts)
 
 
 def render_sounds(layout: Layout) -> str:
     return "\n".join(
         SOUND_TEMPLATE.format(
-            samples=view("std::int8_t", sound.samples),
+            samples=view(sound.samples),
             rate=sound.rate,
             loop_start=sound.loop_start,
             loop_length=sound.loop_length,
@@ -609,25 +690,36 @@ def render_header(image: Image, layout: Layout) -> str:
         args=HeaderArgs(
             image_size=len(image.data),
             digest=hashlib.sha256(image.data).hexdigest(),
-            sections=render_sections(image),
+            alignment=TABLE_ALIGNMENT,
+            picture_tables=render_tables(layout.pictures),
+            palette_tables=render_tables(layout.palettes),
+            bank_members=render_bank_members(layout),
+            font_tables=render_tables(layout.fonts),
+            sound_tables=render_tables(sound.samples for sound in layout.sounds),
+            animation_tables=render_tables(layout.animation.values()),
+            music_tables=render_tables(layout.music.values()),
+            world_tables=render_tables(
+                (layout.road_map, layout.scenery_objects, layout.road_shape_points), indent="  "
+            ),
+            offsets=render_offsets(layout),
             pictures=render_pictures(layout),
             palettes=render_palettes(layout),
             banks=render_banks(layout),
             fonts=render_fonts(layout),
             sounds=render_sounds(layout),
-            animation_masks=view("std::uint8_t", layout.animation["masks"]),
-            animation_runs=view("XorRun", layout.animation["runs"]),
-            animation_frames=view("XorFrame", layout.animation["frames"]),
-            animation_steps=view("AnimationStep", layout.animation["steps"]),
-            music_sample_data=view("std::int8_t", layout.music["sample_data"]),
-            music_samples=view("ModuleSample", layout.music["samples"]),
-            music_positions=view("std::uint8_t", layout.music["positions"]),
-            music_notes=view("ModuleNote", layout.music["notes"]),
+            animation_masks=view(layout.animation["masks"]),
+            animation_runs=view(layout.animation["runs"]),
+            animation_frames=view(layout.animation["frames"]),
+            animation_steps=view(layout.animation["steps"]),
+            music_sample_data=view(layout.music["sample_data"]),
+            music_samples=view(layout.music["samples"]),
+            music_positions=view(layout.music["positions"]),
+            music_notes=view(layout.music["notes"]),
             music_timer=layout.music_timer,
-            road_map=view("std::uint8_t", layout.road_map),
-            scenery_objects=view("PlacedObject", layout.scenery_objects),
+            road_map=view(layout.road_map),
+            scenery_objects=view(layout.scenery_objects),
             scenery_ranges=render_ranges(SCENERY_RANGE_TEMPLATE, layout.scenery_ranges),
-            road_shape_points=view("ShapePoint", layout.road_shape_points),
+            road_shape_points=view(layout.road_shape_points),
             road_shape_ranges=render_ranges(SHAPE_RANGE_TEMPLATE, layout.road_shape_ranges),
         )
     )
@@ -651,8 +743,8 @@ def main(argv: list[str]) -> int:
     (args.out_dir / "assets.uf2").write_bytes(
         UF2Packer(data=bytes(image.data), start_address=partition.address).to_uf2()
     )
-    for section in image.sections:
-        LOGGER.info("%-20s offset %#8x count %7d", section.name, section.offset, section.count)
+    for table in image.tables:
+        LOGGER.info("%-36s offset %#8x count %7d", table.path, table.offset, table.count)
     LOGGER.info("assets.bin %d bytes, assets.uf2 at %#010x", len(image.data), partition.address)
     if args.layout_header is not None:
         args.layout_header.write_text(render_header(image, layout))

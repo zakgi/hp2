@@ -2,8 +2,8 @@
 //
 // Flash regions the firmware binds its asset views to at boot. Addresses are XIP
 // (0x10000000 + partition offset). Forming a pointer from an integer is not a
-// constant expression, so the regions are integers and the spans are made at
-// runtime (src/target/flash/asset_image.hpp, TableView).
+// constant expression, so the regions are integers and the firmware casts them
+// at runtime (src/target/flash/asset_check.hpp).
 
 #pragma once
 

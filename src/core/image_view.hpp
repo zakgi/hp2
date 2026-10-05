@@ -9,7 +9,7 @@ namespace hp2 {
 
 // Non-owning indexed image. Rows are stored top-down, `width` pixels each, with no padding. The
 // pixels are read-only and must outlive every use of the view: a host container, or a flash
-// partition on the target, where a generated constinit descriptor binds the span to its address.
+// partition on the target, where the views lie over the asset image.
 struct ImageView {
   std::uint16_t width{};
   std::uint16_t height{};
@@ -20,8 +20,8 @@ struct ImageView {
   }
 };
 
-// Descriptors are generated as constinit constants on the target, so the view must be a literal
-// type with a constexpr constructor. The pixel blob itself only needs 4-byte alignment in flash.
+// Views are plain values: the generated flash layout builds them in a constexpr function and they
+// are copied freely. The pixel blob itself only needs 4-byte alignment in flash.
 static_assert(std::is_trivially_copyable_v<ImageView>);
 
 }  // namespace hp2

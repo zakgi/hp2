@@ -1,14 +1,11 @@
 #pragma once
 
 // The asset image scripts/pack_assets.py writes into the "assets" partition: the engine's own
-// record types laid out as they are in memory, at the section offsets of the generated
-// asset_layout.hpp. The static_asserts below are the contract with the packer's struct formats; a
+// record types laid out as they are in memory, in the members of AssetImage (the generated
+// asset_layout.hpp). The static_asserts below are the contract with the packer's struct formats; a
 // layout change on either side fails the build here.
 
-#include <bit>
 #include <cstddef>
-#include <cstdint>
-#include <span>
 
 #include "core/music_module.hpp"
 #include "core/palette.hpp"
@@ -32,12 +29,5 @@ static_assert(sizeof(ModuleNote) == 6 and offsetof(ModuleNote, sample) == 2 and 
 static_assert(sizeof(PlacedObject) == 10 and offsetof(PlacedObject, y) == 2 and offsetof(PlacedObject, z) == 4 and
               offsetof(PlacedObject, type) == 6 and offsetof(PlacedObject, extra) == 8);
 static_assert(sizeof(ShapePoint) == 4 and offsetof(ShapePoint, y) == 2);
-
-// `count` records of T at `address`, which must be aligned for T. Runtime only: forming a pointer
-// from an integer is not a constant expression.
-template <typename T>
-[[nodiscard]] std::span<const T> TableView(std::uintptr_t address, std::size_t count) {
-  return std::span<const T>{std::bit_cast<const T*>(address), count};
-}
 
 }  // namespace hp2::flash

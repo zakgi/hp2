@@ -1,0 +1,9 @@
+{
+    "clangd.arguments": [
+        "--query-driver=/opt/homebrew/bin/arm-none-eabi-*",
+        "--background-index",
+        "--clang-tidy",
+        "--header-insertion=never",
+        "--completion-style=detailed"
+    ]
+}

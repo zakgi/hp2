@@ -2,15 +2,15 @@
 
 // Boot-time check of the asset image in the "assets" partition against the digest the packer
 // recorded. Erased flash reads 0xFF, so an unflashed partition is absent, not corrupt. The
-// engine's view of the image is the generated asset_layout::FlashAssets(), valid once this passed.
+// engine's views are asset_layout::FlashAssets(Image()), valid once this passed.
 
 #include <algorithm>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <span>
 
 #include "flash_partitions.hpp"
-#include "target/flash/asset_image.hpp"
 #include "target/flash/asset_layout.hpp"
 
 namespace hp2::flash {
@@ -19,9 +19,14 @@ enum class AssetStatus : std::uint8_t { kPass, kFail, kAbsent };
 
 static_assert(asset_layout::kImageSize <= kAssets.size, "the asset image does not fit its partition");
 
+// The image: the object at the start of the partition.
+[[nodiscard]] inline const asset_layout::AssetImage& Image() {
+  return *std::bit_cast<const asset_layout::AssetImage*>(kAssets.address);
+}
+
 // The image as flashed.
 [[nodiscard]] inline std::span<const std::uint8_t> ImageBytes() {
-  return TableView<std::uint8_t>(kAssets.address, asset_layout::kImageSize);
+  return std::span{std::bit_cast<const std::uint8_t*>(kAssets.address), asset_layout::kImageSize};
 }
 
 // Hashes the image with Sha256Fn and compares it with the recorded digest. Scanning for erased

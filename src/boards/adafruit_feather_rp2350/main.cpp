@@ -70,7 +70,7 @@ int main() {
               static_cast<unsigned long>(hp2::flash::kAssets.address),
               static_cast<unsigned long>(verify_timer.Elapsed()));
   if (status == hp2::flash::AssetStatus::kPass) {
-    assets = hp2::flash::asset_layout::FlashAssets(hp2::flash::kAssets.address);
+    assets = hp2::flash::asset_layout::FlashAssets(hp2::flash::Image());
     std::printf("[assets] %u pictures, %u sprite banks, title music of %u notes\n",
                 static_cast<unsigned>(assets.pictures.size()), static_cast<unsigned>(assets.banks.size()),
                 static_cast<unsigned>(assets.title_music.notes.size()));

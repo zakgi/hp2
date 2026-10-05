@@ -52,7 +52,7 @@ TEST(AssetImage, MatchesTheAssetManager) {
   auto manager = host::AssetManager{};
   ASSERT_TRUE(manager.Load(test::DiskImage()));
   const auto& expected = manager.Engine();
-  const auto actual = asset_layout::FlashAssets(std::bit_cast<std::uintptr_t>(image.data()));
+  const auto actual = asset_layout::FlashAssets(*std::bit_cast<const asset_layout::AssetImage*>(image.data()));
 
   for (auto index = std::size_t{0}; index < kEnginePictureCount; ++index) {
     EXPECT_EQ(actual.pictures[index].width, expected.pictures[index].width);
