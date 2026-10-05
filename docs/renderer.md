@@ -70,8 +70,9 @@ Types 11/12 are the 20 stations (*unverified* link to "ALL THE STATION HAVE BEEN
 
 - Gauges from the player record: left needle from `+5a` high nibble (table `gaugeLeftNeedleTips`, origin (93,197)), warning glyph when the nibble is 0; right needle from `+6a` high nibble (`gaugeRightNeedleTips`, origin (226,197)), warning glyph at 0xf.
 - Speedometer: angle 0x198 - speed*99/84, radius 20 around (131,179), drawn as three lines. Tachometer: angle 0x18c - rpm (`+5c`)*98/88 around (188,179). Left needle = fuel `+5a`, right needle = engine temperature `+6a`.
-- Hands on the steering wheel: DES_TABB images 2 and 3 placed on a radius-93 circle at angles derived from `+0c` (steering wheel). Gun mode (`gunMode`, key T; `aimReturn`, `aimHandAngle`) swings the right hand off the wheel; in gun mode the sight (BALLE image 1) is drawn at `aimX/aimY` (fixed ahead, jittered with speed, bobbing with the camera), and the impact (image 3) when `shotHit`.
-- While the car moves, DES_TABB image 1 alternates between y 133 and 132 each frame (`dashBlink`): a vibration effect.
+- Hands on the steering wheel: DES_TABB image 2 (the left hand, hotspot at its top right) and image 3 (the right hand) on a circle of radius 93 about (160, 235), below the screen. With w the wheel's position `+0c` in half degrees (60 at full lock, positive to the left), the left hand is at angle 141 degrees + w, 9w/60 pixels lower; the right hand at 39 degrees + w, 9w/60 pixels higher. Gun mode (`gunMode`, key T; `aimReturn`, `aimHandAngle`) swings the right hand off the wheel; in gun mode the sight (BALLE image 1) is drawn at `aimX/aimY` (fixed ahead, jittered with speed, bobbing with the camera), and the impact (image 3) when `shotHit`.
+- DES_TABB image 1, the steering wheel, is drawn masked at (48, 133). While the car moves it alternates between y 133 and 132 each frame (`dashBlink`), and the hands move with it: a vibration effect.
+- `MaskBonnetEdge` (`0:d836`) clears to color 0 the right end of the three rows above the dashboard: row 129 from column 248, row 130 from 172, row 131 from 118. The dashboard picture's top rows are black too: together they are the hood's edge.
 
 ## HUD text (`DrawHudText`, `0:e1b4`)
 

@@ -168,6 +168,7 @@ if(HP2_BUILD_TESTS)
     test/core/action_stack_test.cpp
     test/core/audio_engine_test.cpp
     test/core/component_test.cpp
+    test/core/driver_view_test.cpp
     test/core/highway_test.cpp
     test/core/key_events_test.cpp
     test/core/map_view_test.cpp
@@ -177,6 +178,8 @@ if(HP2_BUILD_TESTS)
     test/core/office_test.cpp
     test/core/palette_test.cpp
     test/core/presentation_test.cpp
+    test/core/road_projection_test.cpp
+    test/core/road_surface_test.cpp
     test/core/road_test.cpp
     test/core/screen_test.cpp
     test/core/station_test.cpp

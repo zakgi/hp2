@@ -4,6 +4,7 @@
 
 #include "core/audio_engine.hpp"
 #include "core/component.hpp"
+#include "core/driver_view.hpp"
 #include "core/engine_assets.hpp"
 #include "core/game_state.hpp"
 #include "core/key_events.hpp"
@@ -79,6 +80,7 @@ class Highway {
   AudioEngine& audio_;
   GameState& game_;
   Mission mission_;
+  DriverView driver_view_;
   MapView map_view_;
   AiPolicies policies_;
   // Each mission's seed is drawn from it.

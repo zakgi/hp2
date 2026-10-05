@@ -102,6 +102,54 @@ TEST_F(VehicleTest, LosesSpeedFasterOffTheRoad) {
   EXPECT_LT(off_road.speed, on_road.speed);
 }
 
+TEST(CarCondition, TheEngineIdlesInFirstWhileStopped) {
+  auto condition = CarCondition{.temperature = 0.5F};
+  condition.Update(Vehicle{}, 1.0F);
+  EXPECT_EQ(condition.gear, 1);
+  EXPECT_FLOAT_EQ(condition.rpm, 0.0F);
+  EXPECT_FLOAT_EQ(condition.fuel, 1.0F);
+  // It cools 100 of 65536 a frame, 20 frames a second.
+  EXPECT_NEAR(condition.temperature, 0.5F - (2000.0F / 65536.0F), 1e-5F);
+}
+
+TEST(CarCondition, TheGearAndTheEngineFollowTheSpeed) {
+  auto condition = CarCondition{};
+  // 3000 units a second are 150 a frame of the original's: second gear, 130 + 70 * 15 / 8.
+  condition.Update(Vehicle{.speed = 3000.0F}, kTickSeconds);
+  EXPECT_EQ(condition.gear, 2);
+  EXPECT_FLOAT_EQ(condition.rpm, 261.25F);
+  // Each gear ends at a multiple of 80 a frame: 1600 units a second is still first.
+  condition.Update(Vehicle{.speed = 1600.0F}, kTickSeconds);
+  EXPECT_EQ(condition.gear, 1);
+  EXPECT_FLOAT_EQ(condition.rpm, 240.0F);
+  // Backward counts as forward: 100 a frame, second gear.
+  condition.Update(Vehicle{.speed = -2000.0F}, kTickSeconds);
+  EXPECT_EQ(condition.gear, 2);
+  EXPECT_FLOAT_EQ(condition.rpm, 167.5F);
+  // Flat out: fifth, 250 + 80 * 15 / 8.
+  condition.Update(Vehicle{.speed = 8000.0F}, kTickSeconds);
+  EXPECT_EQ(condition.gear, 5);
+  EXPECT_FLOAT_EQ(condition.rpm, 400.0F);
+}
+
+TEST(CarCondition, FlatOutBurnsFuelAndHeatsTheEngine) {
+  auto condition = CarCondition{};
+  for (auto tick = 0; tick < kTicksPerSecond; ++tick) {
+    condition.Update(Vehicle{.speed = 8000.0F}, kTickSeconds);
+  }
+  // A second at 400 a frame: 20 frames of (400 / 8)^2 / 64 = 39 of the tank's 65536, and of 100
+  // of the temperature's.
+  EXPECT_NEAR(condition.fuel, 1.0F - (20.0F * 39.0625F / 65536.0F), 1e-5F);
+  EXPECT_NEAR(condition.temperature, 2000.0F / 65536.0F, 1e-5F);
+}
+
+TEST(CarCondition, TheTankAndTheTemperatureStopAtTheirEnds) {
+  auto condition = CarCondition{.fuel = 0.0001F, .temperature = 0.9999F};
+  condition.Update(Vehicle{.speed = 8000.0F}, 1.0F);
+  EXPECT_FLOAT_EQ(condition.fuel, 0.0F);
+  EXPECT_FLOAT_EQ(condition.temperature, 1.0F);
+}
+
 TEST_F(VehicleTest, MovesAlongItsHeading) {
   const auto road = MakeRoad(1);
   auto car = Vehicle{.position = kStart, .heading = std::numbers::pi_v<float> / 2.0F, .speed = 1000.0F};

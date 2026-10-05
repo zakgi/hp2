@@ -3,8 +3,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <span>
 #include <string_view>
+#include <utility>
 
 namespace hp2 {
 
@@ -145,6 +147,32 @@ void Screen::DrawVerticalLine(std::int16_t top, std::int16_t bottom, std::int16_
     for (auto row = first; row <= last; ++row) {
       Row(static_cast<std::uint16_t>(row))[static_cast<std::size_t>(column)] = index;
     }
+  }
+}
+
+void Screen::DrawLine(Point start, Point end, std::uint8_t index) {
+  // The coordinate that changes more is counted pixel by pixel, upward; the other one follows in
+  // 16.16 steps from the middle of its first pixel.
+  constexpr auto kOnePixel = std::int64_t{1} << 16U;
+  constexpr auto kHalfPixel = kOnePixel / 2;
+  const auto wide = std::abs(end.x - start.x) >= std::abs(end.y - start.y);
+  if (wide ? end.x < start.x : end.y < start.y) {
+    std::swap(start, end);
+  }
+  const auto steps = std::int64_t{wide ? end.x - start.x : end.y - start.y};
+  const auto column_step = wide ? kOnePixel : (end.x - start.x) * kOnePixel / std::max<std::int64_t>(steps, 1);
+  const auto row_step = wide ? (end.y - start.y) * kOnePixel / std::max<std::int64_t>(steps, 1) : kOnePixel;
+  auto column = (start.x * kOnePixel) + kHalfPixel;
+  auto row = (start.y * kOnePixel) + kHalfPixel;
+  const auto rows = std::int64_t{Rows(selected_)};
+  for (auto step = std::int64_t{0}; step <= steps; ++step) {
+    const auto pixel_column = column >> 16U;
+    const auto pixel_row = row >> 16U;
+    if (pixel_column >= 0 and pixel_column < kWidth and pixel_row >= 0 and pixel_row < rows) {
+      Row(static_cast<std::uint16_t>(pixel_row))[static_cast<std::size_t>(pixel_column)] = index;
+    }
+    column += column_step;
+    row += row_step;
   }
 }
 

@@ -79,7 +79,7 @@ struct CarCondition {
   std::uint8_t tires{GameState::kFullTires};
   float off_road_seconds{};  // at speed, since the car last held the road
   std::uint8_t gear{1};      // automatic, 1..5 (0:3bec)
-  float rpm{};
+  float rpm{};               // as the original counts it, 0 to about 400: what the tachometer shows
 
   // Fuel, temperature, gear and rpm after `seconds` of driving as `vehicle`.
   void Update(const Vehicle& vehicle, float seconds);

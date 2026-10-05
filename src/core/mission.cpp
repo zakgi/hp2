@@ -84,6 +84,7 @@ void Mission::Start(const MissionType& mission, const AiPolicies& policies, std:
 MissionEvents Mission::Step(const PlayerCommands& commands) {
   player_.controls = commands.controls;
   Drive(player_, kPlayerCar, road_, kTickSeconds);
+  condition_.Update(player_, kTickSeconds);
   ++tick_;
   return MissionEvents{};
 }

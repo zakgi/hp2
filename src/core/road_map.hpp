@@ -29,7 +29,7 @@ struct PlacedObject {
   std::int16_t z{};
   // 1 cactus, 3-6 stones, 7 bush, 8-10 road signs, 11 station sign (docs/vehicles.md).
   std::uint16_t type{};
-  // The station sign's angle; 0 for the others.
+  // The way a sign faces, half degrees; 0 for the others.
   std::uint16_t extra{};
 
   constexpr bool operator==(const PlacedObject&) const = default;
@@ -64,8 +64,8 @@ struct ShapePoint {
 
 // The road's outline for every road cell type (roadCellShapes, 0:7812): one closed polygon each,
 // the first point repeated last, none for type 0. Kept from the executable because it is the
-// road's look. Filled even-odd, so the one-unit slits of the station shapes close their driveway
-// loops.
+// road's look. Filled even-odd. The far end of a station's driveway loop lies one unit off the
+// road's edge, which leaves a strip one unit wide there outside the fill (docs/highway.md, "Road").
 struct RoadShapes {
   std::span<const ShapePoint> points;
   std::array<IndexRange, kRoadCellTypeCount> cell_types{};

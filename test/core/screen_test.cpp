@@ -105,6 +105,44 @@ TEST(Screen, DrawsClippedVerticalLines) {
   EXPECT_EQ(screen.ScreenRow(199)[Screen::kWidth - 1], 0);
 }
 
+TEST(Screen, DrawsLinesWithBothEnds) {
+  auto screen = Screen{};
+  screen.Clear(0);
+  // A steep line: the rows are counted, the column follows.
+  screen.DrawLine(Point{.x = 10, .y = 10}, Point{.x = 11, .y = 13}, 7);
+  EXPECT_EQ(screen.ScreenRow(10)[10], 7);
+  EXPECT_EQ(screen.ScreenRow(11)[10], 7);
+  EXPECT_EQ(screen.ScreenRow(12)[11], 7);
+  EXPECT_EQ(screen.ScreenRow(13)[11], 7);
+  EXPECT_EQ(screen.ScreenRow(11)[11], 0);
+  EXPECT_EQ(screen.ScreenRow(14)[11], 0);
+  // The same pixels from the other end.
+  screen.Clear(0);
+  screen.DrawLine(Point{.x = 11, .y = 13}, Point{.x = 10, .y = 10}, 7);
+  EXPECT_EQ(screen.ScreenRow(11)[10], 7);
+  EXPECT_EQ(screen.ScreenRow(12)[11], 7);
+  // A diagonal, and a single point.
+  screen.DrawLine(Point{.x = 23, .y = 20}, Point{.x = 20, .y = 23}, 5);
+  EXPECT_EQ(screen.ScreenRow(20)[23], 5);
+  EXPECT_EQ(screen.ScreenRow(21)[22], 5);
+  EXPECT_EQ(screen.ScreenRow(23)[20], 5);
+  screen.DrawLine(Point{.x = 40, .y = 40}, Point{.x = 40, .y = 40}, 6);
+  EXPECT_EQ(screen.ScreenRow(40)[40], 6);
+}
+
+TEST(Screen, ClipsLinesToTheViewport) {
+  auto screen = Screen{};
+  screen.EnableSplit(100);
+  screen.DrawLine(Point{.x = -3, .y = 98}, Point{.x = 3, .y = 104}, 7);
+  EXPECT_EQ(screen.ScreenRow(98)[0], 0);
+  EXPECT_EQ(screen.ScreenRow(99)[0], 0);
+  // Left of the screen until its fourth step, then two rows of the upper viewport.
+  screen.DrawLine(Point{.x = -3, .y = 95}, Point{.x = 3, .y = 101}, 7);
+  EXPECT_EQ(screen.ScreenRow(98)[0], 7);
+  EXPECT_EQ(screen.ScreenRow(99)[1], 7);
+  EXPECT_EQ(screen.ScreenRow(100)[2], 0);
+}
+
 TEST(ScreenPalette, OverlaysAtAnOffset) {
   auto palette = ScreenPalette{};
   const auto colors =

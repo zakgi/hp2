@@ -72,7 +72,7 @@ frame:   repeated { word count (0 = end), word byte offset, word xor[count] }
 
 ## Object placement: COOR_OBJ.BIN
 
-11228 bytes, loaded at the start of each mission. Per road cell type, an object list in cell coordinates: a long offset table by cell type, then lists of `word count` (low byte; -1 = empty) + 10-byte entries `{x, y, z, type, extra}`. Types: 1 cactus (fences of the stations too), 3-6 stones, 7 bush, 8-10 road signs, 11 station sign (`extra` = sign angle for the 4 sign views); type 2 (car) is inserted at run time. The game takes the count's low byte as the entry count (`dbf` on count - 1, so a low byte of 0 would run 65536 times; no list has one); the port's decoder reads it as that many entries, 0 for none. Used by `BuildViewObjects` / `DrawObjects` (`renderer.md`, `vehicles.md` sections 8.1 and 11).
+11228 bytes, loaded at the start of each mission. Per road cell type, an object list in cell coordinates: a long offset table by cell type, then lists of `word count` (low byte; -1 = empty) + 10-byte entries `{x, y, z, type, extra}`. Types: 1 cactus (fences of the stations too), 3-6 stones, 7 bush, 8-10 road signs (left curve, junction, right curve), 11 station sign; for the signs `extra` is the way the sign faces, in half degrees (0, 180, 360 or 540), which picks its view; type 2 (car) is inserted at run time. The game takes the count's low byte as the entry count (`dbf` on count - 1, so a low byte of 0 would run 65536 times; no list has one); the port's decoder reads it as that many entries, 0 for none. Used by `BuildViewObjects` / `DrawObjects` (`renderer.md`, `vehicles.md` sections 8.1 and 11).
 
 ## Sounds: .SND
 

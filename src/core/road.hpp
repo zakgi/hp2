@@ -65,6 +65,9 @@ class Road {
   // Whether `point` lies inside its cell's road outline. Replaces the original's test of two drawn
   // pixels under the hood (CheckOffRoad, 0:3fa8), so any point of any car can be tested.
   [[nodiscard]] bool IsOnRoad(WorldPoint point) const;
+  // The road's outline in `cell`, in cell units: one closed polygon, the first point repeated last,
+  // which IsOnRoad fills even-odd; empty where there is no road.
+  [[nodiscard]] std::span<const ShapePoint> GetOutline(Cell cell) const;
 
   // The lane through `cell` from the side it is entered by to the side it is left by; none when the
   // cell's road does not join them.

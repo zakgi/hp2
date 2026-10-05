@@ -13,6 +13,7 @@ Highway::Highway(const EngineAssets& assets, Screen& screen, KeyEvents& keys, Au
       audio_(audio),
       game_(game),
       mission_(Road{assets.road_map, assets.road_shapes, assets.scenery}),
+      driver_view_(assets, screen, mission_.GetRoad()),
       map_view_(screen, mission_.GetRoad()),
       seeds_(seed) {}
 
@@ -119,9 +120,12 @@ PlayerCommands Highway::TakeCommands() {
   return commands;
 }
 
-// Until the driver's view exists, the road shows as the live map.
 void Highway::Draw() {
-  map_view_.Draw(mission_.GetPlayer().position, mission_.GetTarget().position);
+  if (phase_ == Phase::kMap) {
+    map_view_.Draw(mission_.GetPlayer().position, mission_.GetTarget().position);
+  } else {
+    driver_view_.Draw(mission_);
+  }
 }
 
 }  // namespace hp2

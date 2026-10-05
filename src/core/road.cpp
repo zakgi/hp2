@@ -79,6 +79,10 @@ bool Road::IsOnRoad(WorldPoint point) const {
   return IsInside(shapes_.GetOutline(GetCellType(cell)), point - GetCellOrigin(cell));
 }
 
+std::span<const ShapePoint> Road::GetOutline(Cell cell) const {
+  return shapes_.GetOutline(GetCellType(cell));
+}
+
 std::optional<std::size_t> Road::GetStationIndex(Cell cell) const {
   const auto stations = GetStations();
   const auto found = std::ranges::find(stations, cell);
