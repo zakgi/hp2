@@ -53,6 +53,26 @@ TEST(Screen, MaskedBlitKeepsIndexZero) {
   EXPECT_EQ(screen.ScreenRow(2)[2], 9);
 }
 
+TEST(Screen, BlitsAMaskedImageFlippedLeftToRight) {
+  auto screen = Screen{};
+  screen.Clear(9);
+  const auto pixels = std::to_array<std::uint8_t>({1, 0, 3, 4, 5, 6});
+  const auto image = ImageView{.width = 3, .height = 2, .pixels = pixels};
+  screen.BlitMaskedMirrored(image, Point{.x = 4, .y = 1}, 16);
+  EXPECT_EQ(screen.ScreenRow(1)[4], 19);
+  EXPECT_EQ(screen.ScreenRow(1)[5], 9);
+  EXPECT_EQ(screen.ScreenRow(1)[6], 17);
+  EXPECT_EQ(screen.ScreenRow(2)[4], 22);
+  EXPECT_EQ(screen.ScreenRow(2)[6], 20);
+  // Off the left edge by one column: the image's last column is the one cut.
+  screen.Clear(9);
+  screen.BlitMaskedMirrored(image, Point{.x = -1, .y = 0});
+  EXPECT_EQ(screen.ScreenRow(0)[0], 9);
+  EXPECT_EQ(screen.ScreenRow(0)[1], 1);
+  EXPECT_EQ(screen.ScreenRow(1)[0], 5);
+  EXPECT_EQ(screen.ScreenRow(1)[1], 4);
+}
+
 TEST(Screen, CopiesOverlappingAreas) {
   auto screen = Screen{};
   screen.EnableSplit(10);

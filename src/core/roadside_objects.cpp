@@ -42,6 +42,28 @@ constexpr auto kStoneDepth = 1792.0F;
 // picture is 64 wide.
 constexpr auto kSideMargin = 64.0F;
 
+// The cars (DrawObjects, 0:2ab0). A car shows one of 24 sides, 15 degrees apart, by the way its
+// body points against the line from the eye to it: side 6 is its back, 18 its front, 0 and 12 its
+// flanks. Each side has its bank (0:7fe0), and sides 7 to 16 are the pictures of sides 5 down to
+// 20, flipped left to right.
+constexpr auto kCarViewCount = 24;
+constexpr auto kCarBackView = 6;
+constexpr auto kFirstMirroredView = std::uint8_t{7};
+constexpr auto kLastMirroredView = std::uint8_t{16};
+constexpr auto kCarBanks = std::to_array<EngineBank>({
+    EngineBank::kCar2, EngineBank::kCar2, EngineBank::kCar3, EngineBank::kCar3, EngineBank::kCar4, EngineBank::kCar5,
+    EngineBank::kCar6, EngineBank::kCar5, EngineBank::kCar4, EngineBank::kCar3, EngineBank::kCar3, EngineBank::kCar2,
+    EngineBank::kCar2, EngineBank::kCar2, EngineBank::kCar1, EngineBank::kCar1, EngineBank::kCar1, EngineBank::kCar0,
+    EngineBank::kCar0, EngineBank::kCar0, EngineBank::kCar1, EngineBank::kCar1, EngineBank::kCar1, EngineBank::kCar2,
+});
+static_assert(kCarBanks.size() == kCarViewCount);
+// The cars' own size for each step of depth (0:8192).
+constexpr auto kCarSizes = std::to_array<std::uint8_t>(
+    {0, 0, 0, 0, 0, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 6, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9});
+static_assert(kCarSizes.size() == kSizes.size());
+// The widest car picture is 304 wide.
+constexpr auto kCarSideMargin = 152.0F;
+
 // The two poles of a station's sign stand this far either side of it, by size (0:2d92).
 struct PolePair {
   std::int8_t first;
@@ -87,6 +109,21 @@ SignView GetSignView(float heading, std::uint16_t sign_angle) {
     view = SignView::kFront;
   }
   return view;
+}
+
+// The side of a car heading along `car_heading` that an eye looking along `view_heading` sees,
+// the car standing `depth` ahead of it and `offset` to its right.
+std::uint8_t GetCarView(float car_heading, float view_heading, float depth, float offset) {
+  constexpr auto kStep = kFullTurn / static_cast<float>(kCarViewCount);
+  // The line from the eye to the car, left of straight ahead; the car's heading against it is 0
+  // from behind and grows as the car turns left.
+  const auto bearing = std::atan2(-offset, depth);
+  auto turned = WrapAngle(car_heading - view_heading - bearing) + (kStep / 2.0F);
+  if (turned < 0.0F) {
+    turned += kFullTurn;
+  }
+  const auto sector = static_cast<int>(turned / kStep);
+  return static_cast<std::uint8_t>((sector + kCarBackView) % kCarViewCount);
 }
 
 // Draws image `image` of `bank` with its hotspot at `foot`; nothing when the bank lacks it.
@@ -164,10 +201,61 @@ void RoadsideObjects::Collect(const ViewDescription& view, const ViewInput& inpu
   std::ranges::sort(std::span{objects_}.first(count_), std::ranges::greater{}, &ViewObject::depth);
 }
 
+void RoadsideObjects::CollectCars(const ViewDescription& view, const ViewInput& input, std::span<const Car> cars) {
+  car_count_ = 0;
+  const auto axes = GetViewAxes(input.heading);
+  for (const auto& car : cars.first(std::min(cars.size(), kMaxCars))) {
+    const auto point = car.position - input.position;
+    const auto depth = Dot(point, axes.forward);
+    if (depth >= kNearestDepth and depth < kDepth) {
+      const auto offset = Dot(point, axes.right);
+      const auto column = view.center_column + (offset * view.focal_length / depth);
+      if (column >= static_cast<float>(view.left_column) - kCarSideMargin and
+          column <= static_cast<float>(view.right_column) + kCarSideMargin) {
+        cars_[car_count_] = ViewCar{.depth = depth,
+                                    .offset = offset,
+                                    .lift = car.lift,
+                                    .view = GetCarView(car.heading, input.heading, depth, offset),
+                                    .index_offset = car.index_offset};
+        ++car_count_;
+      }
+    }
+  }
+  std::ranges::sort(std::span{cars_}.first(car_count_), std::ranges::greater{}, &ViewCar::depth);
+}
+
+void RoadsideObjects::DrawCar(const ViewDescription& view, const ViewInput& input, const ViewCar& car,
+                              const EngineAssets& assets, Screen& screen) {
+  // Where the wheels stand, the body riding its springs; the car's colors take no haze.
+  const auto scale = view.focal_length / car.depth;
+  const auto row = std::floor(static_cast<float>(view.horizon_row) + ((input.eye_height - car.lift) * scale));
+  const auto foot = Point{.x = static_cast<std::int16_t>(std::floor(view.center_column + (car.offset * scale))),
+                          .y = std::min(static_cast<std::int16_t>(row), kLowestCarRow)};
+  const auto& bank = assets.Bank(kCarBanks[car.view]);
+  const auto image = std::size_t{kCarSizes[GetDepthStep(car.depth)]};
+  if (car.view < kFirstMirroredView or car.view > kLastMirroredView) {
+    DrawImage(bank, image, foot, car.index_offset, screen);
+  } else if (image < bank.sprites.size()) {
+    // Flipped, the hotspot lies as far from the picture's right edge.
+    const auto& sprite = bank.sprites[image];
+    screen.BlitMaskedMirrored(bank.GetImage(image),
+                              Point{.x = static_cast<std::int16_t>(foot.x - (sprite.width - sprite.origin_x)),
+                                    .y = static_cast<std::int16_t>(foot.y - sprite.origin_y)},
+                              car.index_offset);
+  }
+}
+
 void RoadsideObjects::Draw(const ViewDescription& view, const ViewInput& input, const Road& road,
-                           const EngineAssets& assets, Screen& screen) {
+                           std::span<const Car> cars, const EngineAssets& assets, Screen& screen) {
   Collect(view, input, road);
+  CollectCars(view, input, cars);
+  auto next_car = std::size_t{0};
   for (const auto& object : std::span{objects_}.first(count_)) {
+    // The cars further away than this object come first.
+    while (next_car < car_count_ and cars_[next_car].depth >= object.depth) {
+      DrawCar(view, input, cars_[next_car], assets, screen);
+      ++next_car;
+    }
     // Where the object stands on the ground, its size, and the haze of the ground there.
     const auto scale = view.focal_length / object.depth;
     const auto foot = Point{
@@ -197,6 +285,9 @@ void RoadsideObjects::Draw(const ViewDescription& view, const ViewInput& input, 
     } else if (object.type == kStationSign) {
       DrawStationSign(GetSignView(input.heading, object.extra), size, foot, index_offset, assets, screen);
     }
+  }
+  for (const auto& car : std::span{cars_}.first(car_count_).subspan(next_car)) {
+    DrawCar(view, input, car, assets, screen);
   }
 }
 

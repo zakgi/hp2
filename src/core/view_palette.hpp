@@ -19,6 +19,12 @@ namespace hp2 {
 //   32  the sky's 26 shades, from the top of the screen to the horizon
 //   64  the ground's 11 sets, from the horizon to the car: a row of ground, and what stands at its
 //       depth, is drawn with its set's offset
+//   240 the first 8 colors of the view's set twice over, for two traffic cars with their own paint
+//
+// A car's picture uses colors 1 to 7, which the sky and the ground never change: white, black and
+// gray, then four shades of its paint, which the original writes into the view's set for the one
+// car it shows (SetCarColors, 0:e5d0). Here the criminal's car has the view's set, at entry 0, and
+// each traffic car in view a copy of its own.
 
 // The sets of the list, in its order.
 inline constexpr auto kViewSetCount = std::size_t{39};
@@ -34,6 +40,47 @@ inline constexpr auto kSkyFirstEntry = std::uint8_t{32};
 inline constexpr auto kSkyShadeCount = kFirstGroundSet - kViewSet;
 inline constexpr auto kGroundFirstOffset = std::uint8_t{64};
 inline constexpr auto kGroundSetCount = kDashboardSet - kFirstGroundSet;
+
+// The cars' colors: the registers of the paint, and the entries of the traffic cars' copies.
+inline constexpr auto kCarColorCount = std::size_t{8};
+inline constexpr auto kCarPaintFirst = std::uint8_t{4};
+inline constexpr auto kCarPaintCount = std::size_t{4};
+inline constexpr auto kTrafficFirstOffset = std::uint8_t{240};
+inline constexpr auto kTrafficPaintCount = std::size_t{2};
+
+// The paints (0:a6f4): the criminal's red, then the traffic's seven schemes, each from its lightest
+// shade to its darkest.
+inline constexpr auto kCarPaints = std::to_array<std::array<Rgb, kCarPaintCount>>({
+    {{{.red = 255, .green = 102, .blue = 102}, {.red = 255}, {.red = 170}, {.red = 102}}},
+    {{{.red = 170, .green = 204, .blue = 255},
+      {.red = 136, .green = 170, .blue = 204},
+      {.red = 68, .green = 102, .blue = 136},
+      {.green = 34, .blue = 34}}},
+    {{{.red = 170, .green = 204, .blue = 204},
+      {.red = 136, .green = 170, .blue = 170},
+      {.red = 68, .green = 102, .blue = 102},
+      {.green = 34, .blue = 34}}},
+    {{{.red = 170, .green = 255, .blue = 170},
+      {.red = 136, .green = 204, .blue = 136},
+      {.red = 68, .green = 136, .blue = 68},
+      {.green = 68}}},
+    {{{.red = 170, .green = 170, .blue = 204},
+      {.red = 136, .green = 136, .blue = 170},
+      {.red = 68, .green = 68, .blue = 102},
+      {.blue = 34}}},
+    {{{.red = 255, .green = 204, .blue = 170},
+      {.red = 204, .green = 170, .blue = 136},
+      {.red = 136, .green = 102, .blue = 68},
+      {.red = 68, .green = 34}}},
+    {{{.red = 204, .green = 255, .blue = 255},
+      {.red = 170, .green = 204, .blue = 204},
+      {.red = 102, .green = 136, .blue = 136},
+      {.red = 34, .green = 68, .blue = 68}}},
+    {{{.red = 68, .green = 170, .blue = 136},
+      {.red = 34, .green = 136, .blue = 102},
+      {.green = 68, .blue = 34},
+      {.green = 34}}},
+});
 
 // The color registers the view's pictures and the ground use.
 inline constexpr auto kLineColor = std::uint8_t{1};

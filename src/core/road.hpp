@@ -28,14 +28,16 @@ class Lane {
     float distance{};
     float offset{};
   };
-  // Straight, turn, straight.
-  static constexpr std::size_t kMaxPieces = 3;
+  // A station's driveway: five straights and the four turns between them.
+  static constexpr std::size_t kMaxPieces = 9;
 
   Lane() = default;
   // The first kMaxPieces of `pieces`, starting at `start` along `heading`.
   Lane(WorldPoint start, float heading, std::span<const Piece> pieces);
 
+  [[nodiscard]] std::span<const Piece> GetPieces() const { return std::span<const Piece>{pieces_}.first(count_); }
   [[nodiscard]] float GetLength() const;
+  // The place on the lane nearest to `point`.
   [[nodiscard]] Position Locate(WorldPoint point) const;
   // The point and the heading `distance` along the lane, clamped to its ends.
   [[nodiscard]] WorldPoint GetPoint(float distance) const;
@@ -72,7 +74,8 @@ class Road {
   // The lane through `cell` from the side it is entered by to the side it is left by; none when the
   // cell's road does not join them.
   [[nodiscard]] std::optional<Lane> GetLane(Cell cell, Side entry, Side exit) const;
-  // In a station cell, the way from `entry` through the driveway and back onto the road.
+  // In a station cell, the way from `entry` through the driveway and back onto the road, leaving by
+  // the opposite side; the pumps are halfway along it.
   [[nodiscard]] std::optional<Lane> GetDriveway(Cell cell, Side entry) const;
 
   // The station cells, row by row.

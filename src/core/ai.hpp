@@ -34,6 +34,10 @@ class RouteField {
   [[nodiscard]] std::optional<Side> ChooseExit(const Road& road, Cell cell, Side entry) const;
 
  private:
+  // Gives `cell` one more than its nearest open neighbor when that is less than it has; returns
+  // whether it changed.
+  bool Relax(const Road& road, Cell cell);
+
   std::array<std::uint16_t, RoadMapView::kSize * RoadMapView::kSize> distances_{};
   Cell goal_;
 };
@@ -49,9 +53,10 @@ struct AiDriver {
 
   Plan plan{Plan::kCruise};
   RouteField route;
-  // The cell the car is in, and the side it came in by.
+  // The cell the car is in, the side it came in by and the side its lane leaves by.
   Cell cell;
   Side entry{Side::kSouth};
+  Side exit{Side::kNorth};
   // The lanes through this cell and the next one on the route, so the point the driver chases
   // carries over from one to the other.
   std::array<Lane, 2> lanes{};
@@ -59,10 +64,18 @@ struct AiDriver {
   float plan_seconds{};  // in the current plan
 };
 
+// Sets `driver`'s cell and lanes for a car at `position`: through the cell from the open side
+// nearest to the car toward the route's goal, and through the cell after. In the goal cell the lane
+// is the station's driveway with `use_driveway`, else the way straight on. Off the road map the
+// driver keeps the lanes it has.
+void PlanLanes(AiDriver& driver, const Road& road, WorldPoint position, bool use_driveway);
+// Sets the second lane again, after the route changed.
+void PlanNextLane(AiDriver& driver, const Road& road, bool use_driveway);
+
 // The controls that keep `vehicle` on `driver`'s lanes: steer toward a point ahead, and hold a
-// speed set by the cruise speed, the curve ahead and the plan (FollowCellPath 0:5c56 and
-// SteerToward 0:5e92, reworked).
-[[nodiscard]] Controls FollowLane(const AiDriver& driver, const Vehicle& vehicle);
+// speed set by the cruise speed, the turns ahead and the plan (FollowCellPath 0:5c56 and
+// SteerToward 0:5e92, reworked). Pulling in, the car stops halfway along its lane, at the pumps.
+[[nodiscard]] Controls FollowLane(const AiDriver& driver, const Vehicle& vehicle, const VehicleTuning& tuning);
 
 // The decisions a mission can swap: the criminal's choice of station and its reactions to the
 // player, where traffic appears and where it heads. Each kind is a concept, and a mission runs with
@@ -136,7 +149,8 @@ concept TrafficPolicy = requires(const T& policy, const PolicyContext& context, 
 };
 
 // The original (UpdateTrafficCar, 0:540e): in an open neighbor of the player's cell, usually ahead,
-// heading for the cell mirrored past the player.
+// heading for the cell mirrored past the player. From there the original turns the car round for
+// the cell mirrored past the player again; here it drives on to a station picked at random.
 struct AheadOfPlayer {
   [[nodiscard]] std::optional<TrafficSpawn> Spawn(const PolicyContext& context, Random& random) const;
   [[nodiscard]] Cell ChooseGoal(const PolicyContext& context, const Vehicle& car, Random& random) const;

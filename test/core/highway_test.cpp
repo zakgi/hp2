@@ -84,6 +84,88 @@ TEST_F(HighwayTest, TheMapStopsTheCarInPlace) {
   EXPECT_GT(GetLength(GetPlayerPosition() - start), 0.0F);
 }
 
+TEST_F(HighwayTest, SSwitchesTheSiren) {
+  Press(Key::kS);
+  highway_->Step(kFrameSeconds);
+  EXPECT_TRUE(highway_->GetMission().GetProgress().siren);
+  Press(Key::kS);
+  highway_->Step(kFrameSeconds);
+  EXPECT_FALSE(highway_->GetMission().GetProgress().siren);
+}
+
+TEST_F(HighwayTest, TheEnginesNoteRisesWithTheSpeed) {
+  highway_->Step(kFrameSeconds);
+  auto& engine = audio_.GetVoice(Highway::kEngineVoice);
+  ASSERT_TRUE(engine.Active());
+  // Standing: the sample 540 / 640 of its own rate.
+  const auto& sample = manager_.Engine().Sound(EngineSound::kEngine);
+  const auto own_step = static_cast<float>(sample.rate_hz) / static_cast<float>(AudioEngine::kSampleRate);
+  EXPECT_NEAR(engine.Step(), own_step * 540.0F / 640.0F, 1e-4F);
+  Record(Key::kUp, KeyAction::kPress);
+  RunOneSecond();
+  EXPECT_GT(engine.Step(), own_step * 540.0F / 640.0F);
+  // Paused, it is silent; it starts again with the game.
+  Press(Key::kP);
+  highway_->Step(kFrameSeconds);
+  EXPECT_FALSE(engine.Active());
+  Press(Key::kP);
+  highway_->Step(kFrameSeconds);
+  EXPECT_TRUE(engine.Active());
+  highway_->OnExit();
+  EXPECT_FALSE(engine.Active());
+}
+
+TEST_F(HighwayTest, TheSirenWailsWhileItIsOn) {
+  auto& siren = audio_.GetVoice(Highway::kSirenVoice);
+  highway_->Step(kFrameSeconds);
+  EXPECT_FALSE(siren.Active());
+  Press(Key::kS);
+  highway_->Step(kFrameSeconds);
+  EXPECT_TRUE(siren.Active());
+  // It loops: still sounding long after the sample's length.
+  for (auto second = 0; second < 5; ++second) {
+    RunOneSecond();
+    audio_.Step(1'000'000);
+  }
+  EXPECT_TRUE(siren.Active());
+  Press(Key::kS);
+  highway_->Step(kFrameSeconds);
+  EXPECT_FALSE(siren.Active());
+}
+
+TEST_F(HighwayTest, TheGunSoundsWhenItFires) {
+  auto& effect = audio_.GetVoice(Highway::kEffectVoice);
+  Record(Key::kSpace, KeyAction::kPress);
+  RunOneSecond();
+  EXPECT_FALSE(effect.Active());
+  Press(Key::kT);
+  highway_->Step(kFrameSeconds);
+  highway_->Step(kFrameSeconds);
+  highway_->Step(kFrameSeconds);
+  EXPECT_TRUE(effect.Active());
+}
+
+TEST_F(HighwayTest, ComingBackFromTheStationGoesOnWithTheMission) {
+  RunOneSecond();
+  const auto tick = highway_->GetMission().GetTick();
+  game_.fuel = 0.25F;
+  game_.tires = 1;
+  highway_->OnEnter();
+  EXPECT_EQ(highway_->GetMission().GetTick(), tick);
+  EXPECT_FLOAT_EQ(highway_->GetMission().GetCondition().fuel, 0.25F);
+  EXPECT_EQ(highway_->GetMission().GetCondition().tires, 1);
+}
+
+TEST_F(HighwayTest, TheBountyCountsOnFromTheScore) {
+  // A second mission, entered with a score from the first.
+  Press(Key::kEscape);
+  EXPECT_EQ(highway_->Step(kFrameSeconds), ComponentType::kMissionEnd);
+  game_.score = 700;
+  game_.mission = 2;
+  highway_->OnEnter();
+  EXPECT_EQ(highway_->GetMission().GetProgress().bounty, 5700);
+}
+
 TEST_F(HighwayTest, EscapeAbandonsTheMission) {
   Press(Key::kEscape);
   EXPECT_EQ(highway_->Step(kFrameSeconds), ComponentType::kMissionEnd);

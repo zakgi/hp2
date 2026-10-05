@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <numbers>
+#include <utility>
 
 #include "core/road_map.hpp"
 
@@ -85,12 +86,37 @@ inline constexpr float kFullTurn = 2.0F * std::numbers::pi_v<float>;
 // The four sides of a cell as bits, so the sides a cell type opens onto form a mask (0:5eea).
 enum class Side : std::uint8_t { kEast = 1, kWest = 2, kNorth = 4, kSouth = 8 };
 using SideMask = std::uint8_t;
+inline constexpr auto kSides = std::to_array<Side>({Side::kEast, Side::kWest, Side::kNorth, Side::kSouth});
+
+[[nodiscard]] constexpr bool HasSide(SideMask mask, Side side) {
+  return (mask & std::to_underlying(side)) != 0;
+}
 
 // The sides each road cell type opens onto (0:5eea). The original gives type 0 (no road) all four;
 // here it has none.
 inline constexpr auto kCellExits =
     std::to_array<SideMask>({0x0, 0xc, 0x3, 0xa, 0x9, 0x5, 0x6, 0x7, 0xb, 0xd, 0xf, 0xc, 0x3});
 static_assert(kCellExits.size() == kRoadCellTypeCount);
+
+// The unit vector from a cell's middle toward `side`.
+[[nodiscard]] constexpr WorldPoint GetOutward(Side side) {
+  auto result = WorldPoint{};
+  switch (side) {
+    case Side::kEast:
+      result.x = 1.0F;
+      break;
+    case Side::kWest:
+      result.x = -1.0F;
+      break;
+    case Side::kNorth:
+      result.y = 1.0F;
+      break;
+    case Side::kSouth:
+      result.y = -1.0F;
+      break;
+  }
+  return result;
+}
 
 [[nodiscard]] constexpr Side GetOpposite(Side side) {
   auto result = Side::kWest;

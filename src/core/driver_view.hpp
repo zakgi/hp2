@@ -22,6 +22,9 @@ class DriverView {
   // The wheel and the hands shake at the original's pace, a pixel up or down every frame of about
   // 20 a second (provisional, as the time scale: docs/highway.md, "Time").
   static constexpr auto kShakeTicks = std::uint32_t{3};
+  // The ticks the left hand takes between the wheel and the gun: three of the original's frames
+  // (aimHandAngle, 20 half degrees a frame over 60).
+  static constexpr auto kAimTicks = 9.0F;
 
   DriverView(const EngineAssets& assets, Screen& screen, const Road& road)
       : assets_(assets), screen_(screen), road_(road), projection_(kDriverView, road) {}
@@ -32,6 +35,8 @@ class DriverView {
  private:
   // Places the sets of the driving screen's colors in the two viewports (core/view_palette.hpp).
   void InstallPalette();
+  // Places the paint of the criminal's car and of the traffic's (core/view_palette.hpp).
+  void InstallCarColors(const Mission& mission);
 
   const EngineAssets& assets_;
   Screen& screen_;
@@ -43,6 +48,9 @@ class DriverView {
   // one period of the edge lines' dashes.
   WorldPoint last_position_;
   float travel_{};
+  // How far the left hand has gone for the gun, 0 to 1, and the tick of the last draw.
+  float aim_{};
+  std::uint32_t last_tick_{};
 };
 
 }  // namespace hp2

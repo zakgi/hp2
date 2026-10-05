@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <ranges>
 #include <span>
 #include <string_view>
 #include <utility>
@@ -61,7 +62,7 @@ void Screen::Clear(std::uint8_t index) {
 }
 
 template <typename Combine>
-void Screen::BlitWith(const ImageView& image, Point origin, Combine combine) {
+void Screen::BlitWith(const ImageView& image, Point origin, bool mirrored, Combine combine) {
   // Clip in 32-bit arithmetic: origin plus image size may exceed int16.
   const auto left = std::max<std::int32_t>(origin.x, 0);
   const auto top = std::max<std::int32_t>(origin.y, 0);
@@ -69,24 +70,36 @@ void Screen::BlitWith(const ImageView& image, Point origin, Combine combine) {
   const auto bottom = std::min<std::int32_t>(origin.y + std::int32_t{image.height}, Rows(selected_));
   const auto complete = image.pixels.size() >= std::size_t{image.width} * image.height;
   if (complete and right > left and bottom > top) {
+    const auto skipped = static_cast<std::size_t>(left - origin.x);
+    const auto count = static_cast<std::size_t>(right - left);
     for (auto row = top; row < bottom; ++row) {
-      const auto source =
-          image.Row(static_cast<std::uint16_t>(row - origin.y))
-              .subspan(static_cast<std::size_t>(left - origin.x), static_cast<std::size_t>(right - left));
+      const auto pixels = image.Row(static_cast<std::uint16_t>(row - origin.y));
       const auto destination = Row(static_cast<std::uint16_t>(row)).subspan(static_cast<std::size_t>(left));
-      std::ranges::transform(source, destination, destination.begin(), combine);
+      if (mirrored) {
+        // The image's last column lands on its first.
+        const auto source = pixels.subspan(image.width - skipped - count, count);
+        std::ranges::transform(std::views::reverse(source), destination, destination.begin(), combine);
+      } else {
+        std::ranges::transform(pixels.subspan(skipped, count), destination, destination.begin(), combine);
+      }
     }
   }
 }
 
 void Screen::Blit(const ImageView& image, Point origin, std::uint8_t index_offset) {
-  BlitWith(image, origin, [index_offset](std::uint8_t index, [[maybe_unused]] std::uint8_t pixel) {
+  BlitWith(image, origin, false, [index_offset](std::uint8_t index, [[maybe_unused]] std::uint8_t pixel) {
     return static_cast<std::uint8_t>(index + index_offset);
   });
 }
 
 void Screen::BlitMasked(const ImageView& image, Point origin, std::uint8_t index_offset) {
-  BlitWith(image, origin, [index_offset](std::uint8_t index, std::uint8_t pixel) {
+  BlitWith(image, origin, false, [index_offset](std::uint8_t index, std::uint8_t pixel) {
+    return index == 0 ? pixel : static_cast<std::uint8_t>(index + index_offset);
+  });
+}
+
+void Screen::BlitMaskedMirrored(const ImageView& image, Point origin, std::uint8_t index_offset) {
+  BlitWith(image, origin, true, [index_offset](std::uint8_t index, std::uint8_t pixel) {
     return index == 0 ? pixel : static_cast<std::uint8_t>(index + index_offset);
   });
 }

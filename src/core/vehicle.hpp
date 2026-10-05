@@ -29,8 +29,8 @@ enum class ImpactKind : std::uint8_t {
 struct Impact {
   ImpactKind kind{ImpactKind::kNone};
   float seconds{};     // since it started
-  float spin_rate{};   // radians per second, counter-clockwise positive
-  float strength{};    // 0..1, from the speed at the contact
+  float spin{};        // kSpin: 1 counter-clockwise, -1 clockwise; how fast follows the speed
+  float strength{};    // kBump: 0..1 for the gentlest to the roughest of the four profiles
   float held_steer{};  // kBump: the wheel's position when it started
 };
 
@@ -50,9 +50,34 @@ struct Vehicle {
   float bounce_phase{};
   Controls controls;
   Impact impact;
+  // The car's paint: 0 the criminal's red, 1 to 7 the traffic's schemes (0:e5d0).
+  std::uint8_t color_scheme{};
+  // Against another car at the last tick: a contact counts once, when it starts.
+  bool touching{};
 
   [[nodiscard]] float GetBodyHeading() const { return WrapAngle(heading + slip); }
 };
+
+// A car's hit box: half its width and half its length on the ground, units, about the car's middle
+// and turned with its body. The original tests a box that follows the view, 120 units left to 220
+// right and 200 behind to 400 and a frame's travel ahead (0:25bc).
+inline constexpr auto kHitBoxHalfWidth = 120.0F;
+inline constexpr auto kHitBoxHalfLength = 250.0F;
+
+// A point as a car's body sees it: how far ahead of its middle and how far to its right.
+struct BodyPoint {
+  float ahead{};
+  float right{};
+};
+[[nodiscard]] BodyPoint GetBodyPoint(const Vehicle& vehicle, WorldPoint point);
+
+// Starts the bump of a car over stones, rougher the faster it goes (UpdateImpacts 0:4068, channel
+// A): Drive then holds the wheel and has the body ride the bump's profile.
+void StartBump(Vehicle& vehicle);
+// Starts the spin of a car that hit something solid on its right, or on its left (channels B, C
+// and E): thrown back and turned an eighth of a turn away from it, the body still pointing as it
+// did. Drive then spins the body round as the car slides to a stop.
+void StartSpin(Vehicle& vehicle, bool on_right);
 
 // How a kind of car drives, tuned for the port; the original's per-frame values are in
 // docs/vehicles.md, section 4.
@@ -68,7 +93,8 @@ struct VehicleTuning {
 };
 
 // Moves `vehicle` by `seconds` under its controls: wheel, speed, yaw, slip, position, body lift
-// (DriveVehicle 0:3a2e and MoveVehicle 0:3e7e, reworked; docs/highway.md, "Handling").
+// (DriveVehicle 0:3a2e and MoveVehicle 0:3e7e, reworked; docs/highway.md, "Handling"). An impact
+// under way takes the throttle away, and a bump or a spin runs its course here.
 void Drive(Vehicle& vehicle, const VehicleTuning& tuning, const Road& road, float seconds);
 
 // What only the player's car tracks: the dashboard's gauges and what ends a mission.
@@ -77,7 +103,8 @@ struct CarCondition {
   float temperature{};  // 0 cold .. 1 overheated
   float damage{};       // 0 .. 1 wrecked
   std::uint8_t tires{GameState::kFullTires};
-  float off_road_seconds{};  // at speed, since the car last held the road
+  float off_road_seconds{};  // at speed; half of it is forgiven when the car is back on the road
+  bool off_road{};           // at the last tick
   std::uint8_t gear{1};      // automatic, 1..5 (0:3bec)
   float rpm{};               // as the original counts it, 0 to about 400: what the tachometer shows
 

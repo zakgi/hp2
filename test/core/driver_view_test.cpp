@@ -54,6 +54,15 @@ class DriverViewTest : public testing::Test {
     }
     return pixels;
   }
+  // The whole screen, view and dashboard.
+  [[nodiscard]] std::array<std::uint8_t, std::size_t{Screen::kHeight} * Screen::kWidth> GetScreenPixels() const {
+    auto pixels = std::array<std::uint8_t, std::size_t{Screen::kHeight} * Screen::kWidth>{};
+    for (auto row = std::size_t{0}; row < Screen::kHeight; ++row) {
+      std::ranges::copy(screen_.ScreenRow(static_cast<std::uint16_t>(row)),
+                        pixels.begin() + static_cast<std::ptrdiff_t>(row * Screen::kWidth));
+    }
+    return pixels;
+  }
   host::AssetManager manager_;
   Screen screen_;
 };
@@ -174,6 +183,89 @@ TEST_F(DriverViewTest, TheNeedlesShowTheCar) {
   EXPECT_EQ(get_pixel(233, 54), kNeedle);
 }
 
+TEST_F(DriverViewTest, TheRoofStripTellsWhereTheCarsAreAndTheScore) {
+  const auto& assets = manager_.Engine();
+  const auto& player_font = assets.Font(EngineFont::kLettre2);
+  const auto& target_font = assets.Font(EngineFont::kLettre1);
+  const auto text = RoofText{.player = Cell{.x = 11, .y = 15},
+                             .player_heading = kNorth,
+                             .target = Cell{.x = 25, .y = 5},
+                             .target_heading = kNorth + (kFullTurn / 8.0F),
+                             .bounty = 4973,
+                             .stations_robbed = 7};
+  screen_.Clear(0);
+  DrawRoofText(player_font, target_font, text, screen_);
+  // Each piece in its box of the text row, glyph by glyph: 8 pixels a character from row 4 on.
+  const auto expect = [this](const BitmapFont& font, std::string_view shown, std::int16_t column) {
+    for (auto index = std::size_t{0}; index < shown.size(); ++index) {
+      const auto glyph = font.GetGlyph(shown[index]);
+      for (auto row = std::uint16_t{0}; row < BitmapFont::kGlyphSize; ++row) {
+        for (auto pixel = std::size_t{0}; pixel < BitmapFont::kGlyphSize; ++pixel) {
+          ASSERT_EQ(GetPixel(static_cast<std::int16_t>(column + (index * BitmapFont::kGlyphSize) + pixel),
+                             static_cast<std::int16_t>(4 + row)),
+                    static_cast<std::uint8_t>(glyph.Row(row)[pixel] + kRoofOffset))
+              << shown << " character " << index;
+        }
+      }
+    }
+  };
+  expect(player_font, "11", 40);
+  expect(player_font, "15", 64);
+  expect(player_font, "N ", 88);
+  expect(player_font, "04973", 120);
+  expect(target_font, "07", 184);
+  expect(target_font, "NW", 216);
+  expect(target_font, "25", 240);
+  expect(target_font, "05", 264);
+}
+
+TEST_F(DriverViewTest, TheLeftHandGoesForTheGunAndTheSightComesUp) {
+  const auto& assets = manager_.Engine();
+  auto mission = Mission{MakeRoad()};
+  mission.Start(kMissions[4], AiPolicies{}, 7);
+  auto view = DriverView{assets, screen_, mission.GetRoad()};
+  view.Draw(mission);
+  const auto wheel = GetScreenPixels();
+  // The gun out: after the hand's three frames, the dashboard has changed and the sight stands
+  // under the horizon in the middle of the view, 10 rows down.
+  mission.Step(PlayerCommands{.toggle_aim = true});
+  for (auto tick = 0; tick < 12; ++tick) {
+    mission.Step(PlayerCommands{});
+    view.Draw(mission);
+  }
+  const auto aiming = GetScreenPixels();
+  auto dashboard_changed = false;
+  auto view_changed = false;
+  for (auto index = std::size_t{0}; index < aiming.size(); ++index) {
+    const auto row = index / Screen::kWidth;
+    const auto column = index % Screen::kWidth;
+    if (aiming[index] != wheel[index]) {
+      dashboard_changed = dashboard_changed or row >= kDashboardRow;
+      if (row < kDashboardRow) {
+        view_changed = true;
+        // Nothing moves in the view but the sight.
+        ASSERT_GT(row, 60U);
+        ASSERT_LT(row, 100U);
+        ASSERT_GT(column, 130U);
+        ASSERT_LT(column, 190U);
+      }
+    }
+  }
+  EXPECT_TRUE(dashboard_changed);
+  EXPECT_TRUE(view_changed);
+  // Put away, the hand is back on the wheel and the sight is gone. The roof's text has moved on
+  // meanwhile: the bounty drains.
+  mission.Step(PlayerCommands{.toggle_aim = true});
+  for (auto tick = 0; tick < 12; ++tick) {
+    mission.Step(PlayerCommands{});
+    view.Draw(mission);
+  }
+  const auto away = GetScreenPixels();
+  for (auto index = std::size_t{60} * Screen::kWidth; index < away.size(); ++index) {
+    ASSERT_EQ(away[index], wheel[index]) << "row " << index / Screen::kWidth << " column " << index % Screen::kWidth;
+  }
+}
+
 TEST_F(DriverViewTest, TheHandsFollowTheWheel) {
   const auto& cockpit = manager_.Engine().Bank(EngineBank::kCockpit);
   const auto draw = [this, &cockpit](float steer, bool shaken) {
@@ -257,7 +349,7 @@ TEST_F(DriverViewTest, DrawsWhatStandsBesideTheRoad) {
                 .heading = kNorth,
                 .eye_height = DriverView::kEyeHeight};
   screen_.Clear(0);
-  objects.Draw(kDriverView, input, road, assets, screen_);
+  objects.Draw(kDriverView, input, road, {}, assets, screen_);
   // The stone stands straight ahead, 100 * 256 / 800 = 32 rows under the horizon.
   auto drawn = 0;
   for (auto row = std::int16_t{92}; row <= 104; ++row) {
@@ -280,7 +372,7 @@ TEST_F(DriverViewTest, AStationSignShowsItsBoardFromTheRoad) {
                                .heading = kNorth,
                                .eye_height = DriverView::kEyeHeight};
   screen_.Clear(0);
-  objects.Draw(kDriverView, input, road, assets, screen_);
+  objects.Draw(kDriverView, input, road, {}, assets, screen_);
   // The board and the arrow are white and red (colors 1 and 11) well above the horizon.
   auto red = 0;
   for (auto row = std::int16_t{40}; row < 66; ++row) {
@@ -289,6 +381,98 @@ TEST_F(DriverViewTest, AStationSignShowsItsBoardFromTheRoad) {
     }
   }
   EXPECT_GT(red, 0);
+}
+
+TEST_F(DriverViewTest, DrawsACarAheadInItsOwnColors) {
+  const auto& assets = manager_.Engine();
+  // The real road without its scenery, so the car is all there is to draw.
+  const auto road = Road{assets.road_map, assets.road_shapes, Scenery{}};
+  auto objects = RoadsideObjects{};
+  const auto eye = WorldPoint{.x = 10.5F * kCellUnits, .y = 10.5F * kCellUnits};
+  const auto input = ViewInput{.position = eye, .heading = kNorth, .eye_height = DriverView::kEyeHeight};
+  // 1000 units straight ahead and driving away: its back at the third size, the picture's hotspot
+  // 100 * 256 / 1000 = 25 rows under the horizon in the middle column.
+  const auto& back = assets.Bank(EngineBank::kCar6).sprites[2];
+  const auto left = 160 - back.origin_x;
+  const auto top = 95 - back.origin_y;
+  const auto cars = std::to_array<RoadsideObjects::Car>(
+      {{.position = eye + WorldPoint{.y = 1000.0F}, .heading = kNorth, .index_offset = kTrafficFirstOffset}});
+  screen_.Clear(0);
+  objects.Draw(kDriverView, input, road, cars, assets, screen_);
+  auto body = 0;
+  auto paint = 0;
+  for (auto row = std::int16_t{0}; row < static_cast<std::int16_t>(kViewRows); ++row) {
+    for (auto column = std::int16_t{0}; column < Screen::kWidth; ++column) {
+      if (const auto pixel = GetPixel(column, row); pixel != 0) {
+        // Nothing but the car's colors, and only where the car stands.
+        ASSERT_GT(pixel, kTrafficFirstOffset);
+        ASSERT_LT(pixel, kTrafficFirstOffset + kCarColorCount);
+        ASSERT_GE(row, top);
+        ASSERT_LT(row, top + back.height);
+        ASSERT_GE(column, left);
+        ASSERT_LT(column, left + back.width);
+        ++body;
+        paint += pixel >= kTrafficFirstOffset + kCarPaintFirst ? 1 : 0;
+      }
+    }
+  }
+  EXPECT_GT(body, 200);
+  EXPECT_GT(paint, 50);
+  // Behind the eye, or past the depth drawn, it is left out.
+  screen_.Clear(0);
+  const auto behind = std::to_array<RoadsideObjects::Car>(
+      {{.position = eye - WorldPoint{.y = 1000.0F}}, {.position = eye + WorldPoint{.y = 2.0F * kCellUnits}}});
+  objects.Draw(kDriverView, input, road, behind, assets, screen_);
+  const auto pixels = GetViewPixels();
+  EXPECT_EQ(*std::ranges::max_element(pixels), 0);
+}
+
+TEST_F(DriverViewTest, ACarsFlanksAreEachOthersMirrorImage) {
+  const auto& assets = manager_.Engine();
+  const auto road = Road{assets.road_map, assets.road_shapes, Scenery{}};
+  auto objects = RoadsideObjects{};
+  const auto eye = WorldPoint{.x = 10.5F * kCellUnits, .y = 10.5F * kCellUnits};
+  const auto input = ViewInput{.position = eye, .heading = kNorth, .eye_height = DriverView::kEyeHeight};
+  // The same car straight ahead, crossing to the right, then to the left.
+  const auto draw = [&](float heading) {
+    const auto cars =
+        std::to_array<RoadsideObjects::Car>({{.position = eye + WorldPoint{.y = 1000.0F}, .heading = heading}});
+    screen_.Clear(0);
+    objects.Draw(kDriverView, input, road, cars, assets, screen_);
+    return GetViewPixels();
+  };
+  const auto rightward = draw(0.0F);
+  const auto leftward = draw(kFullTurn / 2.0F);
+  EXPECT_GT(std::ranges::count_if(rightward, [](std::uint8_t pixel) { return pixel != 0; }), 200);
+  // Flipped about the car's place, between columns 159 and 160.
+  for (auto row = std::size_t{0}; row < kViewRows; ++row) {
+    for (auto column = std::size_t{0}; column < Screen::kWidth; ++column) {
+      ASSERT_EQ(rightward[(row * Screen::kWidth) + column],
+                leftward[(row * Screen::kWidth) + (Screen::kWidth - 1 - column)])
+          << "row " << row << " column " << column;
+    }
+  }
+  // And not its own mirror image: a flank has a front and a back.
+  EXPECT_NE(rightward, leftward);
+}
+
+TEST_F(DriverViewTest, TheCarsHaveTheirPaintInThePalette) {
+  const auto& assets = manager_.Engine();
+  auto mission = Mission{MakeRoad()};
+  mission.Start(kMissions[0], AiPolicies{}, 7);
+  // One tick brings the traffic car.
+  mission.Step(PlayerCommands{});
+  ASSERT_EQ(mission.GetTraffic().size(), 1U);
+  auto view = DriverView{assets, screen_, mission.GetRoad()};
+  view.Draw(mission);
+  const auto& palette = screen_.Palette(Viewport::kUpper);
+  // The criminal's red in the view's set; the traffic car's scheme in its copy, after the white,
+  // black and gray both share.
+  EXPECT_EQ(palette.Color(kCarPaintFirst), kCarPaints[0][0]);
+  const auto scheme = std::size_t{mission.GetTraffic().front().color_scheme};
+  EXPECT_EQ(palette.Color(static_cast<std::uint8_t>(kTrafficFirstOffset + kCarPaintFirst)), kCarPaints[scheme][0]);
+  EXPECT_EQ(palette.Color(static_cast<std::uint8_t>(kTrafficFirstOffset + 1)), palette.Color(1));
+  EXPECT_EQ(palette.Color(static_cast<std::uint8_t>(kTrafficFirstOffset + 3)), palette.Color(3));
 }
 
 }  // namespace

@@ -166,6 +166,7 @@ if(HP2_BUILD_TESTS)
   add_executable(
     hp2_tests
     test/core/action_stack_test.cpp
+    test/core/ai_test.cpp
     test/core/audio_engine_test.cpp
     test/core/component_test.cpp
     test/core/driver_view_test.cpp

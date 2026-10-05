@@ -65,6 +65,9 @@ class Screen {
   void Blit(const ImageView& image, Point origin, std::uint8_t index_offset = 0);
   // Like Blit, leaving the pixels where `image` has index 0 (a masked bob, BlitBob 1:001c).
   void BlitMasked(const ImageView& image, Point origin, std::uint8_t index_offset = 0);
+  // Like BlitMasked, with `image` flipped left to right (the original flips the bob itself,
+  // MirrorBobFrame 0:0ddc).
+  void BlitMaskedMirrored(const ImageView& image, Point origin, std::uint8_t index_offset = 0);
   // Draws `text` in `font` from `origin` on, in the selected viewport, glyphs opaque and every index
   // plus `index_offset` (DrawString, 0:0c9c); a character the font lacks is skipped but takes its place.
   void DrawText(const BitmapFont& font, std::string_view text, Point origin, std::uint8_t index_offset = 0);
@@ -91,9 +94,10 @@ class Screen {
 
  private:
   [[nodiscard]] static constexpr std::size_t Index(Viewport viewport) { return static_cast<std::size_t>(viewport); }
-  // Blit with `combine(index, pixel)` giving each covered pixel.
+  // Blit with `combine(index, pixel)` giving each covered pixel; `mirrored` flips the image left to
+  // right.
   template <typename Combine>
-  void BlitWith(const ImageView& image, Point origin, Combine combine);
+  void BlitWith(const ImageView& image, Point origin, bool mirrored, Combine combine);
 
   std::array<std::uint8_t, std::size_t{kWidth} * kHeight> pixels_{};
   std::array<ScreenPalette, 2> palettes_;

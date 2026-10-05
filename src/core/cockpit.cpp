@@ -105,10 +105,25 @@ constexpr auto kTemperatureTips = std::to_array<Point>({
 static_assert(kFuelTips.size() == kGaugeTipCount);
 static_assert(kTemperatureTips.size() == kGaugeTipCount);
 
-// The roof strip's text stands on its fifth row; the player's cell goes in the first two boxes.
+// The roof strip's text stands on its fifth row, each piece in its box (DrawHudText, 0:e1b4).
 constexpr auto kRoofTextRow = std::int16_t{4};
 constexpr auto kPlayerColumnText = std::int16_t{40};
 constexpr auto kPlayerRowText = std::int16_t{64};
+constexpr auto kPlayerCompassText = std::int16_t{88};
+constexpr auto kBountyText = std::int16_t{120};
+constexpr auto kStationsText = std::int16_t{184};
+constexpr auto kTargetCompassText = std::int16_t{216};
+constexpr auto kTargetColumnText = std::int16_t{240};
+constexpr auto kTargetRowText = std::int16_t{264};
+constexpr auto kBountyDigits = std::size_t{5};
+// The compass points, an eighth of a turn each, counter-clockwise from east (compassGlyphs,
+// 0:e5b0).
+constexpr auto kCompassPoints = std::to_array<std::string_view>({"E ", "NE", "N ", "NW", "W ", "SW", "S ", "SE"});
+
+// The gun's bank (BALLE.IMG): the sight, a bullet hole, the flash of a shot that hit.
+constexpr auto kSightImage = std::size_t{0};
+constexpr auto kHoleImage = std::size_t{1};
+constexpr auto kHitImage = std::size_t{2};
 
 // The hood's edge: on each row, black from a column to the window's right edge.
 struct HoodRun {
@@ -157,14 +172,45 @@ void DrawGauge(Point hub, std::span<const Point, kGaugeTipCount> tips, float lev
   screen.DrawLine(hub, tips[std::min(tip, kGaugeTipCount - 1)], kNeedleColor);
 }
 
-// Draws `value`, held within 0 to 99, as two digits of the roof's text from `column` on.
-void DrawTwoDigits(const BitmapFont& font, int value, std::int16_t column, Screen& screen) {
+// Draws `text` in the roof's text row from `column` on.
+void DrawRoofString(const BitmapFont& font, std::string_view text, std::int16_t column, Screen& screen) {
+  screen.DrawText(font, text, Point{.x = column, .y = kRoofTextRow}, kRoofOffset);
+}
+
+// Draws `value`, held to what `count` digits can show, as that many digits of the roof's text from
+// `column` on.
+void DrawDigits(const BitmapFont& font, int value, std::size_t count, std::int16_t column, Screen& screen) {
   constexpr auto kTen = 10;
-  const auto shown = std::clamp(value, 0, (kTen * kTen) - 1);
-  const auto digits =
-      std::array<char, 2>{static_cast<char>('0' + (shown / kTen)), static_cast<char>('0' + (shown % kTen))};
-  screen.DrawText(font, std::string_view{digits.data(), digits.size()}, Point{.x = column, .y = kRoofTextRow},
-                  kRoofOffset);
+  auto digits = std::array<char, kBountyDigits>{};
+  auto limit = 1;
+  for (auto index = std::size_t{0}; index < count; ++index) {
+    limit *= kTen;
+  }
+  auto shown = std::clamp(value, 0, limit - 1);
+  for (auto index = count; index > 0; --index) {
+    digits[index - 1] = static_cast<char>('0' + (shown % kTen));
+    shown /= kTen;
+  }
+  DrawRoofString(font, std::string_view{digits.data(), count}, column, screen);
+}
+
+// The compass point a car heading along `heading` shows.
+std::string_view GetCompassPoint(float heading) {
+  constexpr auto kPoint = kFullTurn / static_cast<float>(kCompassPoints.size());
+  auto turned = WrapAngle(heading) + (kPoint / 2.0F);
+  if (turned < 0.0F) {
+    turned += kFullTurn;
+  }
+  return kCompassPoints[static_cast<std::size_t>(turned / kPoint) % kCompassPoints.size()];
+}
+
+// Draws image `image` of `bank` with its hotspot at `position`; nothing when the bank lacks it.
+void DrawAtHotspot(const SpriteBank& bank, std::size_t image, Point position, Screen& screen) {
+  if (image < bank.sprites.size()) {
+    const auto& sprite = bank.sprites[image];
+    screen.BlitMasked(bank.GetImage(image), Point{.x = static_cast<std::int16_t>(position.x - sprite.origin_x),
+                                                  .y = static_cast<std::int16_t>(position.y - sprite.origin_y)});
+  }
 }
 
 }  // namespace
@@ -181,8 +227,10 @@ void DrawDashboard(const SpriteBank& cockpit, const DashboardInput& input, Scree
                screen);
     DrawNeedle(kTachometerHub, kTachometerRestAngle - (kTachometerTurn * input.rpm), screen);
     const auto turn = kHandTurnAngle * input.steer;
-    DrawHand(cockpit, kLeftHandImage, std::numbers::pi_v<float> - kHandRestAngle + turn, kHandSlide * input.steer, lift,
-             screen);
+    // The left hand goes for the gun along the wheel, to where full left lock would take it.
+    const auto left = std::lerp(input.steer, 1.0F, std::clamp(input.aim, 0.0F, 1.0F));
+    DrawHand(cockpit, kLeftHandImage, std::numbers::pi_v<float> - kHandRestAngle + (kHandTurnAngle * left),
+             kHandSlide * left, lift, screen);
     DrawHand(cockpit, kRightHandImage, kHandRestAngle + turn, -kHandSlide * input.steer, lift, screen);
   }
 }
@@ -193,9 +241,26 @@ void DrawRoofStrip(const SpriteBank& cockpit, Screen& screen) {
   }
 }
 
-void DrawRoofText(const BitmapFont& font, Cell player, Screen& screen) {
-  DrawTwoDigits(font, player.x, kPlayerColumnText, screen);
-  DrawTwoDigits(font, player.y, kPlayerRowText, screen);
+void DrawRoofText(const BitmapFont& player_font, const BitmapFont& target_font, const RoofText& text, Screen& screen) {
+  DrawDigits(player_font, text.player.x, 2, kPlayerColumnText, screen);
+  DrawDigits(player_font, text.player.y, 2, kPlayerRowText, screen);
+  DrawRoofString(player_font, GetCompassPoint(text.player_heading), kPlayerCompassText, screen);
+  DrawDigits(player_font, text.bounty, kBountyDigits, kBountyText, screen);
+  DrawDigits(target_font, text.stations_robbed, 2, kStationsText, screen);
+  DrawRoofString(target_font, GetCompassPoint(text.target_heading), kTargetCompassText, screen);
+  DrawDigits(target_font, text.target.x, 2, kTargetColumnText, screen);
+  DrawDigits(target_font, text.target.y, 2, kTargetRowText, screen);
+}
+
+void DrawSight(const SpriteBank& gun, Point position, bool hit, Screen& screen) {
+  DrawAtHotspot(gun, kSightImage, position, screen);
+  if (hit) {
+    DrawAtHotspot(gun, kHitImage, position, screen);
+  }
+}
+
+void DrawBulletHole(const SpriteBank& gun, Point position, Screen& screen) {
+  DrawAtHotspot(gun, kHoleImage, position, screen);
 }
 
 void DrawHoodEdge(Screen& screen) {

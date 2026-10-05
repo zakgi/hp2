@@ -26,6 +26,7 @@ constexpr auto kTuning = VehicleTuning{
 };
 constexpr auto kTickSeconds = 1.0F / 60.0F;
 constexpr auto kTicksPerSecond = 60;
+constexpr auto kQuarterTurn = kFullTurn / 4.0F;
 // The middle of cell (10, 10), far enough from the map's edges for a few seconds' drive.
 constexpr auto kStart = WorldPoint{.x = 10.5F * kCellUnits, .y = 10.5F * kCellUnits};
 
@@ -90,6 +91,127 @@ TEST_F(VehicleTest, GripLimitsTheTurnWhenFast) {
   auto car = Vehicle{.position = kStart, .speed = 6000.0F, .controls = {.steer = 1.0F}};
   Run(car, road, 1);
   EXPECT_NEAR(car.heading, 0.5F / kTicksPerSecond, 1e-4F);
+}
+
+TEST_F(VehicleTest, SkidsPastTheGripAndRecovers) {
+  const auto road = MakeRoad(1);
+  auto straight = Vehicle{.position = kStart, .speed = 6000.0F};
+  auto skidding = Vehicle{.position = kStart, .speed = 6000.0F, .controls = {.steer = 1.0F}};
+  Run(straight, road, kTicksPerSecond / 2);
+  Run(skidding, road, kTicksPerSecond / 2);
+  // The body has turned further left than the way the car goes, toward the 0.3 rad at which the
+  // slide and the recovery balance, and the slide has cost speed.
+  EXPECT_GT(skidding.slip, 0.15F);
+  EXPECT_LT(skidding.slip, 0.3F);
+  EXPECT_FLOAT_EQ(skidding.GetBodyHeading(), WrapAngle(skidding.heading + skidding.slip));
+  EXPECT_LT(skidding.speed, straight.speed - 100.0F);
+  // Wheel centered, the tires bite again and the car has turned part of the way after its body.
+  const auto heading = skidding.heading;
+  skidding.controls.steer = 0.0F;
+  Run(skidding, road, 3 * kTicksPerSecond);
+  EXPECT_NEAR(skidding.slip, 0.0F, 0.01F);
+  EXPECT_GT(skidding.heading, heading + 0.05F);
+}
+
+TEST_F(VehicleTest, HoldsItsLineWithinTheGrip) {
+  const auto road = MakeRoad(1);
+  auto car = Vehicle{.position = kStart, .speed = 700.0F, .controls = {.steer = 1.0F}};
+  Run(car, road, kTicksPerSecond / 2);
+  EXPECT_FLOAT_EQ(car.slip, 0.0F);
+}
+
+TEST_F(VehicleTest, TheBodyBouncesWhileMovingHarderOffTheRoad) {
+  const auto paved = MakeRoad(1);
+  auto car = Vehicle{.position = kStart};
+  Run(car, paved, kTicksPerSecond);
+  EXPECT_FLOAT_EQ(car.body_lift, 0.0F);
+  auto highest = 0.0F;
+  car.speed = 4000.0F;
+  for (auto tick = 0; tick < kTicksPerSecond; ++tick) {
+    Drive(car, kTuning, paved, kTickSeconds);
+    highest = std::max(highest, std::abs(car.body_lift));
+  }
+  EXPECT_GT(highest, 5.0F);
+  EXPECT_LE(highest, 6.0F);
+  const auto desert = MakeRoad(0);
+  car.speed = 4000.0F;
+  for (auto tick = 0; tick < kTicksPerSecond; ++tick) {
+    Drive(car, kTuning, desert, kTickSeconds);
+    highest = std::max(highest, std::abs(car.body_lift));
+  }
+  EXPECT_GT(highest, 20.0F);
+  EXPECT_LE(highest, 24.0F);
+}
+
+TEST_F(VehicleTest, SeesAPointFromItsBody) {
+  // Heading north, with the body slid a quarter turn to the left: it points west.
+  const auto car = Vehicle{.position = kStart, .heading = kQuarterTurn, .slip = kQuarterTurn};
+  const auto point = GetBodyPoint(car, kStart + WorldPoint{.x = -200.0F, .y = 100.0F});
+  EXPECT_NEAR(point.ahead, 200.0F, 0.01F);
+  EXPECT_NEAR(point.right, 100.0F, 0.01F);
+}
+
+TEST_F(VehicleTest, SpinsOutAwayFromWhatItHit) {
+  const auto road = MakeRoad(1);
+  auto car = Vehicle{.position = kStart, .speed = 4000.0F, .controls = {.throttle = 1.0F}};
+  StartSpin(car, true);
+  // Thrown back 30 units and two frames' travel, its way turned an eighth of a turn to the left,
+  // the body still pointing east.
+  EXPECT_NEAR(car.position.x, kStart.x - 430.0F, 0.01F);
+  EXPECT_FLOAT_EQ(car.heading, kQuarterTurn / 2.0F);
+  EXPECT_NEAR(car.GetBodyHeading(), 0.0F, 1e-5F);
+  EXPECT_EQ(car.impact.kind, ImpactKind::kSpin);
+  // The body spins clockwise and shakes, and the throttle does nothing.
+  auto shaken = 0.0F;
+  for (auto tick = 0; tick < kTicksPerSecond / 5; ++tick) {
+    Drive(car, kTuning, road, kTickSeconds);
+    shaken = std::max(shaken, std::abs(car.body_lift));
+  }
+  EXPECT_LT(car.GetBodyHeading(), -0.5F);
+  EXPECT_LT(car.speed, 4000.0F);
+  EXPECT_GT(shaken, 10.0F);
+  // Until the car stands, pointing where its body does.
+  for (auto tick = 0; tick < 3 * kTicksPerSecond and car.impact.kind == ImpactKind::kSpin; ++tick) {
+    Drive(car, kTuning, road, kTickSeconds);
+  }
+  EXPECT_EQ(car.impact.kind, ImpactKind::kNone);
+  EXPECT_FLOAT_EQ(car.speed, 0.0F);
+  EXPECT_FLOAT_EQ(car.slip, 0.0F);
+  EXPECT_FLOAT_EQ(car.body_lift, 0.0F);
+  // Then the throttle takes again.
+  Run(car, road, 2);
+  EXPECT_GT(car.speed, 0.0F);
+  // Hit on the left, it spins the other way.
+  auto other = Vehicle{.position = kStart, .speed = 4000.0F};
+  StartSpin(other, false);
+  EXPECT_FLOAT_EQ(other.heading, -kQuarterTurn / 2.0F);
+  Run(other, road, kTicksPerSecond / 5);
+  EXPECT_GT(other.GetBodyHeading(), 0.5F);
+}
+
+TEST_F(VehicleTest, RidesABumpWithTheWheelHeld) {
+  const auto road = MakeRoad(1);
+  auto car = Vehicle{.position = kStart, .speed = 4000.0F};
+  StartBump(car);
+  EXPECT_EQ(car.impact.kind, ImpactKind::kBump);
+  // The third of the four profiles, at 200 units a frame: up to 60 units, over half a second.
+  car.controls.steer = 1.0F;
+  auto highest = 0.0F;
+  for (auto tick = 0; tick < kTicksPerSecond / 4; ++tick) {
+    Drive(car, kTuning, road, kTickSeconds);
+    highest = std::max(highest, car.body_lift);
+  }
+  EXPECT_NEAR(highest, 60.0F, 1.0F);
+  EXPECT_FLOAT_EQ(car.heading, 0.0F);
+  EXPECT_EQ(car.impact.kind, ImpactKind::kBump);
+  Run(car, road, kTicksPerSecond / 4);
+  EXPECT_EQ(car.impact.kind, ImpactKind::kNone);
+  // It has cost a twentieth of the speed a frame, for 9 frames.
+  EXPECT_LT(car.speed, 3000.0F);
+  EXPECT_GT(car.speed, 2000.0F);
+  // The wheel is the driver's again.
+  Run(car, road, 2);
+  EXPECT_GT(car.heading, 0.0F);
 }
 
 TEST_F(VehicleTest, LosesSpeedFasterOffTheRoad) {
