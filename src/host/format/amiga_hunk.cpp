@@ -83,7 +83,8 @@ std::expected<void, HunkError> ParseSymbols(ConstDataSpan& data, LoadableHunk& h
 
 // One CODE/DATA/BSS block and its trailing blocks up to HUNK_END.
 std::expected<LoadableHunk, HunkError> ParseHunk(ConstDataSpan& data, std::uint32_t size) {
-  auto hunk = LoadableHunk{.size = size};
+  auto hunk = LoadableHunk{};
+  hunk.size = size;
   auto result = std::expected<void, HunkError>{};
   const auto type = TakeLong(data);
   const auto size_longs = type ? TakeLong(data) : std::unexpected{type.error()};

@@ -54,3 +54,6 @@ Diagnostics:
   # global settings here.
   UnusedIncludes: None
   MissingIncludes: None
+  ClangTidy:
+    # Keep Pico SDK printf logging on the embedded target.
+    Remove: [modernize-use-std-print]

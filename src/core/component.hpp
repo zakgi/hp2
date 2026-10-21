@@ -4,10 +4,13 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
-#include <tuple>
+#include <type_traits>
 #include <utility>
+#include <variant>
 
 namespace hp2 {
+
+struct EngineState;
 
 // Top-level application states, after the original's program flow (docs/game.md): title, office
 // (mission choice), the highway, station stop, mission end. kQuit ends the engine loop.
@@ -20,15 +23,16 @@ enum class ComponentType : std::uint8_t {
   kQuit,
 };
 
-// A component owns one application state. It is constructed with references to what it uses and
-// returns its own kType from Step() to stay active, or another type to hand over.
+// A component controls one scene. Shared data lives in EngineState; private controller data lives
+// only while that controller is active. Step returns its kType to stay, or another type to hand over.
 template <typename T>
-concept ComponentLike = requires(T& component, float delta_seconds) {
-  { T::kType } -> std::convertible_to<ComponentType>;
-  { component.OnEnter() } -> std::same_as<void>;
-  { component.OnExit() } -> std::same_as<void>;
-  { component.Step(delta_seconds) } -> std::same_as<ComponentType>;
-};
+concept ComponentLike =
+    std::default_initializable<T> and requires(T& component, EngineState& state, float delta_seconds) {
+      { T::kType } -> std::convertible_to<ComponentType>;
+      { component.OnEnter(state) } -> std::same_as<void>;
+      { component.OnExit(state) } -> std::same_as<void>;
+      { component.Step(state, delta_seconds) } -> std::same_as<ComponentType>;
+    };
 
 template <std::size_t Count>
 constexpr bool AllUnique(const std::array<ComponentType, Count>& types) {
@@ -41,19 +45,21 @@ constexpr bool AllUnique(const std::array<ComponentType, Count>& types) {
   return unique;
 }
 
-// Runs one component at a time and switches on the type its Step() returns. Components are moved in
-// already bound to their dependencies. A transition to a type that is not registered is refused and
-// reported by Step().
+// Constructs one controller at a time in a variant, against shared state that outlives the engine.
+// A transition to a type that is not registered is refused and reported by Step().
 template <ComponentLike... Components>
 class Engine {
  public:
+  // Dependent constexpr initializers cannot run dynamically.
+  // NOLINTBEGIN(bugprone-dynamic-static-initializers)
   static constexpr std::size_t kComponentCount = sizeof...(Components);
   static constexpr std::array<ComponentType, kComponentCount> kTypes = {Components::kType...};
+  // NOLINTEND(bugprone-dynamic-static-initializers)
   static_assert(kComponentCount > 0, "an engine needs at least one component");
   static_assert(AllUnique(kTypes), "each ComponentType may be registered once");
   static_assert(((Components::kType != ComponentType::kQuit) and ...), "kQuit is a transition, not a component");
 
-  explicit Engine(Components&&... components) : components_(std::move(components)...) {}
+  explicit Engine(EngineState& state) : state_(state) {}
 
   [[nodiscard]] static constexpr bool IsRegistered(ComponentType type) {
     bool registered = false;
@@ -67,8 +73,7 @@ class Engine {
   [[nodiscard]] bool Start(ComponentType type) {
     const bool registered = IsRegistered(type);
     if (registered) {
-      active_ = type;
-      Visit(active_, [](auto& component) { component.OnEnter(); });
+      Enter(type);
     }
     return registered;
   }
@@ -79,11 +84,11 @@ class Engine {
     bool accepted = Running();
     if (accepted) {
       const ComponentType next =
-          Visit(active_, [delta_seconds](auto& component) { return component.Step(delta_seconds); });
+          Visit([this, delta_seconds](auto& component) { return component.Step(state_, delta_seconds); });
       if (next == ComponentType::kQuit) {
-        Visit(active_, [](auto& component) { component.OnExit(); });
-        active_ = ComponentType::kQuit;
-      } else if (next != active_) {
+        Visit([this](auto& component) { component.OnExit(state_); });
+        active_.template emplace<std::monostate>();
+      } else if (next != Active()) {
         accepted = Switch(next);
       }
     }
@@ -96,37 +101,53 @@ class Engine {
   [[nodiscard]] bool Switch(ComponentType type) {
     const bool accepted = Running() and IsRegistered(type);
     if (accepted) {
-      Visit(active_, [](auto& component) { component.OnExit(); });
-      active_ = type;
-      Visit(active_, [](auto& component) { component.OnEnter(); });
+      Visit([this](auto& component) { component.OnExit(state_); });
+      Enter(type);
     }
     return accepted;
   }
 
-  [[nodiscard]] bool Running() const { return active_ != ComponentType::kQuit; }
-  [[nodiscard]] ComponentType Active() const { return active_; }
+  [[nodiscard]] bool Running() const { return not std::holds_alternative<std::monostate>(active_); }
+  [[nodiscard]] ComponentType Active() const {
+    return std::visit(
+        [](const auto& component) {
+          using Current = std::remove_cvref_t<decltype(component)>;
+          if constexpr (std::same_as<Current, std::monostate>) {
+            return ComponentType::kQuit;
+          } else {
+            return Current::kType;
+          }
+        },
+        active_);
+  }
 
  private:
+  using Variant = std::variant<std::monostate, Components...>;
+
+  // The caller has checked that type is registered. Construct directly in its final storage.
+  void Enter(ComponentType type) {
+    ((type == Components::kType ? static_cast<void>(active_.template emplace<Components>()) : void()), ...);
+    Visit([this](auto& component) { component.OnEnter(state_); });
+  }
+
   template <typename Visitor>
-  auto Visit(ComponentType type, Visitor&& visitor) {
-    return VisitComponent(type, std::forward<Visitor>(visitor), std::index_sequence_for<Components...>{});
+  auto Visit(Visitor&& visitor) {
+    using First = std::variant_alternative_t<1, Variant>;
+    using Result = std::invoke_result_t<Visitor, First&>;
+    return std::visit(
+        [&visitor](auto& component) -> Result {
+          using Current = std::remove_cvref_t<decltype(component)>;
+          if constexpr (not std::same_as<Current, std::monostate>) {
+            return std::forward<Visitor>(visitor)(component);
+          } else if constexpr (not std::is_void_v<Result>) {
+            return Result{};
+          }
+        },
+        active_);
   }
 
-  // Calls `visitor` on the component whose kType is `type`. `type` must be registered.
-  template <typename Visitor, std::size_t... Indices>
-  auto VisitComponent(ComponentType type, Visitor&& visitor, [[maybe_unused]] std::index_sequence<Indices...> indices) {
-    using Result = decltype(visitor(std::get<0>(components_)));
-    if constexpr (std::is_void_v<Result>) {
-      ((kTypes[Indices] == type ? (visitor(std::get<Indices>(components_)), void()) : void()), ...);
-    } else {
-      Result result{};
-      ((kTypes[Indices] == type ? (result = visitor(std::get<Indices>(components_)), void()) : void()), ...);
-      return result;
-    }
-  }
-
-  std::tuple<Components...> components_;
-  ComponentType active_{ComponentType::kQuit};
+  EngineState& state_;
+  Variant active_;
 };
 
 }  // namespace hp2

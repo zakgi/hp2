@@ -1,6 +1,10 @@
 #include "core/title.hpp"
 
+#include "core/engine_state.hpp"
+
 #include <gtest/gtest.h>
+
+#include <optional>
 
 #include <algorithm>
 #include <cstdint>
@@ -53,6 +57,7 @@ class TitleTest : public ::testing::Test {
       GTEST_SKIP() << "game files not present in " << test::DiskImage();
     }
     ASSERT_TRUE(manager_.Load(test::DiskImage()));
+    state_.emplace(manager_.Engine(), screen_, keys_, audio_, 42);
   }
 
   void Press(Key key) { keys_.Record({.key = key, .action = KeyAction::kPress}); }
@@ -61,53 +66,54 @@ class TitleTest : public ::testing::Test {
   Screen screen_;
   KeyEvents keys_;
   AudioEngine audio_;
+  std::optional<EngineState> state_;
 };
 
 TEST_F(TitleTest, FadesTheLogoIn) {
-  auto title = Title{manager_.Engine(), screen_, keys_, audio_};
-  title.OnEnter();
-  EXPECT_EQ(title.Step(0.0F), ComponentType::kTitle);
+  auto title = Title{};
+  title.OnEnter(*state_);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
   EXPECT_FALSE(ShowsTheTitle(screen_));
   EXPECT_TRUE(AllBlack(screen_));
   // One long tick runs the whole fade.
-  EXPECT_EQ(title.Step(kFadeSeconds), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, kFadeSeconds), ComponentType::kTitle);
   EXPECT_EQ(test::Sha256Hex(ResolveRgb(screen_)), kLogoRgb);
 }
 
 TEST_F(TitleTest, PlaysThroughToTheFinishedTitle) {
-  auto title = Title{manager_.Engine(), screen_, keys_, audio_};
-  title.OnEnter();
+  auto title = Title{};
+  title.OnEnter(*state_);
   // About 9.5 seconds of presentation; the finished title then waits for a keystroke.
   for (auto tick = 0; tick < 600; ++tick) {
-    ASSERT_EQ(title.Step(1.0F / 30.0F), ComponentType::kTitle);
+    ASSERT_EQ(title.Step(*state_, 1.0F / 30.0F), ComponentType::kTitle);
   }
   EXPECT_TRUE(ShowsTheTitle(screen_));
   EXPECT_EQ(test::Sha256Hex(ResolveRgb(screen_)), kFinishedRgb);
 }
 
 TEST_F(TitleTest, SkipsToTheFinishedTitleThenFadesOutToTheOffice) {
-  auto title = Title{manager_.Engine(), screen_, keys_, audio_};
-  title.OnEnter();
-  EXPECT_EQ(title.Step(0.5F), ComponentType::kTitle);
+  auto title = Title{};
+  title.OnEnter(*state_);
+  EXPECT_EQ(title.Step(*state_, 0.5F), ComponentType::kTitle);
   keys_.Record({.key = Key::kSpace, .action = KeyAction::kRelease});
-  EXPECT_EQ(title.Step(0.0F), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
   EXPECT_FALSE(ShowsTheTitle(screen_));  // a release alone is not a keystroke to act on
   Press(Key::kEnter);
-  EXPECT_EQ(title.Step(0.0F), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
   EXPECT_EQ(test::Sha256Hex(ResolveRgb(screen_)), kFinishedRgb);
 
   Press(Key::kSpace);
-  EXPECT_EQ(title.Step(kFadeSeconds), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, kFadeSeconds), ComponentType::kTitle);
   EXPECT_TRUE(AllBlack(screen_));
-  EXPECT_EQ(title.Step(0.0F), ComponentType::kOffice);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kOffice);
 }
 
 TEST_F(TitleTest, PlaysTheMusicFromTheTitleToTheFadeOut) {
-  auto title = Title{manager_.Engine(), screen_, keys_, audio_};
-  title.OnEnter();
+  auto title = Title{};
+  title.OnEnter(*state_);
   // The logo fades in, stays and goes; the music starts with the title picture.
   for (auto tick = 0; tick < 150; ++tick) {
-    ASSERT_EQ(title.Step(1.0F / 30.0F), ComponentType::kTitle);
+    ASSERT_EQ(title.Step(*state_, 1.0F / 30.0F), ComponentType::kTitle);
     if (not ShowsTheTitle(screen_)) {
       EXPECT_FALSE(audio_.MusicPlaying());
     }
@@ -115,32 +121,32 @@ TEST_F(TitleTest, PlaysTheMusicFromTheTitleToTheFadeOut) {
   EXPECT_TRUE(ShowsTheTitle(screen_));
   EXPECT_TRUE(audio_.MusicPlaying());
   Press(Key::kSpace);  // to the finished title
-  EXPECT_EQ(title.Step(0.0F), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
   EXPECT_TRUE(audio_.MusicPlaying());
   Press(Key::kSpace);  // fade out
-  EXPECT_EQ(title.Step(0.0F), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
   EXPECT_FALSE(audio_.MusicPlaying());
 }
 
 TEST_F(TitleTest, SkippingStartsTheMusic) {
-  auto title = Title{manager_.Engine(), screen_, keys_, audio_};
-  title.OnEnter();
+  auto title = Title{};
+  title.OnEnter(*state_);
   Press(Key::kEnter);
-  EXPECT_EQ(title.Step(0.0F), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
   EXPECT_TRUE(audio_.MusicPlaying());
   Press(Key::kEscape);
-  EXPECT_EQ(title.Step(0.0F), ComponentType::kQuit);
-  title.OnExit();
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kQuit);
+  title.OnExit(*state_);
   EXPECT_FALSE(audio_.MusicPlaying());
 }
 
 TEST_F(TitleTest, QuitsOnEscapeAtAnyTime) {
-  auto title = Title{manager_.Engine(), screen_, keys_, audio_};
-  title.OnEnter();
+  auto title = Title{};
+  title.OnEnter(*state_);
   Press(Key::kA);
-  EXPECT_EQ(title.Step(0.0F), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
   Press(Key::kEscape);
-  EXPECT_EQ(title.Step(0.0F), ComponentType::kQuit);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kQuit);
 }
 
 TEST(OriginalTiming, CountsThePresentationWaits) {

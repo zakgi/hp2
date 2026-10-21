@@ -1,6 +1,10 @@
 #include "core/mission_end.hpp"
 
+#include "core/engine_state.hpp"
+
 #include <gtest/gtest.h>
+
+#include <optional>
 
 #include <algorithm>
 
@@ -20,17 +24,18 @@ class MissionEndTest : public ::testing::Test {
       GTEST_SKIP() << "game disk not present at " << test::DiskImage();
     }
     ASSERT_TRUE(manager_.Load(test::DiskImage()));
-    game_.score = 12'345;
-    game_.mission = 0;
-    game_.missions_available[0] = false;
+    state_.emplace(manager_.Engine(), screen_, keys_, audio_, 42);
+    state_->game.score = 12'345;
+    state_->game.mission = 0;
+    state_->game.missions_available[0] = false;
   }
 
   // Runs a fade to its end, then presses Space; returns the component wanted afterward.
   ComponentType FadeThenPress() {
-    EXPECT_EQ(end_.Step(1.0F), ComponentType::kMissionEnd);
-    EXPECT_EQ(end_.Step(0.0F), ComponentType::kMissionEnd);
+    EXPECT_EQ(end_.Step(*state_, 1.0F), ComponentType::kMissionEnd);
+    EXPECT_EQ(end_.Step(*state_, 0.0F), ComponentType::kMissionEnd);
     keys_.Record({.key = Key::kSpace, .action = KeyAction::kPress});
-    return end_.Step(0.0F);
+    return end_.Step(*state_, 0.0F);
   }
 
   // Whether the score palette shows, both its sets.
@@ -42,47 +47,48 @@ class MissionEndTest : public ::testing::Test {
   host::AssetManager manager_;
   Screen screen_;
   KeyEvents keys_;
-  GameState game_;
-  MissionEnd end_{manager_.Engine(), screen_, keys_, game_};
+  AudioEngine audio_;
+  std::optional<EngineState> state_;
+  MissionEnd end_;
 };
 
 TEST_F(MissionEndTest, AnArrestKeepsTheScoreAndTheCareer) {
-  game_.end_reason = EndReason::kArrest;
-  end_.OnEnter();
+  state_->mission.GetProgress().end_reason = EndReason::kArrest;
+  end_.OnEnter(*state_);
   EXPECT_EQ(FadeThenPress(), ComponentType::kMissionEnd);
-  EXPECT_FALSE(ShowsTheScorePalette());                    // the arrest picture
-  EXPECT_EQ(end_.Step(1.0F), ComponentType::kMissionEnd);  // the picture fades out
-  EXPECT_EQ(FadeThenPress(), ComponentType::kMissionEnd);  // the score screen
+  EXPECT_FALSE(ShowsTheScorePalette());                             // the arrest picture
+  EXPECT_EQ(end_.Step(*state_, 1.0F), ComponentType::kMissionEnd);  // the picture fades out
+  EXPECT_EQ(FadeThenPress(), ComponentType::kMissionEnd);           // the score screen
   EXPECT_TRUE(ShowsTheScorePalette());
-  EXPECT_EQ(end_.Step(1.0F), ComponentType::kMissionEnd);
-  EXPECT_EQ(end_.Step(0.0F), ComponentType::kOffice);
-  EXPECT_EQ(game_.score, 12'345U);
-  EXPECT_EQ(game_.MissionsLeft(), 5U);
-  EXPECT_FALSE(game_.end_reason.has_value());
+  EXPECT_EQ(end_.Step(*state_, 1.0F), ComponentType::kMissionEnd);
+  EXPECT_EQ(end_.Step(*state_, 0.0F), ComponentType::kOffice);
+  EXPECT_EQ(state_->game.score, 12'345U);
+  EXPECT_EQ(state_->game.MissionsLeft(), 5U);
+  EXPECT_FALSE(state_->mission.GetProgress().end_reason.has_value());
 }
 
 TEST_F(MissionEndTest, AFailureStartsANewCareer) {
-  game_.end_reason = EndReason::kShot;
-  end_.OnEnter();
-  EXPECT_EQ(game_.score, 0U);
+  state_->mission.GetProgress().end_reason = EndReason::kShot;
+  end_.OnEnter(*state_);
+  EXPECT_EQ(state_->game.score, 0U);
   EXPECT_EQ(FadeThenPress(), ComponentType::kMissionEnd);
   EXPECT_TRUE(ShowsTheScorePalette());  // no picture: the score screen at once
-  EXPECT_EQ(end_.Step(1.0F), ComponentType::kMissionEnd);
-  EXPECT_EQ(end_.Step(0.0F), ComponentType::kOffice);
-  EXPECT_EQ(game_.MissionsLeft(), kMissionCount);
+  EXPECT_EQ(end_.Step(*state_, 1.0F), ComponentType::kMissionEnd);
+  EXPECT_EQ(end_.Step(*state_, 0.0F), ComponentType::kOffice);
+  EXPECT_EQ(state_->game.MissionsLeft(), kMissionCount);
 }
 
 TEST_F(MissionEndTest, TheLastArrestEndsTheCareer) {
-  game_.missions_available.fill(false);
-  game_.end_reason = EndReason::kArrest;
-  end_.OnEnter();
+  state_->game.missions_available.fill(false);
+  state_->mission.GetProgress().end_reason = EndReason::kArrest;
+  end_.OnEnter(*state_);
   EXPECT_EQ(FadeThenPress(), ComponentType::kMissionEnd);
-  EXPECT_EQ(end_.Step(1.0F), ComponentType::kMissionEnd);
+  EXPECT_EQ(end_.Step(*state_, 1.0F), ComponentType::kMissionEnd);
   EXPECT_EQ(FadeThenPress(), ComponentType::kMissionEnd);
-  EXPECT_EQ(end_.Step(1.0F), ComponentType::kMissionEnd);
-  EXPECT_EQ(end_.Step(0.0F), ComponentType::kOffice);
-  EXPECT_EQ(game_.score, 0U);
-  EXPECT_EQ(game_.MissionsLeft(), kMissionCount);
+  EXPECT_EQ(end_.Step(*state_, 1.0F), ComponentType::kMissionEnd);
+  EXPECT_EQ(end_.Step(*state_, 0.0F), ComponentType::kOffice);
+  EXPECT_EQ(state_->game.score, 0U);
+  EXPECT_EQ(state_->game.MissionsLeft(), kMissionCount);
 }
 
 TEST_F(MissionEndTest, EveryEndingHasItsPictureOrText) {

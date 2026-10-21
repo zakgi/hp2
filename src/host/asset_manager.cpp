@@ -113,19 +113,19 @@ constexpr auto kRoadMapFile = std::string_view{"CARTE.BIN"};
 constexpr auto kSceneryFile = std::string_view{"COOR_OBJ.BIN"};
 // The road outlines, one per road cell type, in this build of hp.prg. roadCellShapes (0:7812)
 // points at them; the places are listed rather than followed (docs/decisions.md).
-constexpr auto kRoadShapePlaces = std::to_array<HunkOffset>({{0, 0x7846},
-                                                             {0, 0x7848},
-                                                             {0, 0x7876},
-                                                             {0, 0x78a4},
-                                                             {0, 0x79e6},
-                                                             {0, 0x7b28},
-                                                             {0, 0x7c6a},
-                                                             {0, 0x7dac},
-                                                             {0, 0x7df2},
-                                                             {0, 0x7e38},
-                                                             {0, 0x7e7e},
-                                                             {0, 0x7ee8},
-                                                             {0, 0x7f46}});
+constexpr auto kRoadShapePlaces = std::to_array<HunkOffset>({{.hunk = 0, .offset = 0x7846},
+                                                             {.hunk = 0, .offset = 0x7848},
+                                                             {.hunk = 0, .offset = 0x7876},
+                                                             {.hunk = 0, .offset = 0x78a4},
+                                                             {.hunk = 0, .offset = 0x79e6},
+                                                             {.hunk = 0, .offset = 0x7b28},
+                                                             {.hunk = 0, .offset = 0x7c6a},
+                                                             {.hunk = 0, .offset = 0x7dac},
+                                                             {.hunk = 0, .offset = 0x7df2},
+                                                             {.hunk = 0, .offset = 0x7e38},
+                                                             {.hunk = 0, .offset = 0x7e7e},
+                                                             {.hunk = 0, .offset = 0x7ee8},
+                                                             {.hunk = 0, .offset = 0x7f46}});
 static_assert(kRoadShapePlaces.size() == kRoadCellTypeCount);
 
 // The data file `name` from the disk's DISK2_2/.

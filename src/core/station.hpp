@@ -5,9 +5,6 @@
 #include <cstdint>
 
 #include "core/component.hpp"
-#include "core/engine_assets.hpp"
-#include "core/game_state.hpp"
-#include "core/key_events.hpp"
 #include "core/screen.hpp"
 
 namespace hp2 {
@@ -54,29 +51,26 @@ class Station {
       {{{.left = 168, .right = 213, .row = 46}, {.left = 168, .right = 213, .row = 56}}},
   });
 
-  Station(const EngineAssets& assets, Screen& screen, KeyEvents& keys, GameState& game)
-      : assets_(assets), screen_(screen), keys_(keys), game_(game) {}
-
-  void OnEnter();
-  void OnExit() {}
-  ComponentType Step(float delta_seconds);
+  void OnEnter(EngineState& state);
+  void OnExit(EngineState& state);
+  ComponentType Step(EngineState& state, float delta_seconds);
 
   // For tests: the item under the cursor, and whether an item still works.
-  [[nodiscard]] Item Cursor() const { return cursor_; }
-  [[nodiscard]] bool Available(Item item) const;
+  [[nodiscard]] static Item Cursor(const EngineState& state);
+  [[nodiscard]] static bool Available(const EngineState& state, Item item);
 
  private:
-  void Choose();
-  void Compose();
+  [[nodiscard]] static bool IsRobbed(const EngineState& state);
+  static void Choose(EngineState& state);
+  static void Compose(EngineState& state);
+};
 
-  const EngineAssets& assets_;
-  Screen& screen_;
-  KeyEvents& keys_;
-  GameState& game_;
-  Item cursor_{Item::kExit};
-  bool fill_up_used_{};
-  bool repair_used_{};
-  bool leaving_{};
+// Persistent scene data, owned by EngineState.
+struct StationState {
+  Station::Item cursor{Station::Item::kExit};
+  bool fill_up_used{};
+  bool repair_used{};
+  bool leaving{};
 };
 
 static_assert(ComponentLike<Station>);

@@ -307,7 +307,9 @@ bool IsInArrestReach(const Vehicle& player, const Vehicle& target) {
          std::abs(WrapAngle(target.heading - player.heading)) < kFullTurn / 4.0F;
 }
 
-void Mission::Start(const MissionType& mission, const AiPolicies& policies, std::uint64_t seed) {
+void Mission::Start(MissionPathfinding& pathfinding, const MissionType& mission, const AiPolicies& policies,
+                    std::uint64_t seed) {
+  pathfinding.Invalidate();
   random_ = Random{seed};
   policies_ = policies;
   const auto& player = kPlayerStarts[random_.Below(static_cast<std::uint32_t>(kPlayerStarts.size()))];
@@ -321,30 +323,29 @@ void Mission::Start(const MissionType& mission, const AiPolicies& policies, std:
   rammed_standing_ = false;
   shot_dead_ = false;
   tick_ = 0;
-  target_distances_.Build(road_, GetCell(target_.position));
-  player_distances_.Build(road_, GetCell(player_.position));
-  target_driver_.cruise_speed = static_cast<float>(mission.target_max_speed) * kOriginalFramesPerSecond;
-  if (not SendTarget(progress_.robbed)) {
+  target_driver_ = AiDriver{.cruise_speed = static_cast<float>(mission.target_max_speed) * kOriginalFramesPerSecond};
+  if (not SendTarget(pathfinding, progress_.robbed)) {
     // No station to go to: the criminal stays where it is.
     target_driver_.plan = AiDriver::Plan::kStopped;
   }
-  PlanLanes(target_driver_, road_, target_.position, true);
+  pathfinding.target_route.Update(road_, target_driver_.goal);
+  PlanLanes(target_driver_, pathfinding.target_route, road_, target_.position, true);
 }
 
-MissionEvents Mission::Step(const PlayerCommands& commands) {
+MissionEvents Mission::Step(MissionPathfinding& pathfinding, const PlayerCommands& commands) {
   auto events = MissionEvents{};
   progress_.flash_seconds = std::max(progress_.flash_seconds - kTickSeconds, 0.0F);
   StepPlayer(commands, events);
-  StepTarget(events);
-  StepTraffic();
+  StepTarget(pathfinding, events);
+  StepTraffic(pathfinding);
   ResolveContacts(events);
-  ResolveShots(commands, events);
+  ResolveShots(pathfinding, commands, events);
   ApplyRules(events);
   ++tick_;
   return events;
 }
 
-void Mission::LeaveStation(float fuel, std::uint8_t tires) {
+void Mission::LeaveStation() {
   const auto cell = GetCell(player_.position);
   if (road_.GetStationIndex(cell)) {
     const auto stopped = player_.position - GetCellOrigin(cell);
@@ -355,8 +356,6 @@ void Mission::LeaveStation(float fuel, std::uint8_t tires) {
     player_ = PlaceVehicle(cell, exit.east, exit.north, exit.heading);
   }
   // The stop cools the engine as well (0:331e).
-  condition_.fuel = fuel;
-  condition_.tires = tires;
   condition_.temperature = 0.0F;
   condition_.off_road_seconds = 0.0F;
   condition_.off_road = false;
@@ -498,7 +497,7 @@ void Mission::HitCars(Vehicle& first, Vehicle& second, bool first_is_player, boo
   }
 }
 
-void Mission::ResolveShots(const PlayerCommands& commands, MissionEvents& events) {
+void Mission::ResolveShots(MissionPathfinding& pathfinding, const PlayerCommands& commands, MissionEvents& events) {
   const auto over = progress_.end_reason.has_value();
   if (progress_.aiming) {
     const auto shot_tick = tick_ % kShotTicks == 0;
@@ -515,7 +514,7 @@ void Mission::ResolveShots(const PlayerCommands& commands, MissionEvents& events
     progress_.shot_hit = false;
   }
   if (tick_ % kTargetShotTicks == 0 and not over) {
-    const auto context = GetPolicyContext(progress_.robbed);
+    const auto context = GetPolicyContext(pathfinding, progress_.robbed);
     if (std::visit([&](const auto& policy) { return policy.Shoot(context, random_); }, policies_.reaction)) {
       FireTargetShot(events);
     }
@@ -634,26 +633,28 @@ void Mission::ApplyRules(MissionEvents& events) {
   }
 }
 
-void Mission::StepTarget([[maybe_unused]] MissionEvents& events) {
+void Mission::StepTarget(MissionPathfinding& pathfinding, [[maybe_unused]] MissionEvents& events) {
   auto& driver = target_driver_;
+  auto& route = pathfinding.target_route;
   driver.plan_seconds += kTickSeconds;
   if (GetCell(target_.position) != driver.cell and not progress_.end_reason) {
     // A new cell: the moment to give up the station it was heading for, if the player is closing in.
-    const auto context = GetPolicyContext(progress_.robbed);
+    const auto context = GetPolicyContext(pathfinding, progress_.robbed);
     if (driver.plan == AiDriver::Plan::kCruise and
         std::visit([&](const auto& policy) { return policy.Flee(context, random_); }, policies_.reaction)) {
       auto skipped = progress_.robbed;
-      if (const auto station = road_.GetStationIndex(driver.route.GetGoal())) {
+      if (const auto station = road_.GetStationIndex(driver.goal)) {
         skipped.set(*station);
       }
-      SendTarget(skipped);
+      SendTarget(pathfinding, skipped);
     }
-    PlanLanes(driver, road_, target_.position, true);
+    route.Update(road_, driver.goal);
+    PlanLanes(driver, route, road_, target_.position, true);
   }
   if (progress_.end_reason) {
     // The mission is over: the criminal's car stops too, where it is.
     driver.plan = AiDriver::Plan::kStopped;
-  } else if (driver.plan == AiDriver::Plan::kCruise and driver.cell == driver.route.GetGoal()) {
+  } else if (driver.plan == AiDriver::Plan::kCruise and driver.cell == driver.goal) {
     // In the station's cell, on its driveway.
     driver.plan = AiDriver::Plan::kPullIn;
     driver.plan_seconds = 0.0F;
@@ -662,7 +663,7 @@ void Mission::StepTarget([[maybe_unused]] MissionEvents& events) {
     driver.plan = AiDriver::Plan::kStopped;
     driver.plan_seconds = 0.0F;
   } else if (driver.plan == AiDriver::Plan::kStopped) {
-    RobStation();
+    RobStation(pathfinding);
   }
   auto tuning = kComputerCar;
   tuning.top_speed = driver.cruise_speed;
@@ -675,7 +676,7 @@ void Mission::StepTarget([[maybe_unused]] MissionEvents& events) {
   }
 }
 
-void Mission::StepTraffic() {
+void Mission::StepTraffic(MissionPathfinding& pathfinding) {
   const auto player_cell = GetCell(player_.position);
   // With the player within two cells of the criminal the road is kept clear for the two of them:
   // no new traffic, and a traffic car goes once the player cannot see it. The original takes it
@@ -702,13 +703,14 @@ void Mission::StepTraffic() {
       }
     } else {
       if (cell != driver.cell) {
-        if (cell == driver.route.GetGoal()) {
-          const auto context = GetPolicyContext(progress_.robbed);
-          driver.route.Build(road_,
-                             std::visit([&](const auto& policy) { return policy.ChooseGoal(context, car, random_); },
-                                        policies_.traffic));
+        if (cell == driver.goal) {
+          const auto context = GetPolicyContext(pathfinding, progress_.robbed);
+          driver.goal = std::visit([&](const auto& policy) { return policy.ChooseGoal(context, car, random_); },
+                                   policies_.traffic);
         }
-        PlanLanes(driver, road_, car.position, false);
+        auto& route = pathfinding.traffic_routes[index];
+        route.Update(road_, driver.goal);
+        PlanLanes(driver, route, road_, car.position, false);
       }
       auto tuning = kComputerCar;
       tuning.top_speed = driver.cruise_speed;
@@ -718,22 +720,24 @@ void Mission::StepTraffic() {
     }
   }
   if (traffic_count_ < kTrafficCars and not chasing) {
-    SpawnTraffic();
+    SpawnTraffic(pathfinding);
   }
 }
 
-void Mission::SpawnTraffic() {
-  const auto context = GetPolicyContext(progress_.robbed);
+void Mission::SpawnTraffic(MissionPathfinding& pathfinding) {
+  const auto context = GetPolicyContext(pathfinding, progress_.robbed);
   const auto spawn = std::visit([&](const auto& policy) { return policy.Spawn(context, random_); }, policies_.traffic);
   if (spawn) {
     auto& driver = traffic_drivers_[traffic_count_];
     driver.plan = AiDriver::Plan::kCruise;
     driver.plan_seconds = 0.0F;
-    driver.route.Build(road_, spawn->goal);
+    driver.goal = spawn->goal;
+    auto& route = pathfinding.traffic_routes[traffic_count_];
+    route.Update(road_, driver.goal);
     // Planned from just inside the side the car comes in by, which makes that side its entry.
     const auto half = kCellUnits / 2.0F;
     PlanLanes(
-        driver, road_,
+        driver, route, road_,
         GetCellOrigin(spawn->cell) + WorldPoint{.x = half, .y = half} + (GetOutward(spawn->entry) * (half - 1.0F)),
         false);
     if (const auto& lane = driver.lanes[0]; lane.GetLength() > 0.0F) {
@@ -749,38 +753,35 @@ void Mission::SpawnTraffic() {
   }
 }
 
-PolicyContext Mission::GetPolicyContext(const std::bitset<kStationCount>& robbed) {
-  if (const auto cell = GetCell(target_.position); cell != target_distances_.GetGoal()) {
-    target_distances_.Build(road_, cell);
-  }
-  if (const auto cell = GetCell(player_.position); cell != player_distances_.GetGoal()) {
-    player_distances_.Build(road_, cell);
-  }
+PolicyContext Mission::GetPolicyContext(MissionPathfinding& pathfinding, const std::bitset<kStationCount>& robbed) {
+  pathfinding.target_distances.Update(road_, GetCell(target_.position));
+  pathfinding.player_distances.Update(road_, GetCell(player_.position));
   return PolicyContext{.road = road_,
                        .arrest = progress_.mission.arrest,
                        .player = player_,
                        .target = target_,
                        .robbed = robbed,
-                       .target_distances = target_distances_,
-                       .player_distances = player_distances_};
+                       .target_distances = pathfinding.target_distances,
+                       .player_distances = pathfinding.player_distances};
 }
 
-bool Mission::SendTarget(const std::bitset<kStationCount>& skipped) {
-  const auto context = GetPolicyContext(skipped);
+bool Mission::SendTarget(MissionPathfinding& pathfinding, const std::bitset<kStationCount>& skipped) {
+  const auto context = GetPolicyContext(pathfinding, skipped);
   const auto station =
       std::visit([&](const auto& policy) { return policy.ChooseStation(context, random_); }, policies_.station);
   if (station) {
-    target_driver_.route.Build(road_, road_.GetStations()[*station]);
+    target_driver_.goal = road_.GetStations()[*station];
+    pathfinding.target_route.Update(road_, target_driver_.goal);
     target_driver_.plan = AiDriver::Plan::kCruise;
     target_driver_.plan_seconds = 0.0F;
   }
   return station.has_value();
 }
 
-void Mission::RobStation() {
+void Mission::RobStation(MissionPathfinding& pathfinding) {
   auto skipped = progress_.robbed;
   if (const auto station = road_.GetStationIndex(target_driver_.cell)) {
-    const auto context = GetPolicyContext(progress_.robbed);
+    const auto context = GetPolicyContext(pathfinding, progress_.robbed);
     if (std::visit([&](const auto& policy) { return policy.Rob(context, random_); }, policies_.reaction)) {
       progress_.robbed.set(*station);
     }
@@ -788,8 +789,8 @@ void Mission::RobStation() {
     skipped.set(*station);
   }
   // On to another station, along the rest of the driveway; with none left the criminal stays.
-  if (SendTarget(skipped)) {
-    PlanNextLane(target_driver_, road_, true);
+  if (SendTarget(pathfinding, skipped)) {
+    PlanNextLane(target_driver_, pathfinding.target_route, road_, true);
   }
 }
 

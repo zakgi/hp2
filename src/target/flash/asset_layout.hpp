@@ -11,7 +11,8 @@
 #include <cstdint>
 
 #include "core/engine_assets.hpp"
-#include "target/flash/asset_image.hpp"
+// Compile the record layout assertions shared with the packer.
+#include "target/flash/asset_image.hpp"  // IWYU pragma: keep
 #include "target/flash/digest.hpp"
 
 namespace hp2::flash::asset_layout {

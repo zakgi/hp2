@@ -38,7 +38,7 @@ class AudioEngineTest : public testing::Test {
 
   static constexpr std::size_t kFlatLength = 512;
 
-  AudioEngine engine_{};
+  AudioEngine engine_;
   std::array<std::array<std::int8_t, kFlatLength>, AudioEngine::kVoiceCount> flat_{};
 };
 

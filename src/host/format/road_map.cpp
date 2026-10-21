@@ -5,6 +5,8 @@
 #include <expected>
 #include <span>
 
+#include "core/road_map.hpp"
+
 namespace hp2::host {
 
 std::expected<RoadMap, RoadMapError> DecodeRoadMap(std::span<const std::uint8_t> file) {

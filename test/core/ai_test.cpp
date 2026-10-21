@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <bitset>
 #include <cmath>
 #include <cstddef>
@@ -52,15 +53,16 @@ class AiTest : public testing::Test {
                    .heading = -kFullTurn / 4.0F};
   }
   host::AssetManager manager_;
-  // Long-lived, as in a mission: a driver holds its route field.
+  // The driver retains decisions; its route workspace can be rebuilt separately.
   AiDriver driver_;
+  RouteField route_;
   RouteField target_distances_;
   RouteField player_distances_;
 };
 
 TEST_F(AiTest, ARouteFieldCountsTheCellsToItsGoal) {
   const auto road = MakeRoad();
-  auto& route = driver_.route;
+  auto& route = route_;
   route.Build(road, kNearStation);
   EXPECT_EQ(route.GetGoal(), kNearStation);
   EXPECT_EQ(route.GetDistance(kNearStation), 0);
@@ -72,9 +74,28 @@ TEST_F(AiTest, ARouteFieldCountsTheCellsToItsGoal) {
   EXPECT_FALSE(route.ChooseExit(road, kNearStation, Side::kSouth));
 }
 
+TEST(RouteField, FirstUseAndInvalidationRebuildEvenWhenTheGoalIsUnchanged) {
+  auto cells = std::array<std::uint8_t, RoadMapView::kSize * RoadMapView::kSize>{};
+  const auto road = Road{RoadMapView{.cells = cells}, RoadShapes{}, Scenery{}};
+  auto route = RouteField{};
+  const auto goal = Cell{};
+  // The default goal already matches, but the zero-filled workspace has not been built.
+  route.Update(road, goal);
+  EXPECT_EQ(route.GetDistance(goal), RouteField::kUnreachable);
+
+  cells[0] = 1;
+  route.Invalidate();
+  route.Update(road, goal);
+  EXPECT_EQ(route.GetDistance(goal), 0);
+  cells[0] = 0;
+  route.Invalidate();
+  route.Update(road, goal);
+  EXPECT_EQ(route.GetDistance(goal), RouteField::kUnreachable);
+}
+
 TEST_F(AiTest, EveryRoadLeadsToTheGoal) {
   const auto road = MakeRoad();
-  auto& route = driver_.route;
+  auto& route = route_;
   route.Build(road, kFarStation);
   for (auto row = std::int16_t{0}; row < 40; ++row) {
     for (auto column = std::int16_t{0}; column < 40; ++column) {
@@ -102,9 +123,9 @@ TEST_F(AiTest, EveryRoadLeadsToTheGoal) {
 TEST_F(AiTest, ADriverKeepsToItsLaneAllTheWayToItsGoal) {
   const auto road = MakeRoad();
   driver_.cruise_speed = kTuning.top_speed;
-  driver_.route.Build(road, kFarStation);
+  route_.Build(road, kFarStation);
   auto car = PlaceCar(kCrossroads);
-  PlanLanes(driver_, road, car.position, true);
+  PlanLanes(driver_, route_, road, car.position, true);
   auto top_speed = 0.0F;
   auto widest = 0.0F;
   auto ticks = 0;
@@ -112,7 +133,7 @@ TEST_F(AiTest, ADriverKeepsToItsLaneAllTheWayToItsGoal) {
     car.controls = FollowLane(driver_, car, kTuning);
     Drive(car, kTuning, road, kTickSeconds);
     if (GetCell(car.position) != driver_.cell) {
-      PlanLanes(driver_, road, car.position, true);
+      PlanLanes(driver_, route_, road, car.position, true);
     }
     ASSERT_TRUE(road.IsOnRoad(car.position)) << "tick " << ticks << " in " << driver_.cell.x << "," << driver_.cell.y;
     top_speed = std::max(top_speed, car.speed);
@@ -128,16 +149,16 @@ TEST_F(AiTest, ADriverKeepsToItsLaneAllTheWayToItsGoal) {
 TEST_F(AiTest, ADriverPullingInStopsAtThePumps) {
   const auto road = MakeRoad();
   driver_.cruise_speed = kTuning.top_speed;
-  driver_.route.Build(road, kNearStation);
+  route_.Build(road, kNearStation);
   auto car = PlaceCar(kCrossroads);
-  PlanLanes(driver_, road, car.position, true);
+  PlanLanes(driver_, route_, road, car.position, true);
   auto ticks = 0;
   auto stopped = false;
   while (not stopped and ticks < 5 * 60 * kTicksPerSecond) {
     car.controls = FollowLane(driver_, car, kTuning);
     Drive(car, kTuning, road, kTickSeconds);
     if (GetCell(car.position) != driver_.cell) {
-      PlanLanes(driver_, road, car.position, true);
+      PlanLanes(driver_, route_, road, car.position, true);
     }
     if (driver_.cell == kNearStation) {
       driver_.plan = AiDriver::Plan::kPullIn;

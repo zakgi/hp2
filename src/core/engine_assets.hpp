@@ -110,23 +110,23 @@ inline constexpr std::size_t kEngineSoundCount = std::to_underlying(EngineSound:
 // the host asset manager, or bound to the flash image by the generated asset_layout::FlashAssets()
 // on the target; components receive it by reference and pick what they need.
 struct EngineAssets {
-  std::array<ImageView, kEnginePictureCount> pictures;
+  std::array<ImageView, kEnginePictureCount> pictures{};
   // Each palette as sets of kColorRegisterCount colors, one after the other: a list's segments in
   // order, each set the colors in effect from its segment on.
-  std::array<std::span<const Rgb>, kEnginePaletteCount> palettes;
-  std::array<SpriteBank, kEngineBankCount> banks;
-  std::array<BitmapFont, kEngineFontCount> fonts;
-  std::array<SoundSample, kEngineSoundCount> sounds;
+  std::array<std::span<const Rgb>, kEnginePaletteCount> palettes{};
+  std::array<SpriteBank, kEngineBankCount> banks{};
+  std::array<BitmapFont, kEngineFontCount> fonts{};
+  std::array<SoundSample, kEngineSoundCount> sounds{};
   // PRESENT.DIF over the title picture, with the play list at 1:2870.
-  XorAnimation title_animation;
+  XorAnimation title_animation{};
   // HIGHWAY.MUS.
-  MusicModule title_music;
+  MusicModule title_music{};
   // CARTE.BIN.
-  RoadMapView road_map;
+  RoadMapView road_map{};
   // COOR_OBJ.BIN.
-  Scenery scenery;
+  Scenery scenery{};
   // roadCellShapes in hp.prg (0:7812).
-  RoadShapes road_shapes;
+  RoadShapes road_shapes{};
 
   [[nodiscard]] constexpr const ImageView& Picture(EnginePicture picture) const {
     return pictures[std::to_underlying(picture)];

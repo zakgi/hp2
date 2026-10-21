@@ -14,6 +14,8 @@
 namespace hp2::host {
 
 // AmigaDOS load-file block types (HUNK_*).
+// Keep the file format's 32-bit hunk tag representation.
+// NOLINTNEXTLINE(performance-enum-size)
 enum class HunkType : std::uint32_t {
   kHeader = 0x3f3,
   kCode = 0x3e9,

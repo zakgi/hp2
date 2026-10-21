@@ -22,7 +22,7 @@ class MusicPlayer {
   static constexpr std::uint16_t kTicksPerRow = 6;
   static constexpr std::uint8_t kFullVolume = 64;
 
-  MusicPlayer(std::span<Voice, kChannelCount> voices, std::uint32_t sample_rate)
+  MusicPlayer(std::span<Voice, kChannelCount> voices, std::uint32_t sample_rate) noexcept
       : voices_(voices), sample_rate_(sample_rate) {}
 
   // Starts `module` from its first position; the first row plays at once.

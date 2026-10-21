@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 #include <utility>
 
 #include "core/key.hpp"
@@ -50,7 +51,7 @@ class KeyMap {
  private:
   // Declared, never defined: calling it inside the consteval constructor makes the constant
   // evaluation ill-formed, which is how a table error becomes a compile error without exceptions.
-  static void Invalid(const char* reason);
+  static void Invalid(std::string_view reason);
 
   std::array<std::int32_t, kKeyCount> forward_{};
   std::array<KeyMapping, kKeyCount> reverse_{};

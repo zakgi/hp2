@@ -31,7 +31,7 @@ class AudioEngine {
   static constexpr std::size_t kVoiceCount = MusicPlayer::kChannelCount;
   using Ring = SpscQueue<AudioFrame, kRingLog2>;
 
-  AudioEngine() : music_(voices_, kSampleRate) {}
+  AudioEngine() noexcept : music_(voices_, kSampleRate) {}
 
   void PlayMusic(const MusicModule& module) { music_.Play(module); }
   void StopMusic() { music_.Stop(); }

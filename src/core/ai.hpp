@@ -26,6 +26,9 @@ class RouteField {
 
   // Distances from every road cell to `goal`, through open sides only.
   void Build(const Road& road, Cell goal);
+  // Rebuilds only when invalidated or the goal changed. Invalidate when reusing on another road.
+  void Update(const Road& road, Cell goal);
+  void Invalidate() { built_ = false; }
 
   [[nodiscard]] Cell GetGoal() const { return goal_; }
   [[nodiscard]] std::uint16_t GetDistance(Cell cell) const;
@@ -40,6 +43,7 @@ class RouteField {
 
   std::array<std::uint16_t, RoadMapView::kSize * RoadMapView::kSize> distances_{};
   Cell goal_;
+  bool built_{};
 };
 
 // A computer driver: its goal, its way through the current cell and the next, and its pace
@@ -52,9 +56,10 @@ struct AiDriver {
   };
 
   Plan plan{Plan::kCruise};
-  RouteField route;
+  // Authoritative goal; the distance field is a separate, rebuildable workspace.
+  Cell goal{};
   // The cell the car is in, the side it came in by and the side its lane leaves by.
-  Cell cell;
+  Cell cell{};
   Side entry{Side::kSouth};
   Side exit{Side::kNorth};
   // The lanes through this cell and the next one on the route, so the point the driver chases
@@ -68,9 +73,9 @@ struct AiDriver {
 // nearest to the car toward the route's goal, and through the cell after. In the goal cell the lane
 // is the station's driveway with `use_driveway`, else the way straight on. Off the road map the
 // driver keeps the lanes it has.
-void PlanLanes(AiDriver& driver, const Road& road, WorldPoint position, bool use_driveway);
+void PlanLanes(AiDriver& driver, const RouteField& route, const Road& road, WorldPoint position, bool use_driveway);
 // Sets the second lane again, after the route changed.
-void PlanNextLane(AiDriver& driver, const Road& road, bool use_driveway);
+void PlanNextLane(AiDriver& driver, const RouteField& route, const Road& road, bool use_driveway);
 
 // The controls that keep `vehicle` on `driver`'s lanes: steer toward a point ahead, and hold a
 // speed set by the cruise speed, the turns ahead and the plan (FollowCellPath 0:5c56 and

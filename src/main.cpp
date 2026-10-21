@@ -16,7 +16,7 @@
 
 #include "core/audio_engine.hpp"
 #include "core/component.hpp"
-#include "core/game_state.hpp"
+#include "core/engine_state.hpp"
 #include "core/highway.hpp"
 #include "core/key_events.hpp"
 #include "core/mission_end.hpp"
@@ -39,7 +39,6 @@ host::AssetManager asset_manager;
 Screen screen;
 KeyEvents key_events;
 AudioEngine audio;
-GameState game;
 
 // Where the program starts and the game state it starts with: the highway, the station and the
 // endings can be opened directly, without playing up to them.
@@ -79,21 +78,19 @@ int Run(const Options& options) {
     auto audio_output = host::AudioOutput{audio};
     audio_output.play();
 
-    game.end_reason = options.ending;
-    game.station_robbed = options.station_robbed;
-    game.score = options.score;
-    if (options.start == ComponentType::kStation) {
-      // A car that needs both services.
-      game.tires = 1;
-      game.fuel = 0.5F;
-    }
     const auto& assets = asset_manager.Engine();
     auto device = std::random_device{};
     const auto seed = (std::uint64_t{device()} << 32U) | device();
-    auto engine = Engine<Title, Office, Highway, Station, MissionEnd>{
-        Title{assets, screen, key_events, audio}, Office{assets, screen, key_events, game},
-        Highway{assets, screen, key_events, audio, game, seed}, Station{assets, screen, key_events, game},
-        MissionEnd{assets, screen, key_events, game}};
+    auto state = EngineState{assets, screen, key_events, audio, seed};
+    state.mission.GetProgress().end_reason = options.ending;
+    state.mission.GetProgress().robbed.set(0, options.station_robbed);
+    state.game.score = options.score;
+    if (options.start == ComponentType::kStation) {
+      // A car that needs both services, at the map's first station.
+      state.mission.GetCondition().tires = 1;
+      state.mission.GetCondition().fuel = 0.5F;
+    }
+    auto engine = Engine<Title, Office, Highway, Station, MissionEnd>{state};
     auto running = engine.Start(options.start);
     auto clock = sf::Clock{};
     while (running and window.isOpen()) {

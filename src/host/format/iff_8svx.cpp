@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <vector>
 
 #include "host/format/endian.hpp"
 #include "host/format/iff.hpp"

@@ -76,8 +76,11 @@ class SpscQueue {
   // copyable T survives memcpy, which is what a future bulk-push variant
   // will use.
   static_assert(std::is_trivially_copyable_v<T>, "SpscQueue<T>: T must be trivially copyable");
+  // Dependent constexpr initializers cannot run dynamically.
+  // NOLINTBEGIN(bugprone-dynamic-static-initializers)
   static constexpr std::size_t kCapacity = std::size_t{1} << kCapacityLog2;
   static constexpr std::size_t kMask = kCapacity - 1;
+  // NOLINTEND(bugprone-dynamic-static-initializers)
 
  public:
   // Producer. Returns false if the queue is full; the caller decides
@@ -264,7 +267,7 @@ class SpscQueue {
   // Total readable element count (write_ - read_). Safe to call from
   // either thread; intended mostly for diagnostics and tests. The value
   // is a momentary snapshot.
-  std::size_t Count() const {
+  [[nodiscard]] std::size_t Count() const {
     const auto read = read_.load(std::memory_order_relaxed);
     const auto write = write_.load(std::memory_order_acquire);
     return static_cast<std::size_t>(write - read);

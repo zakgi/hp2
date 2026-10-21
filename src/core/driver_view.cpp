@@ -52,6 +52,13 @@ void DriverView::InstallCarColors(const Mission& mission) {
   }
 }
 
+void DriverView::Reset(const Mission& mission) {
+  last_position_ = mission.GetPlayer().position;
+  travel_ = 0.0F;
+  aim_ = 0.0F;
+  last_tick_ = mission.GetTick();
+}
+
 void DriverView::Draw(const Mission& mission) {
   // The criminal's car, then the traffic's, which take turns at the copies of the car colors when
   // there are more of them than copies.

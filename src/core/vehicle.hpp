@@ -36,7 +36,7 @@ struct Impact {
 
 // One car: the player's, the criminal's or traffic. Speeds are units per second, angles radians.
 struct Vehicle {
-  WorldPoint position;
+  WorldPoint position{};
   // Where the car travels.
   float heading{};
   // The body's angle to the travel direction while sliding or spinning: the car is drawn, and the
@@ -48,8 +48,8 @@ struct Vehicle {
   float body_lift{};
   // Where the body is in its road bounce, 0..1 of a cycle (the original's 40-step wave, 0:4930).
   float bounce_phase{};
-  Controls controls;
-  Impact impact;
+  Controls controls{};
+  Impact impact{};
   // The car's paint: 0 the criminal's red, 1 to 7 the traffic's schemes (0:e5d0).
   std::uint8_t color_scheme{};
   // Against another car at the last tick: a contact counts once, when it starts.

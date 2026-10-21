@@ -152,7 +152,8 @@ void Screen::DrawHorizontalLine(std::int16_t left, std::int16_t right, std::int1
   const auto last = std::min<std::int32_t>(right, kWidth - 1);
   if (row >= 0 and row < Rows(selected_) and last >= first) {
     const auto pixels = Row(static_cast<std::uint16_t>(row))
-                            .subspan(static_cast<std::size_t>(first), static_cast<std::size_t>(last - first + 1));
+                            .subspan(static_cast<std::size_t>(first),
+                                     static_cast<std::size_t>(last) - static_cast<std::size_t>(first) + 1);
     std::ranges::fill(pixels, index);
   }
 }

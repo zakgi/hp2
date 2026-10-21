@@ -1,5 +1,7 @@
 #include "core/highway.hpp"
 
+#include "core/engine_state.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -27,201 +29,197 @@ constexpr auto kSkidSlip = 0.15F;
 
 }  // namespace
 
-Highway::Highway(const EngineAssets& assets, Screen& screen, KeyEvents& keys, AudioEngine& audio, GameState& game,
-                 std::uint64_t seed)
-    : assets_(assets),
-      screen_(screen),
-      keys_(keys),
-      audio_(audio),
-      game_(game),
-      mission_(Road{assets.road_map, assets.road_shapes, assets.scenery}),
-      driver_view_(assets, screen, mission_.GetRoad()),
-      map_view_(screen, mission_.GetRoad()),
-      seeds_(seed) {}
-
-void Highway::OnEnter() {
-  if (mission_under_way_) {
+// Lifecycle hooks use the instance-based ComponentLike protocol.
+// NOLINTBEGIN(readability-convert-member-functions-to-static)
+void Highway::OnEnter(EngineState& state) {
+  auto& highway = state.scene.emplace<HighwayState>();
+  if (state.mission_under_way) {
     // Back from the station.
-    mission_.LeaveStation(game_.fuel, game_.tires);
+    state.mission.LeaveStation();
   } else {
     // The poster's bounty comes on top of the score: one counter, as the original's (1:236a).
-    auto mission = kMissions[game_.mission.value_or(0)];
-    mission.bounty += game_.score;
-    const auto seed = (std::uint64_t{seeds_.Next()} << 32U) | seeds_.Next();
-    mission_.Start(mission, policies_, seed);
-    mission_under_way_ = true;
+    auto mission = kMissions[state.game.mission.value_or(0)];
+    mission.bounty += state.game.score;
+    const auto seed = (std::uint64_t{state.seeds.Next()} << 32U) | state.seeds.Next();
+    state.mission.Start(highway.pathfinding, mission, state.policies, seed);
+    state.driver_view.Reset(state.mission);
+    state.mission_under_way = true;
   }
-  phase_ = Phase::kDriving;
-  held_ = {};
-  key_steer_ = 0.0F;
-  siren_pressed_ = false;
-  aim_pressed_ = false;
-  pending_seconds_ = 0.0F;
-  keys_.Clear();
-  Draw();
+  state.keys.Clear();
+  Draw(state);
 }
 
-ComponentType Highway::Step(float delta_seconds) {
+void Highway::OnExit(EngineState& state) {
+  StopSounds(state);
+  state.scene.emplace<std::monostate>();
+}
+
+ComponentType Highway::Step(EngineState& state, float delta_seconds) {
+  auto& highway = std::get<HighwayState>(state.scene);
   auto next = kType;
-  const auto system_keys = ReadKeys();
+  const auto system_keys = ReadKeys(state);
   if (system_keys.abandon) {
     // As the original's Escape (0:bcb2): the bounty drops to 0, which ends the mission.
-    game_.end_reason = EndReason::kBountyGone;
-    mission_under_way_ = false;
+    state.mission.GetProgress().end_reason = EndReason::kBountyGone;
+    state.mission.GetProgress().bounty = 0;
+    state.mission_under_way = false;
     next = ComponentType::kMissionEnd;
   } else {
-    ChangePhase(system_keys);
-    if (phase_ == Phase::kDriving or phase_ == Phase::kCoasting) {
-      next = RunTicks(delta_seconds);
-      UpdateSounds();
+    ChangePhase(state, system_keys);
+    if (highway.phase == HighwayPhase::kDriving or highway.phase == HighwayPhase::kCoasting) {
+      next = RunTicks(state, delta_seconds);
+      UpdateSounds(state);
     } else {
       // Silence while the game is paused, on the map or behind the spin-out picture.
-      pending_seconds_ = 0.0F;
-      StopSounds();
+      highway.pending_seconds = 0.0F;
+      StopSounds(state);
     }
     if (next == kType) {
-      Draw();
+      Draw(state);
     }
   }
   return next;
 }
 
-void Highway::ChangePhase(const SystemKeys& system_keys) {
-  if (phase_ == Phase::kSpinOut) {
+// NOLINTEND(readability-convert-member-functions-to-static)
+
+void Highway::ChangePhase(EngineState& state, const SystemKeys& system_keys) {
+  auto& highway = std::get<HighwayState>(state.scene);
+  if (highway.phase == HighwayPhase::kSpinOut) {
     // The picture stays until a key.
-    phase_ = system_keys.any ? Phase::kDriving : Phase::kSpinOut;
-  } else if (phase_ != Phase::kCoasting) {
+    highway.phase = system_keys.any ? HighwayPhase::kDriving : HighwayPhase::kSpinOut;
+  } else if (highway.phase != HighwayPhase::kCoasting) {
     if (system_keys.map) {
-      phase_ = phase_ == Phase::kMap ? Phase::kDriving : Phase::kMap;
-    } else if (system_keys.pause and phase_ != Phase::kMap) {
-      phase_ = phase_ == Phase::kPaused ? Phase::kDriving : Phase::kPaused;
+      highway.phase = highway.phase == HighwayPhase::kMap ? HighwayPhase::kDriving : HighwayPhase::kMap;
+    } else if (system_keys.pause and highway.phase != HighwayPhase::kMap) {
+      highway.phase = highway.phase == HighwayPhase::kPaused ? HighwayPhase::kDriving : HighwayPhase::kPaused;
     }
   }
 }
 
-ComponentType Highway::RunTicks(float delta_seconds) {
+ComponentType Highway::RunTicks(EngineState& state, float delta_seconds) {
+  auto& highway = std::get<HighwayState>(state.scene);
   auto next = kType;
-  pending_seconds_ += delta_seconds;
+  highway.pending_seconds += delta_seconds;
   auto ticks = 0;
-  while (pending_seconds_ >= Mission::kTickSeconds and ticks < kMaxTicksPerFrame and next == kType and
-         (phase_ == Phase::kDriving or phase_ == Phase::kCoasting)) {
-    next = Handle(mission_.Step(TakeCommands()));
-    pending_seconds_ -= Mission::kTickSeconds;
+  while (highway.pending_seconds >= Mission::kTickSeconds and ticks < kMaxTicksPerFrame and next == kType and
+         (highway.phase == HighwayPhase::kDriving or highway.phase == HighwayPhase::kCoasting)) {
+    next = Handle(state, state.mission.Step(highway.pathfinding, TakeCommands(state)));
+    highway.pending_seconds -= Mission::kTickSeconds;
     ++ticks;
   }
   // After a stall the rest is dropped: the game slows down instead of jumping.
-  pending_seconds_ = std::min(pending_seconds_, Mission::kTickSeconds);
+  highway.pending_seconds = std::min(highway.pending_seconds, Mission::kTickSeconds);
   return next;
 }
 
-void Highway::Play(EngineSound sound, std::size_t voice, float volume) {
-  const auto& sample = assets_.Sound(sound);
-  auto& output = audio_.GetVoice(voice);
+void Highway::Play(EngineState& state, EngineSound sound, std::size_t voice, float volume) {
+  const auto& sample = state.assets.Sound(sound);
+  auto& output = state.audio.GetVoice(voice);
   output.SetVolume(volume);
   output.SetStep(static_cast<float>(sample.rate_hz) / static_cast<float>(AudioEngine::kSampleRate));
   output.Start(sample.samples, sample.loop_start, std::size_t{sample.loop_start} + sample.loop_length);
 }
 
-void Highway::UpdateSounds() {
-  const auto& player = mission_.GetPlayer();
+void Highway::UpdateSounds(EngineState& state) {
+  auto& highway = std::get<HighwayState>(state.scene);
+  const auto& player = state.mission.GetPlayer();
   const auto speed = std::abs(player.speed);
   // The engine's note rises with the speed: the sample plays at its own rate at 100 units a frame.
-  auto& engine = audio_.GetVoice(kEngineVoice);
+  auto& engine = state.audio.GetVoice(kEngineVoice);
   if (not engine.Active()) {
-    Play(EngineSound::kEngine, kEngineVoice, kFullVolume);
+    Play(state, EngineSound::kEngine, kEngineVoice, kFullVolume);
   }
   const auto period = kEngineIdlePeriod - std::min(speed / kOriginalFramesPerSecond, kEngineFastest);
-  engine.SetStep(static_cast<float>(assets_.Sound(EngineSound::kEngine).rate_hz) * kEngineSamplePeriod /
+  engine.SetStep(static_cast<float>(state.assets.Sound(EngineSound::kEngine).rate_hz) * kEngineSamplePeriod /
                  (period * static_cast<float>(AudioEngine::kSampleRate)));
   // The siren wails for as long as it is on.
-  auto& siren = audio_.GetVoice(kSirenVoice);
-  if (mission_.GetProgress().siren != siren.Active()) {
+  auto& siren = state.audio.GetVoice(kSirenVoice);
+  if (state.mission.GetProgress().siren != siren.Active()) {
     if (siren.Active()) {
       siren.Stop();
     } else {
-      Play(EngineSound::kSiren, kSirenVoice, kLoudVolume);
+      Play(state, EngineSound::kSiren, kSirenVoice, kLoudVolume);
     }
   }
   // The tires squeal while the car slides at speed, and once, quietly, as it leaves the road.
-  const auto off_road = mission_.GetCondition().off_road;
-  if (speed >= kSkidSpeed and not audio_.GetVoice(kSkidVoice).Active()) {
+  const auto off_road = state.mission.GetCondition().off_road;
+  if (speed >= kSkidSpeed and not state.audio.GetVoice(kSkidVoice).Active()) {
     if (std::abs(player.slip) >= kSkidSlip) {
-      Play(EngineSound::kSkid, kSkidVoice, kLoudVolume);
-    } else if (off_road and not was_off_road_) {
-      Play(EngineSound::kSkid, kSkidVoice, kQuietVolume);
+      Play(state, EngineSound::kSkid, kSkidVoice, kLoudVolume);
+    } else if (off_road and not highway.was_off_road) {
+      Play(state, EngineSound::kSkid, kSkidVoice, kQuietVolume);
     }
   }
-  was_off_road_ = off_road;
+  highway.was_off_road = off_road;
 }
 
-void Highway::StopSounds() {
+void Highway::StopSounds(EngineState& state) {
   for (const auto voice : {kEngineVoice, kSirenVoice, kEffectVoice, kSkidVoice}) {
-    audio_.GetVoice(voice).Stop();
+    state.audio.GetVoice(voice).Stop();
   }
 }
 
-ComponentType Highway::Handle(MissionEvents events) {
+ComponentType Highway::Handle(EngineState& state, MissionEvents events) {
+  auto& highway = std::get<HighwayState>(state.scene);
   auto next = kType;
   const auto happened = [events](MissionEvent event) {
     return events.test(std::to_underlying(event));
   };
   // A crash and a shot share a voice, and the crash comes first: a shot neither replaces it nor
   // cuts it short (the original's priorities, 5 for the crash and 3 for the shot).
-  crash_sounding_ = crash_sounding_ and audio_.GetVoice(kEffectVoice).Active();
+  highway.crash_sounding = highway.crash_sounding and state.audio.GetVoice(kEffectVoice).Active();
   if (happened(MissionEvent::kCrash)) {
-    Play(EngineSound::kCrash, kEffectVoice, kLoudVolume);
-    crash_sounding_ = true;
-  } else if ((happened(MissionEvent::kShot) or happened(MissionEvent::kWindshieldHit)) and not crash_sounding_) {
-    Play(EngineSound::kShot, kEffectVoice, kLoudVolume);
+    Play(state, EngineSound::kCrash, kEffectVoice, kLoudVolume);
+    highway.crash_sounding = true;
+  } else if ((happened(MissionEvent::kShot) or happened(MissionEvent::kWindshieldHit)) and not highway.crash_sounding) {
+    Play(state, EngineSound::kShot, kEffectVoice, kLoudVolume);
   }
   if (happened(MissionEvent::kMissionOver)) {
-    phase_ = Phase::kCoasting;
+    highway.phase = HighwayPhase::kCoasting;
   }
-  const auto station = mission_.GetStation();
+  const auto station = state.mission.GetStation();
   if (happened(MissionEvent::kStationStop) and station) {
-    game_.fuel = mission_.GetCondition().fuel;
-    game_.tires = mission_.GetCondition().tires;
-    game_.station_robbed = mission_.GetProgress().robbed.test(*station);
     next = ComponentType::kStation;
   } else if (happened(MissionEvent::kSpinOut)) {
-    phase_ = Phase::kSpinOut;
-    held_ = {};
-  } else if (phase_ == Phase::kCoasting and mission_.GetPlayer().speed == 0.0F) {
+    highway.phase = HighwayPhase::kSpinOut;
+    highway.held = {};
+  } else if (highway.phase == HighwayPhase::kCoasting and state.mission.GetPlayer().speed == 0.0F) {
     // The cars have rolled to a stop: the ending, with what is left of the bounty as the score.
-    game_.end_reason = mission_.GetProgress().end_reason;
-    game_.score = static_cast<std::uint32_t>(std::max(mission_.GetProgress().bounty, std::int32_t{0}));
-    mission_under_way_ = false;
+    state.game.score = static_cast<std::uint32_t>(std::max(state.mission.GetProgress().bounty, std::int32_t{0}));
+    state.mission_under_way = false;
     next = ComponentType::kMissionEnd;
   }
   return next;
 }
 
-Highway::SystemKeys Highway::ReadKeys() {
+Highway::SystemKeys Highway::ReadKeys(EngineState& state) {
+  auto& highway = std::get<HighwayState>(state.scene);
   auto system_keys = SystemKeys{};
-  while (const auto event = keys_.Next()) {
+  while (const auto event = state.keys.Next()) {
     const auto pressed = event->action == KeyAction::kPress;
     system_keys.any = system_keys.any or pressed;
     switch (event->key) {
       case Key::kS:
-        siren_pressed_ = siren_pressed_ or pressed;
+        highway.siren_pressed = highway.siren_pressed or pressed;
         break;
       case Key::kT:
-        aim_pressed_ = aim_pressed_ or pressed;
+        highway.aim_pressed = highway.aim_pressed or pressed;
         break;
       case Key::kLeft:
-        held_.left = pressed;
+        highway.held.left = pressed;
         break;
       case Key::kRight:
-        held_.right = pressed;
+        highway.held.right = pressed;
         break;
       case Key::kUp:
-        held_.accelerate = pressed;
+        highway.held.accelerate = pressed;
         break;
       case Key::kDown:
-        held_.brake = pressed;
+        highway.held.brake = pressed;
         break;
       case Key::kSpace:
-        held_.fire = pressed;
+        highway.held.fire = pressed;
         break;
       case Key::kP:
         system_keys.pause = system_keys.pause or pressed;
@@ -239,31 +237,34 @@ Highway::SystemKeys Highway::ReadKeys() {
   return system_keys;
 }
 
-PlayerCommands Highway::TakeCommands() {
+PlayerCommands Highway::TakeCommands(EngineState& state) {
+  auto& highway = std::get<HighwayState>(state.scene);
   // The wheel follows the held keys at kKeySteerRate, back to the middle when they are released.
-  const auto target = static_cast<float>(held_.left) - static_cast<float>(held_.right);
+  const auto target = static_cast<float>(highway.held.left) - static_cast<float>(highway.held.right);
   const auto step = kKeySteerRate * Mission::kTickSeconds;
-  key_steer_ = target > key_steer_ ? std::min(key_steer_ + step, target) : std::max(key_steer_ - step, target);
-  const auto throttle = static_cast<float>(held_.accelerate) - static_cast<float>(held_.brake);
-  auto commands = PlayerCommands{.controls = {.steer = key_steer_, .throttle = throttle},
-                                 .firing = held_.fire,
-                                 .toggle_siren = siren_pressed_,
-                                 .toggle_aim = aim_pressed_};
-  siren_pressed_ = false;
-  aim_pressed_ = false;
+  highway.key_steer = target > highway.key_steer ? std::min(highway.key_steer + step, target)
+                                                 : std::max(highway.key_steer - step, target);
+  const auto throttle = static_cast<float>(highway.held.accelerate) - static_cast<float>(highway.held.brake);
+  auto commands = PlayerCommands{.controls = {.steer = highway.key_steer, .throttle = throttle},
+                                 .firing = highway.held.fire,
+                                 .toggle_siren = highway.siren_pressed,
+                                 .toggle_aim = highway.aim_pressed};
+  highway.siren_pressed = false;
+  highway.aim_pressed = false;
   return commands;
 }
 
-void Highway::Draw() {
-  if (phase_ == Phase::kMap) {
-    map_view_.Draw(mission_.GetPlayer().position, mission_.GetTarget().position);
-  } else if (phase_ == Phase::kSpinOut) {
-    screen_.DisableSplit();
-    screen_.Palette(Viewport::kUpper).Reset();
-    screen_.Palette(Viewport::kUpper).Overlay(assets_.Palette(EnginePalette::kSpinOut), 0);
-    screen_.Blit(assets_.Picture(EnginePicture::kSpinOut), Point{});
+void Highway::Draw(EngineState& state) {
+  auto& highway = std::get<HighwayState>(state.scene);
+  if (highway.phase == HighwayPhase::kMap) {
+    state.map_view.Draw(state.mission.GetPlayer().position, state.mission.GetTarget().position);
+  } else if (highway.phase == HighwayPhase::kSpinOut) {
+    state.screen.DisableSplit();
+    state.screen.Palette(Viewport::kUpper).Reset();
+    state.screen.Palette(Viewport::kUpper).Overlay(state.assets.Palette(EnginePalette::kSpinOut), 0);
+    state.screen.Blit(state.assets.Picture(EnginePicture::kSpinOut), Point{});
   } else {
-    driver_view_.Draw(mission_);
+    state.driver_view.Draw(state.mission);
   }
 }
 

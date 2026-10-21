@@ -1,5 +1,7 @@
 #include "core/office.hpp"
 
+#include "core/engine_state.hpp"
+
 #include <gtest/gtest.h>
 
 #include <cmath>
@@ -22,8 +24,9 @@ class OfficeTest : public ::testing::Test {
       GTEST_SKIP() << "game disk not present at " << test::DiskImage();
     }
     ASSERT_TRUE(manager_.Load(test::DiskImage()));
-    office_.OnEnter();
-    EXPECT_EQ(office_.Step(Office::kLightsSeconds), ComponentType::kOffice);
+    state_.emplace(manager_.Engine(), screen_, keys_, audio_, 42);
+    office_.OnEnter(*state_);
+    EXPECT_EQ(office_.Step(*state_, Office::kLightsSeconds), ComponentType::kOffice);
   }
 
   void Press(Key key) { keys_.Record({.key = key, .action = KeyAction::kPress}); }
@@ -35,23 +38,23 @@ class OfficeTest : public ::testing::Test {
     const auto travel = [this](float distance, Key forward, Key backward) {
       const auto key = distance >= 0.0F ? forward : backward;
       Press(key);
-      EXPECT_EQ(office_.Step(std::abs(distance) / Office::kPointerSpeed), ComponentType::kOffice);
+      EXPECT_EQ(office_.Step(*state_, std::abs(distance) / Office::kPointerSpeed), ComponentType::kOffice);
       Release(key);
     };
     travel(static_cast<float>(target.x) + 0.5F - pointer_x_, Key::kRight, Key::kLeft);
     travel(static_cast<float>(target.y) + 0.5F - pointer_y_, Key::kDown, Key::kUp);
     pointer_x_ = static_cast<float>(target.x) + 0.5F;
     pointer_y_ = static_cast<float>(target.y) + 0.5F;
-    ASSERT_EQ(office_.Pointer().x, target.x);
-    ASSERT_EQ(office_.Pointer().y, target.y);
+    ASSERT_EQ(Office::Pointer(*state_).x, target.x);
+    ASSERT_EQ(Office::Pointer(*state_).y, target.y);
   }
 
   void Click() {
     Press(Key::kSpace);
-    EXPECT_EQ(office_.Step(0.0F), ComponentType::kOffice);
+    EXPECT_EQ(office_.Step(*state_, 0.0F), ComponentType::kOffice);
     Release(Key::kSpace);
     // Long enough for any slide to finish.
-    EXPECT_EQ(office_.Step(1.0F), ComponentType::kOffice);
+    EXPECT_EQ(office_.Step(*state_, 1.0F), ComponentType::kOffice);
   }
 
   // A point of the desk in the color of `drawer`, away from the drawer's edges.
@@ -86,8 +89,9 @@ class OfficeTest : public ::testing::Test {
   host::AssetManager manager_;
   Screen screen_;
   KeyEvents keys_;
-  GameState game_;
-  Office office_{manager_.Engine(), screen_, keys_, game_};
+  AudioEngine audio_;
+  std::optional<EngineState> state_;
+  Office office_;
   float pointer_x_{Office::kPointerStart.x};
   float pointer_y_{Office::kPointerStart.y};
 };
@@ -95,7 +99,7 @@ class OfficeTest : public ::testing::Test {
 TEST_F(OfficeTest, TurnsTheLightsOn) {
   const auto colors = manager_.Engine().Palette(EnginePalette::kOffice);
   EXPECT_EQ(screen_.Palette(Viewport::kUpper).Color(15), colors[15]);
-  EXPECT_FALSE(office_.Poster().has_value());
+  EXPECT_FALSE(Office::Poster(*state_).has_value());
 }
 
 TEST_F(OfficeTest, OpensAPosterAndTakesItsMission) {
@@ -103,14 +107,14 @@ TEST_F(OfficeTest, OpensAPosterAndTakesItsMission) {
   ASSERT_TRUE(drawer.has_value());
   MoveTo(*drawer);
   Click();
-  ASSERT_EQ(office_.Poster(), 0U);
+  ASSERT_EQ(Office::Poster(*state_), 0U);
   MoveTo(Middle(Office::kPosterAreas[0]));
   Press(Key::kEnter);
-  EXPECT_EQ(office_.Step(0.0F), ComponentType::kOffice);
-  EXPECT_EQ(office_.Step(Office::kLightsSeconds), ComponentType::kHighway);
-  EXPECT_EQ(game_.mission, 0U);
-  EXPECT_FALSE(game_.missions_available[0]);
-  EXPECT_EQ(game_.MissionsLeft(), 5U);
+  EXPECT_EQ(office_.Step(*state_, 0.0F), ComponentType::kOffice);
+  EXPECT_EQ(office_.Step(*state_, Office::kLightsSeconds), ComponentType::kHighway);
+  EXPECT_EQ(state_->game.mission, 0U);
+  EXPECT_FALSE(state_->game.missions_available[0]);
+  EXPECT_EQ(state_->game.MissionsLeft(), 5U);
 }
 
 TEST_F(OfficeTest, TheSameDrawerBringsOutItsOtherPoster) {
@@ -118,29 +122,29 @@ TEST_F(OfficeTest, TheSameDrawerBringsOutItsOtherPoster) {
   ASSERT_TRUE(drawer.has_value());
   MoveTo(*drawer);
   Click();
-  EXPECT_EQ(office_.Poster(), 4U);
+  EXPECT_EQ(Office::Poster(*state_), 4U);
   Click();
-  EXPECT_EQ(office_.Poster(), 5U);
+  EXPECT_EQ(Office::Poster(*state_), 5U);
 }
 
 TEST_F(OfficeTest, TakenPostersStayInTheDrawer) {
-  game_.missions_available[2] = false;
+  state_->game.missions_available[2] = false;
   const auto drawer = DrawerPoint(1);
   ASSERT_TRUE(drawer.has_value());
   MoveTo(*drawer);
   Click();
-  EXPECT_EQ(office_.Poster(), 3U);
-  game_.missions_available[3] = false;
+  EXPECT_EQ(Office::Poster(*state_), 3U);
+  state_->game.missions_available[3] = false;
   Click();
-  EXPECT_FALSE(office_.Poster().has_value());
+  EXPECT_FALSE(Office::Poster(*state_).has_value());
 }
 
 TEST_F(OfficeTest, ClicksOutsideTheDeskDoNothing) {
   MoveTo(Point{.x = 250, .y = 100});
   Click();
-  EXPECT_FALSE(office_.Poster().has_value());
+  EXPECT_FALSE(Office::Poster(*state_).has_value());
   Press(Key::kEscape);
-  EXPECT_EQ(office_.Step(0.0F), ComponentType::kQuit);
+  EXPECT_EQ(office_.Step(*state_, 0.0F), ComponentType::kQuit);
 }
 
 }  // namespace

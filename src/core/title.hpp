@@ -4,10 +4,7 @@
 #include <cstdint>
 
 #include "core/action_stack.hpp"
-#include "core/audio_engine.hpp"
 #include "core/component.hpp"
-#include "core/engine_assets.hpp"
-#include "core/key_events.hpp"
 #include "core/presentation.hpp"
 #include "core/screen.hpp"
 #include "core/xor_animation.hpp"
@@ -63,6 +60,16 @@ class PlayAnimation {
   float remaining_seconds_{};
 };
 
+enum class TitleStage : std::uint8_t {
+  kLogo,       // LOGO.CPV fades in and stays
+  kLogoGone,   // the logo fades out
+  kTitle,      // PRESENT.CPV fades in and stays
+  kAnimation,  // PRESENT.DIF
+  kNames,      // the lettering; waits for Space or Enter
+  kFadeOut,    // the title palette fades out
+  kDone,
+};
+
 // The opening presentation (main, 0:a908-0:b05e; docs/game.md, "Program flow"): LOGO.CPV fades
 // in, PRESENT.CPV fades in under the title palette, PRESENT.DIF plays over it, NAME.IMG adds the
 // lettering, with HIGHWAY.MUS from the title's fade-in to the fade-out. Space or Enter skips to
@@ -92,43 +99,29 @@ class Title {
   static constexpr std::uint16_t kSkyRows = 36;
   static constexpr std::uint8_t kPictureIndexOffset = 16;
 
-  Title(const EngineAssets& assets, Screen& screen, KeyEvents& keys, AudioEngine& audio)
-      : assets_(assets), screen_(screen), keys_(keys), audio_(audio) {}
-
-  void OnEnter();
-  void OnExit();
-  ComponentType Step(float delta_seconds);
+  void OnEnter(EngineState& state);
+  void OnExit(EngineState& state);
+  ComponentType Step(EngineState& state, float delta_seconds);
 
  private:
-  enum class Stage : std::uint8_t {
-    kLogo,       // LOGO.CPV fades in and stays
-    kLogoGone,   // the logo fades out
-    kTitle,      // PRESENT.CPV fades in and stays
-    kAnimation,  // PRESENT.DIF
-    kNames,      // the lettering; waits for Space or Enter
-    kFadeOut,    // the title palette fades out
-    kDone,
-  };
+  // Enters `stage`: composes its picture and pushes its timed actions.
+  static void Enter(EngineState& state, TitleStage stage);
+  [[nodiscard]] static TitleStage Next(const EngineState& state);
+  // The title picture under the title palette: the sky with the first segment's entries, the rest
+  // with the second's.
+  static void ComposeTitle(EngineState& state);
+  static void DrawNames(EngineState& state);
+  // Abandons the presentation for the finished title: picture, every animation step, lettering.
+  static void Finish(EngineState& state);
+};
 
+// Persistent scene data, owned by EngineState.
+struct TitleState {
   static constexpr std::size_t kActionCapacity = 4;
   using Actions = ActionStack<kActionCapacity, Hold, Fade, PlayAnimation>;
 
-  // Enters `stage`: composes its picture and pushes its timed actions.
-  void Enter(Stage stage);
-  [[nodiscard]] Stage Next() const;
-  // The title picture under the title palette: the sky with the first segment's entries, the rest
-  // with the second's.
-  void ComposeTitle();
-  void DrawNames();
-  // Abandons the presentation for the finished title: picture, every animation step, lettering.
-  void Finish();
-
-  const EngineAssets& assets_;
-  Screen& screen_;
-  KeyEvents& keys_;
-  AudioEngine& audio_;
-  Actions actions_;
-  Stage stage_{Stage::kDone};
+  Actions actions;
+  TitleStage stage{TitleStage::kDone};
 };
 
 static_assert(ComponentLike<Title>);

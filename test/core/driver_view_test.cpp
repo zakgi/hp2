@@ -64,13 +64,14 @@ class DriverViewTest : public testing::Test {
     return pixels;
   }
   host::AssetManager manager_;
+  MissionPathfinding pathfinding_;
   Screen screen_;
 };
 
 TEST_F(DriverViewTest, SplitsTheScreenAndPlacesTheColors) {
   const auto& assets = manager_.Engine();
   auto mission = Mission{MakeRoad()};
-  mission.Start(kMissions[0], AiPolicies{}, 42);
+  mission.Start(pathfinding_, kMissions[0], AiPolicies{}, 42);
   auto view = DriverView{assets, screen_, mission.GetRoad()};
   view.Draw(mission);
 
@@ -92,7 +93,7 @@ TEST_F(DriverViewTest, SplitsTheScreenAndPlacesTheColors) {
 TEST_F(DriverViewTest, DrawsTheCarAroundTheView) {
   const auto& assets = manager_.Engine();
   auto mission = Mission{MakeRoad()};
-  mission.Start(kMissions[0], AiPolicies{}, 42);
+  mission.Start(pathfinding_, kMissions[0], AiPolicies{}, 42);
   auto view = DriverView{assets, screen_, mission.GetRoad()};
   view.Draw(mission);
 
@@ -222,15 +223,15 @@ TEST_F(DriverViewTest, TheRoofStripTellsWhereTheCarsAreAndTheScore) {
 TEST_F(DriverViewTest, TheLeftHandGoesForTheGunAndTheSightComesUp) {
   const auto& assets = manager_.Engine();
   auto mission = Mission{MakeRoad()};
-  mission.Start(kMissions[4], AiPolicies{}, 7);
+  mission.Start(pathfinding_, kMissions[4], AiPolicies{}, 7);
   auto view = DriverView{assets, screen_, mission.GetRoad()};
   view.Draw(mission);
   const auto wheel = GetScreenPixels();
   // The gun out: after the hand's three frames, the dashboard has changed and the sight stands
   // under the horizon in the middle of the view, 10 rows down.
-  mission.Step(PlayerCommands{.toggle_aim = true});
+  mission.Step(pathfinding_, PlayerCommands{.toggle_aim = true});
   for (auto tick = 0; tick < 12; ++tick) {
-    mission.Step(PlayerCommands{});
+    mission.Step(pathfinding_, PlayerCommands{});
     view.Draw(mission);
   }
   const auto aiming = GetScreenPixels();
@@ -255,9 +256,9 @@ TEST_F(DriverViewTest, TheLeftHandGoesForTheGunAndTheSightComesUp) {
   EXPECT_TRUE(view_changed);
   // Put away, the hand is back on the wheel and the sight is gone. The roof's text has moved on
   // meanwhile: the bounty drains.
-  mission.Step(PlayerCommands{.toggle_aim = true});
+  mission.Step(pathfinding_, PlayerCommands{.toggle_aim = true});
   for (auto tick = 0; tick < 12; ++tick) {
-    mission.Step(PlayerCommands{});
+    mission.Step(pathfinding_, PlayerCommands{});
     view.Draw(mission);
   }
   const auto away = GetScreenPixels();
@@ -491,9 +492,9 @@ TEST_F(DriverViewTest, ACarsFlanksAreEachOthersMirrorImage) {
 TEST_F(DriverViewTest, TheCarsHaveTheirPaintInThePalette) {
   const auto& assets = manager_.Engine();
   auto mission = Mission{MakeRoad()};
-  mission.Start(kMissions[0], AiPolicies{}, 7);
+  mission.Start(pathfinding_, kMissions[0], AiPolicies{}, 7);
   // One tick brings the traffic car.
-  mission.Step(PlayerCommands{});
+  mission.Step(pathfinding_, PlayerCommands{});
   ASSERT_EQ(mission.GetTraffic().size(), 1U);
   auto view = DriverView{assets, screen_, mission.GetRoad()};
   view.Draw(mission);

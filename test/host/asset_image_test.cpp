@@ -1,4 +1,3 @@
-#include "target/flash/asset_image.hpp"
 
 #include <gtest/gtest.h>
 

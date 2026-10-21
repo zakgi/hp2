@@ -9,11 +9,20 @@
 #include "core/component.hpp"
 #include "core/engine_assets.hpp"
 #include "core/game_state.hpp"
-#include "core/key_events.hpp"
 #include "core/presentation.hpp"
 #include "core/screen.hpp"
 
 namespace hp2 {
+
+enum class MissionEndStage : std::uint8_t {
+  kPicture,
+  kPictureShown,
+  kPictureOut,
+  kScore,
+  kScoreShown,
+  kScoreOut,
+  kDone
+};
 
 // The end of a mission (CheckMissionEnd, 0:6008; docs/game.md, "Scenes and endings"): the picture
 // of what happened, if there is one, then the score screen, each faded in, held until Space or
@@ -48,33 +57,27 @@ class MissionEnd {
   // segment takes the entries from kTextIndexOffset on, and the text is drawn with that offset.
   static constexpr std::uint8_t kTextIndexOffset = 16;
 
-  MissionEnd(const EngineAssets& assets, Screen& screen, KeyEvents& keys, GameState& game)
-      : assets_(assets), screen_(screen), keys_(keys), game_(game) {}
-
-  void OnEnter();
-  void OnExit();
-  ComponentType Step(float delta_seconds);
+  void OnEnter(EngineState& state);
+  void OnExit(EngineState& state);
+  ComponentType Step(EngineState& state, float delta_seconds);
 
   // How `reason` is shown.
   [[nodiscard]] static Ending GetEnding(EndReason reason);
 
  private:
-  enum class Stage : std::uint8_t { kPicture, kPictureShown, kPictureOut, kScore, kScoreShown, kScoreOut, kDone };
+  static void Enter(EngineState& state, MissionEndStage stage);
+  static void ComposeScore(EngineState& state);
+};
 
+// Persistent scene data, owned by EngineState.
+struct MissionEndState {
   static constexpr std::size_t kActionCapacity = 2;
   using Actions = ActionStack<kActionCapacity, Fade>;
 
-  void Enter(Stage stage);
-  void ComposeScore();
-
-  const EngineAssets& assets_;
-  Screen& screen_;
-  KeyEvents& keys_;
-  GameState& game_;
-  Actions actions_;
-  Stage stage_{Stage::kDone};
-  Ending ending_{};
-  bool new_career_{};
+  Actions actions;
+  MissionEndStage stage{MissionEndStage::kDone};
+  MissionEnd::Ending ending{};
+  bool new_career{};
 };
 
 static_assert(ComponentLike<MissionEnd>);

@@ -21,7 +21,7 @@
 #include "core/audio_engine.hpp"
 #include "core/component.hpp"
 #include "core/engine_assets.hpp"
-#include "core/game_state.hpp"
+#include "core/engine_state.hpp"
 #include "core/highway.hpp"
 #include "core/key_events.hpp"
 #include "core/mission_end.hpp"
@@ -43,7 +43,6 @@ namespace {
 hp2::Screen screen;
 hp2::KeyEvents key_events;
 hp2::AudioEngine audio;
-hp2::GameState game;
 hp2::EngineAssets assets;
 hp2::CdcInput cdc{key_events};
 
@@ -63,15 +62,10 @@ const char* StatusName(hp2::flash::AssetStatus status) {
 // The engine loop: keys, one step with the real elapsed time, present. The screen is drawn only
 // once the previous push has left it. Quitting the game starts it again from the title.
 [[noreturn]] void RunEngine(hp2::PanelPresenter<hp2::Board::Display>& presenter) {
-  // The components are built here, once the assets are bound, each in place in static storage,
-  // then moved into the engine: built as temporaries they would not fit the 4 KB stack.
-  static hp2::Title title{assets, screen, key_events, audio};
-  static hp2::Office office{assets, screen, key_events, game};
-  static hp2::Highway highway{assets, screen, key_events, audio, game, get_rand_64()};
-  static hp2::Station station{assets, screen, key_events, game};
-  static hp2::MissionEnd mission_end{assets, screen, key_events, game};
-  static hp2::Engine<hp2::Title, hp2::Office, hp2::Highway, hp2::Station, hp2::MissionEnd> engine{
-      std::move(title), std::move(office), std::move(highway), std::move(station), std::move(mission_end)};
+  // The root is constructed after flash assets are bound, once in its final storage. Controllers
+  // are empty and the engine holds only their dispatch state and a reference to this root.
+  static hp2::EngineState state{assets, screen, key_events, audio, get_rand_64()};
+  static hp2::Engine<hp2::Title, hp2::Office, hp2::Highway, hp2::Station, hp2::MissionEnd> engine{state};
 
   if (not engine.Start(hp2::ComponentType::kTitle)) {
     std::printf("[engine] could not start\n");

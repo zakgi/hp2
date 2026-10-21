@@ -70,11 +70,11 @@ void AdafruitFeatherRp2350Board::InitCore0() {
 
   // DAC SCK pin low so the DAC derives MCLK from BCK; keeps the unused DAC quiet.
   gpio_init(i2s::kSckPin);
-  gpio_set_dir(i2s::kSckPin, GPIO_OUT);
+  gpio_set_dir(i2s::kSckPin, static_cast<bool>(GPIO_OUT));
   gpio_put(i2s::kSckPin, false);
 
   gpio_init(kStatusLedPin);
-  gpio_set_dir(kStatusLedPin, GPIO_OUT);
+  gpio_set_dir(kStatusLedPin, static_cast<bool>(GPIO_OUT));
   gpio_put(kStatusLedPin, false);
 
   panel.Init();

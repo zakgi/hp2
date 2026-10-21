@@ -18,6 +18,7 @@ inline constexpr std::uint32_t kDwtCtrlCyccntenaBit{1U << 0};
 inline constexpr std::uint32_t kDwtCtrlNocyccntBit{1U << 25};
 
 // Memory-mapped registers: an integer address is the only way to name them.
+// NOLINTBEGIN(performance-no-int-to-ptr)
 [[nodiscard]] inline volatile std::uint32_t& Demcr() {
   return *reinterpret_cast<volatile std::uint32_t*>(kDemcrAddress);
 }
@@ -27,6 +28,8 @@ inline constexpr std::uint32_t kDwtCtrlNocyccntBit{1U << 25};
 [[nodiscard]] inline volatile std::uint32_t& DwtCyccnt() {
   return *reinterpret_cast<volatile std::uint32_t*>(kDwtCyccntAddress);
 }
+
+// NOLINTEND(performance-no-int-to-ptr)
 
 // Meaningful after EnableCycleCounter() has set TRCENA.
 [[nodiscard]] inline bool CycleCounterAvailable() {

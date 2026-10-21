@@ -64,8 +64,11 @@ template <St7789vPins kPins, std::uint16_t kWidth, std::uint16_t kHeight, std::u
           std::uint32_t kLutPioIndex = 1>
 class St7789v {
  public:
+  // Dependent constexpr initializers cannot run dynamically.
+  // NOLINTBEGIN(bugprone-dynamic-static-initializers)
   static constexpr std::uint16_t kPanelWidth = kWidth;
   static constexpr std::uint16_t kPanelHeight = kHeight;
+  // NOLINTEND(bugprone-dynamic-static-initializers)
 
   constexpr St7789v() = default;
   St7789v(const St7789v&) = delete;
@@ -148,8 +151,8 @@ class St7789v {
   // chain is live the CPU must not touch the state machine's FIFOs or the SPI data register:
   // command writes are init-only. `palette` must outlive the driver.
   void InitPaletteLut(const St7789vPaletteTable& palette) {
-    const auto pio = LutPio();
-    lut_sm_ = static_cast<int>(pio_claim_unused_sm(pio, true));
+    auto* const pio = LutPio();
+    lut_sm_ = pio_claim_unused_sm(pio, true);
     const auto palette_base = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(palette.entries.data()));
     const auto program_offset = static_cast<unsigned>(pio_add_program(pio, &palette_lut8_program));
     palette_lut8_program_init(pio, static_cast<unsigned>(lut_sm_), program_offset, palette_base);
@@ -225,7 +228,7 @@ class St7789v {
   // false) only says the indices have left the screen; the table may be rewritten for the next
   // push once this holds on two readings in a row, which covers the word inside the state machine.
   [[nodiscard]] bool Drained() const {
-    const auto pio = LutPio();
+    auto* const pio = LutPio();
     const auto state_machine = static_cast<unsigned>(lut_sm_);
     return pio_sm_is_tx_fifo_empty(pio, state_machine) and pio_sm_is_rx_fifo_empty(pio, state_machine) and
            not dma_channel_is_busy(static_cast<unsigned>(chan_pixel_));
@@ -246,11 +249,11 @@ class St7789v {
 
   void InitGpio() {
     gpio_init(kPins.cs);  // manual chip select, not the peripheral's CSn
-    gpio_set_dir(kPins.cs, GPIO_OUT);
+    gpio_set_dir(kPins.cs, static_cast<bool>(GPIO_OUT));
     gpio_put(kPins.cs, true);
 
     gpio_init(kPins.dc);
-    gpio_set_dir(kPins.dc, GPIO_OUT);
+    gpio_set_dir(kPins.dc, static_cast<bool>(GPIO_OUT));
     gpio_put(kPins.dc, true);
 
     gpio_set_function(kPins.sclk, GPIO_FUNC_SPI);
@@ -259,7 +262,7 @@ class St7789v {
     if constexpr (kPins.reset >= 0) {
       gpio_init(kPins.reset);
       gpio_put(kPins.reset, true);  // park high before driving: reset is active low
-      gpio_set_dir(kPins.reset, GPIO_OUT);
+      gpio_set_dir(kPins.reset, static_cast<bool>(GPIO_OUT));
     }
     if constexpr (kPins.backlight >= 0) {
       gpio_set_function(kPins.backlight, GPIO_FUNC_PWM);

@@ -6,12 +6,11 @@
 #include <optional>
 
 #include "core/component.hpp"
-#include "core/engine_assets.hpp"
-#include "core/game_state.hpp"
-#include "core/key_events.hpp"
 #include "core/screen.hpp"
 
 namespace hp2 {
+
+enum class OfficePhase : std::uint8_t { kLightsOn, kPointing, kClosing, kOpening, kLightsOff };
 
 // The office, before every mission (OfficeSelectMission, 0:c3aa; docs/game.md, "Program flow"): a
 // pointer over the desk. Clicking a drawer slides one of its two wanted posters up, clicking the
@@ -74,44 +73,38 @@ class Office {
   // The lights come on after a moment, and go down before the mission starts.
   static constexpr float kLightsSeconds = 0.5F;
 
-  Office(const EngineAssets& assets, Screen& screen, KeyEvents& keys, GameState& game)
-      : assets_(assets), screen_(screen), keys_(keys), game_(game) {}
-
-  void OnEnter();
-  void OnExit() {}
-  ComponentType Step(float delta_seconds);
+  void OnEnter(EngineState& state);
+  void OnExit(EngineState& state);
+  ComponentType Step(EngineState& state, float delta_seconds);
 
   // For tests: the poster open or sliding, the pointer.
-  [[nodiscard]] std::optional<std::size_t> Poster() const { return poster_; }
-  [[nodiscard]] Point Pointer() const;
+  [[nodiscard]] static std::optional<std::size_t> Poster(const EngineState& state);
+  [[nodiscard]] static Point Pointer(const EngineState& state);
 
  private:
-  enum class Phase : std::uint8_t { kLightsOn, kPointing, kClosing, kOpening, kLightsOff };
-
-  void ReadKeys(bool& clicked, bool& quit);
-  void MovePointer(float delta_seconds);
-  void Click();
+  static void ReadKeys(EngineState& state, bool& clicked, bool& quit);
+  static void MovePointer(EngineState& state, float delta_seconds);
+  static void Click(EngineState& state);
   // The poster a click on `drawer` brings out: the drawer's first one, or its other one when the
   // drawer's poster is open; a poster already taken gives way to its pair.
-  [[nodiscard]] std::optional<std::size_t> PosterFor(std::size_t drawer) const;
-  void Slide(float delta_seconds);
+  [[nodiscard]] static std::optional<std::size_t> PosterFor(const EngineState& state, std::size_t drawer);
+  static void Slide(EngineState& state, float delta_seconds);
   // The desk with the poster and its drawer front, without the pointer.
-  void ComposeDesk();
-  void Compose();
+  static void ComposeDesk(EngineState& state);
+  static void Compose(EngineState& state);
+};
 
-  const EngineAssets& assets_;
-  Screen& screen_;
-  KeyEvents& keys_;
-  GameState& game_;
-  Phase phase_{Phase::kLightsOn};
-  float phase_seconds_{};
-  float pointer_x_{};
-  float pointer_y_{};
+// Persistent scene data, owned by EngineState.
+struct OfficeState {
+  OfficePhase phase{OfficePhase::kLightsOn};
+  float phase_seconds{};
+  float pointer_x{};
+  float pointer_y{};
   // Arrow keys held: left, right, up, down.
-  std::array<bool, 4> held_{};
-  std::optional<std::size_t> poster_;
-  std::optional<std::size_t> next_poster_;
-  float poster_y_{};
+  std::array<bool, 4> held{};
+  std::optional<std::size_t> poster;
+  std::optional<std::size_t> next_poster;
+  float poster_y{};
 };
 
 static_assert(ComponentLike<Office>);

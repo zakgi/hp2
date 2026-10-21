@@ -16,10 +16,12 @@
 
 namespace hp2 {
 
+struct MissionPathfinding;
+
 // What the player does in one tick: the car's controls from the held keys, and the actions single
 // presses trigger.
 struct PlayerCommands {
-  Controls controls;
+  Controls controls{};
   bool firing{};        // fire held while aiming
   bool toggle_siren{};  // S
   bool toggle_aim{};    // T
@@ -53,10 +55,10 @@ struct MissionProgress {
   MissionType mission{};
   // Dollars: drains with time and penalties, and doubles as the score.
   std::int32_t bounty{};
-  std::bitset<kStationCount> robbed;
+  std::bitset<kStationCount> robbed{0};
   bool siren{};
   bool aiming{};
-  ViewDirection sight;
+  ViewDirection sight{};
   // The last shot hit a car: the views show it at the sight until the next shot.
   bool shot_hit{};
   // What is left of the red flash a contact with another car sets off (0:4906: two frames).
@@ -64,7 +66,7 @@ struct MissionProgress {
   std::uint8_t target_hits{};
   std::array<ViewDirection, kMaxWindshieldHoles> holes{};
   std::uint8_t hole_count{};
-  std::optional<EndReason> end_reason;
+  std::optional<EndReason> end_reason{std::nullopt};
 };
 
 // Whether the criminal's car is where a pull-over arrest takes it (CheckArrest, 0:4f14): in the
@@ -75,8 +77,8 @@ struct MissionProgress {
 // One mission, advanced a fixed tick at a time: the player's car, the criminal's, the traffic, their
 // drivers and the rules. It knows nothing of the screen, the keys or the sound: the Highway
 // component feeds it commands and turns its state and events into pictures and noise, so a mission
-// runs headless and replays exactly from its seed and commands. A value: copying it snapshots the
-// mission.
+// runs headless and replays exactly from its seed and commands. Copying it snapshots the mission;
+// route distance fields are supplied separately and can be rebuilt from its goals without RNG.
 class Mission {
  public:
   static constexpr float kTickSeconds = 1.0F / 60.0F;
@@ -86,12 +88,13 @@ class Mission {
 
   // A new mission run with `policies`: the player at one of three starts (0:b76e), the criminal at
   // one of 16 crossroads (1:236e), no traffic yet.
-  void Start(const MissionType& mission, const AiPolicies& policies, std::uint64_t seed);
-  // Back on the road after the station, with the fuel and tires the station left, at the driveway's
+  void Start(MissionPathfinding& pathfinding, const MissionType& mission, const AiPolicies& policies,
+             std::uint64_t seed);
+  // Back on the road after the station has serviced the car condition, at the driveway's
   // exit (0:328e).
-  void LeaveStation(float fuel, std::uint8_t tires);
-  // One tick.
-  MissionEvents Step(const PlayerCommands& commands);
+  void LeaveStation();
+  // One tick. A fresh workspace rebuilds routes as needed without changing the simulation.
+  MissionEvents Step(MissionPathfinding& pathfinding, const PlayerCommands& commands);
 
   [[nodiscard]] const Road& GetRoad() const { return road_; }
   [[nodiscard]] const Vehicle& GetPlayer() const { return player_; }
@@ -100,7 +103,9 @@ class Mission {
   [[nodiscard]] std::span<const Vehicle> GetTraffic() const {
     return std::span<const Vehicle>{traffic_}.first(traffic_count_);
   }
+  [[nodiscard]] CarCondition& GetCondition() { return condition_; }
   [[nodiscard]] const CarCondition& GetCondition() const { return condition_; }
+  [[nodiscard]] MissionProgress& GetProgress() { return progress_; }
   [[nodiscard]] const MissionProgress& GetProgress() const { return progress_; }
   // The index into Road::GetStations() of the station the player stopped at, after kStationStop.
   [[nodiscard]] std::optional<std::size_t> GetStation() const { return station_; }
@@ -112,10 +117,10 @@ class Mission {
   void StepCrash(MissionEvents& events);
   // Counts the time off the road at speed; too much of it costs a tire.
   void TrackOffRoad(MissionEvents& events);
-  void StepTarget(MissionEvents& events);
-  void StepTraffic();
+  void StepTarget(MissionPathfinding& pathfinding, MissionEvents& events);
+  void StepTraffic(MissionPathfinding& pathfinding);
   // A new traffic car where the policy puts one, if it does.
-  void SpawnTraffic();
+  void SpawnTraffic(MissionPathfinding& pathfinding);
   // Scenery and car-to-car contacts of every car, into impacts and damage.
   void ResolveContacts(MissionEvents& events);
   // What two cars that have just come into contact do to each other, and to the bounty when the
@@ -124,7 +129,7 @@ class Mission {
   // The cars in one list: the player's, the criminal's, then the traffic's.
   [[nodiscard]] Vehicle& GetCar(std::size_t index);
   // The player's shots and the criminal's.
-  void ResolveShots(const PlayerCommands& commands, MissionEvents& events);
+  void ResolveShots(MissionPathfinding& pathfinding, const PlayerCommands& commands, MissionEvents& events);
   // One shot of the player's gun along the sight: the nearest car it meets is hit.
   void FirePlayerShot(MissionEvents& events);
   // One shot of the criminal's along its way: a hole in the player's windshield, or worse.
@@ -135,19 +140,17 @@ class Mission {
   void ApplyRules(MissionEvents& events);
   // What the policies look at, the two distance fields brought up to date, with `robbed` as the
   // stations they may not choose.
-  [[nodiscard]] PolicyContext GetPolicyContext(const std::bitset<kStationCount>& robbed);
+  [[nodiscard]] PolicyContext GetPolicyContext(MissionPathfinding& pathfinding,
+                                               const std::bitset<kStationCount>& robbed);
   // Routes the criminal to the station its policy picks outside `skipped`; false when there is none.
-  bool SendTarget(const std::bitset<kStationCount>& skipped);
+  bool SendTarget(MissionPathfinding& pathfinding, const std::bitset<kStationCount>& skipped);
   // The criminal stopped at the pumps: robs the station if its policy says so, then leaves for
   // another.
-  void RobStation();
+  void RobStation(MissionPathfinding& pathfinding);
 
   Road road_;
   Random random_;
   AiPolicies policies_;
-  // For the policies: rebuilt when the criminal or the player changes cell.
-  RouteField target_distances_;
-  RouteField player_distances_;
   Vehicle player_;
   Vehicle target_;
   AiDriver target_driver_;
@@ -162,6 +165,24 @@ class Mission {
   // A bullet of the criminal's found the driver.
   bool shot_dead_{};
   std::uint32_t tick_{};
+};
+
+// Derived route distances, used only while driving. HighwayState owns this workspace; headless
+// simulations supply their own. It holds no decisions or random state and can be discarded.
+struct MissionPathfinding {
+  void Invalidate() {
+    target_distances.Invalidate();
+    player_distances.Invalidate();
+    target_route.Invalidate();
+    for (auto& route : traffic_routes) {
+      route.Invalidate();
+    }
+  }
+
+  RouteField target_distances;
+  RouteField player_distances;
+  RouteField target_route;
+  std::array<RouteField, Mission::kMaxTraffic> traffic_routes;
 };
 
 }  // namespace hp2

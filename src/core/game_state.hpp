@@ -44,8 +44,7 @@ enum class EndReason : std::uint8_t {
   kBountyGone,
 };
 
-// What the screens between missions share: the career, the mission under way and the state of
-// the player's car the station and the endings read.
+// Career data shared by the controllers. Active car condition and ending live in Mission.
 struct GameState {
   static constexpr std::uint8_t kFullTires = 2;
 
@@ -54,12 +53,6 @@ struct GameState {
   std::array<bool, kMissionCount> missions_available{true, true, true, true, true, true};
   // Index into kMissions of the mission chosen in the office.
   std::optional<std::size_t> mission;
-  std::optional<EndReason> end_reason;
-  // 0 (empty) to 1 (full).
-  float fuel{1.0F};
-  std::uint8_t tires{kFullTires};
-  // Whether the station the player stopped at has been robbed.
-  bool station_robbed{};
 
   [[nodiscard]] std::size_t MissionsLeft() const {
     return static_cast<std::size_t>(std::ranges::count(missions_available, true));
@@ -69,7 +62,6 @@ struct GameState {
     score = 0;
     missions_available.fill(true);
     mission.reset();
-    end_reason.reset();
   }
 };
 

@@ -142,6 +142,7 @@ std::optional<Side> ChooseOtherSide(SideMask exits, Side first, Side second, Ran
 
 void RouteField::Build(const Road& road, Cell goal) {
   goal_ = goal;
+  built_ = true;
   distances_.fill(kUnreachable);
   if (IsOnMap(goal) and road.GetExits(goal) != 0) {
     distances_[GetIndex(goal)] = 0;
@@ -160,6 +161,12 @@ void RouteField::Build(const Road& road, Cell goal) {
         }
       }
     }
+  }
+}
+
+void RouteField::Update(const Road& road, Cell goal) {
+  if (not built_ or goal != goal_) {
+    Build(road, goal);
   }
 }
 
@@ -203,21 +210,21 @@ std::optional<Side> RouteField::ChooseExit(const Road& road, Cell cell, Side ent
   return result;
 }
 
-void PlanLanes(AiDriver& driver, const Road& road, WorldPoint position, bool use_driveway) {
+void PlanLanes(AiDriver& driver, const RouteField& route, const Road& road, WorldPoint position, bool use_driveway) {
   const auto cell = GetCell(position);
   if (const auto exits = road.GetExits(cell); exits != 0) {
     driver.cell = cell;
     driver.entry = GetNearestSide(exits, cell, position);
-    const auto planned = PlanLane(driver.route, road, cell, driver.entry, use_driveway);
+    const auto planned = PlanLane(route, road, cell, driver.entry, use_driveway);
     driver.lanes[0] = planned.lane;
     driver.exit = planned.exit;
-    PlanNextLane(driver, road, use_driveway);
+    PlanNextLane(driver, route, road, use_driveway);
   }
 }
 
-void PlanNextLane(AiDriver& driver, const Road& road, bool use_driveway) {
+void PlanNextLane(AiDriver& driver, const RouteField& route, const Road& road, bool use_driveway) {
   driver.lanes[1] =
-      PlanLane(driver.route, road, GetNeighbor(driver.cell, driver.exit), GetOpposite(driver.exit), use_driveway).lane;
+      PlanLane(route, road, GetNeighbor(driver.cell, driver.exit), GetOpposite(driver.exit), use_driveway).lane;
 }
 
 Controls FollowLane(const AiDriver& driver, const Vehicle& vehicle, const VehicleTuning& tuning) {
@@ -247,6 +254,8 @@ Controls FollowLane(const AiDriver& driver, const Vehicle& vehicle, const Vehicl
   return controls;
 }
 
+// Policies are dispatched through const instances by the policy concepts.
+// NOLINTBEGIN(readability-convert-member-functions-to-static)
 std::optional<std::size_t> NearestByRoad::ChooseStation(const PolicyContext& context,
                                                         [[maybe_unused]] Random& random) const {
   auto result = std::optional<std::size_t>{};
@@ -340,5 +349,7 @@ Cell AheadOfPlayer::ChooseGoal(const PolicyContext& context, const Vehicle& car,
   }
   return goal;
 }
+
+// NOLINTEND(readability-convert-member-functions-to-static)
 
 }  // namespace hp2

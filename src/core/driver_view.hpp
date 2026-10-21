@@ -31,6 +31,8 @@ class DriverView {
 
   // Installs the driving screen's split and palettes and draws the view of `mission`.
   void Draw(const Mission& mission);
+  // Starts the view's history at this mission, without carrying over an earlier run's tick.
+  void Reset(const Mission& mission);
 
  private:
   // Places the sets of the driving screen's colors, from the list `source`, in the palettes of the

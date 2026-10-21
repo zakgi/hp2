@@ -1,5 +1,7 @@
 #include "core/office.hpp"
 
+#include "core/engine_state.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -13,74 +15,87 @@ enum Arrow : std::uint8_t { kLeftArrow, kRightArrow, kUpArrow, kDownArrow };
 
 }  // namespace
 
-Point Office::Pointer() const {
-  return Point{.x = static_cast<std::int16_t>(pointer_x_), .y = static_cast<std::int16_t>(pointer_y_)};
+std::optional<std::size_t> Office::Poster(const EngineState& state) {
+  const auto& office = std::get<OfficeState>(state.scene);
+  return office.poster;
 }
 
-void Office::OnEnter() {
-  screen_.DisableSplit();
-  screen_.Palette(Viewport::kUpper).Reset();
-  screen_.Palette(Viewport::kUpper).Overlay(assets_.Palette(EnginePalette::kOfficeDim), 0);
-  phase_ = Phase::kLightsOn;
-  phase_seconds_ = 0.0F;
-  pointer_x_ = static_cast<float>(kPointerStart.x);
-  pointer_y_ = static_cast<float>(kPointerStart.y);
-  held_ = {};
-  poster_.reset();
-  next_poster_.reset();
-  keys_.Clear();
-  Compose();
+Point Office::Pointer(const EngineState& state) {
+  const auto& office = std::get<OfficeState>(state.scene);
+  return Point{.x = static_cast<std::int16_t>(office.pointer_x), .y = static_cast<std::int16_t>(office.pointer_y)};
 }
 
-ComponentType Office::Step(float delta_seconds) {
+// Lifecycle hooks use the instance-based ComponentLike protocol.
+// NOLINTBEGIN(readability-convert-member-functions-to-static)
+void Office::OnEnter(EngineState& state) {
+  state.scene.emplace<OfficeState>();
+  auto& office = std::get<OfficeState>(state.scene);
+  state.screen.DisableSplit();
+  state.screen.Palette(Viewport::kUpper).Reset();
+  state.screen.Palette(Viewport::kUpper).Overlay(state.assets.Palette(EnginePalette::kOfficeDim), 0);
+  office.pointer_x = static_cast<float>(kPointerStart.x);
+  office.pointer_y = static_cast<float>(kPointerStart.y);
+  state.keys.Clear();
+  Compose(state);
+}
+
+void Office::OnExit(EngineState& state) {
+  state.scene.emplace<std::monostate>();
+}
+
+ComponentType Office::Step(EngineState& state, float delta_seconds) {
+  auto& office = std::get<OfficeState>(state.scene);
   auto next = kType;
   auto clicked = false;
   auto quit = false;
-  ReadKeys(clicked, quit);
-  phase_seconds_ += delta_seconds;
-  switch (phase_) {
-    case Phase::kLightsOn:
-      if (phase_seconds_ >= kLightsSeconds) {
-        screen_.Palette(Viewport::kUpper).Overlay(assets_.Palette(EnginePalette::kOffice), 0);
-        phase_ = Phase::kPointing;
+  ReadKeys(state, clicked, quit);
+  office.phase_seconds += delta_seconds;
+  switch (office.phase) {
+    case OfficePhase::kLightsOn:
+      if (office.phase_seconds >= kLightsSeconds) {
+        state.screen.Palette(Viewport::kUpper).Overlay(state.assets.Palette(EnginePalette::kOffice), 0);
+        office.phase = OfficePhase::kPointing;
       }
       break;
-    case Phase::kPointing:
-      MovePointer(delta_seconds);
+    case OfficePhase::kPointing:
+      MovePointer(state, delta_seconds);
       if (clicked) {
-        Click();
+        Click(state);
       }
       break;
-    case Phase::kClosing:
-    case Phase::kOpening:
-      MovePointer(delta_seconds);
-      Slide(delta_seconds);
+    case OfficePhase::kClosing:
+    case OfficePhase::kOpening:
+      MovePointer(state, delta_seconds);
+      Slide(state, delta_seconds);
       break;
-    case Phase::kLightsOff:
-      if (phase_seconds_ >= kLightsSeconds) {
+    case OfficePhase::kLightsOff:
+      if (office.phase_seconds >= kLightsSeconds) {
         next = ComponentType::kHighway;
       }
       break;
   }
-  Compose();
+  Compose(state);
   return quit ? ComponentType::kQuit : next;
 }
 
-void Office::ReadKeys(bool& clicked, bool& quit) {
-  while (const auto event = keys_.Next()) {
+// NOLINTEND(readability-convert-member-functions-to-static)
+
+void Office::ReadKeys(EngineState& state, bool& clicked, bool& quit) {
+  auto& office = std::get<OfficeState>(state.scene);
+  while (const auto event = state.keys.Next()) {
     const auto pressed = event->action == KeyAction::kPress;
     switch (event->key) {
       case Key::kLeft:
-        held_[kLeftArrow] = pressed;
+        office.held[kLeftArrow] = pressed;
         break;
       case Key::kRight:
-        held_[kRightArrow] = pressed;
+        office.held[kRightArrow] = pressed;
         break;
       case Key::kUp:
-        held_[kUpArrow] = pressed;
+        office.held[kUpArrow] = pressed;
         break;
       case Key::kDown:
-        held_[kDownArrow] = pressed;
+        office.held[kDownArrow] = pressed;
         break;
       case Key::kSpace:
       case Key::kEnter:
@@ -95,107 +110,114 @@ void Office::ReadKeys(bool& clicked, bool& quit) {
   }
 }
 
-void Office::MovePointer(float delta_seconds) {
+void Office::MovePointer(EngineState& state, float delta_seconds) {
+  auto& office = std::get<OfficeState>(state.scene);
   const auto step = kPointerSpeed * delta_seconds;
-  const auto horizontal = static_cast<float>(held_[kRightArrow]) - static_cast<float>(held_[kLeftArrow]);
-  const auto vertical = static_cast<float>(held_[kDownArrow]) - static_cast<float>(held_[kUpArrow]);
-  pointer_x_ = std::clamp(pointer_x_ + (horizontal * step), static_cast<float>(kPointerRange.left),
-                          static_cast<float>(kPointerRange.right));
-  pointer_y_ = std::clamp(pointer_y_ + (vertical * step), static_cast<float>(kPointerRange.top),
-                          static_cast<float>(kPointerRange.bottom));
+  const auto horizontal = static_cast<float>(office.held[kRightArrow]) - static_cast<float>(office.held[kLeftArrow]);
+  const auto vertical = static_cast<float>(office.held[kDownArrow]) - static_cast<float>(office.held[kUpArrow]);
+  office.pointer_x = std::clamp(office.pointer_x + (horizontal * step), static_cast<float>(kPointerRange.left),
+                                static_cast<float>(kPointerRange.right));
+  office.pointer_y = std::clamp(office.pointer_y + (vertical * step), static_cast<float>(kPointerRange.top),
+                                static_cast<float>(kPointerRange.bottom));
 }
 
-std::optional<std::size_t> Office::PosterFor(std::size_t drawer) const {
-  const auto same_drawer = poster_ and *poster_ / 2 == drawer;
-  auto poster = std::optional<std::size_t>{same_drawer ? *poster_ ^ 1U : drawer * 2};
-  if (not game_.missions_available[*poster]) {
+std::optional<std::size_t> Office::PosterFor(const EngineState& state, std::size_t drawer) {
+  const auto& office = std::get<OfficeState>(state.scene);
+  const auto same_drawer = office.poster and *office.poster / 2 == drawer;
+  auto poster = std::optional<std::size_t>{same_drawer ? *office.poster ^ 1U : drawer * 2};
+  if (not state.game.missions_available[*poster]) {
     *poster ^= 1U;
   }
-  if (not game_.missions_available[*poster]) {
+  if (not state.game.missions_available[*poster]) {
     poster.reset();
   }
   return poster;
 }
 
-void Office::Click() {
-  const auto pointer = Pointer();
+void Office::Click(EngineState& state) {
+  auto& office = std::get<OfficeState>(state.scene);
+  const auto pointer = Pointer(state);
   if (kDesk.Contains(pointer)) {
-    if (poster_ and kPosterAreas[*poster_ / 2].Contains(pointer)) {
-      game_.missions_available[*poster_] = false;
-      game_.mission = *poster_;
-      screen_.Palette(Viewport::kUpper).Overlay(assets_.Palette(EnginePalette::kOfficeDim), 0);
-      phase_ = Phase::kLightsOff;
-      phase_seconds_ = 0.0F;
+    if (office.poster and kPosterAreas[*office.poster / 2].Contains(pointer)) {
+      state.game.missions_available[*office.poster] = false;
+      state.game.mission = office.poster;
+      state.screen.Palette(Viewport::kUpper).Overlay(state.assets.Palette(EnginePalette::kOfficeDim), 0);
+      office.phase = OfficePhase::kLightsOff;
+      office.phase_seconds = 0.0F;
     } else {
       // The color of the desk as shown, poster included, picks the drawer.
-      ComposeDesk();
-      const auto color = screen_.ScreenRow(static_cast<std::uint16_t>(pointer.y))[static_cast<std::size_t>(pointer.x)];
+      ComposeDesk(state);
+      const auto color =
+          state.screen.ScreenRow(static_cast<std::uint16_t>(pointer.y))[static_cast<std::size_t>(pointer.x)];
       const auto* const drawer = std::ranges::find(kDrawerColors, color);
-      next_poster_ = drawer == kDrawerColors.end()
-                         ? std::nullopt
-                         : PosterFor(static_cast<std::size_t>(drawer - kDrawerColors.begin()));
-      if (poster_) {
-        phase_ = Phase::kClosing;
-      } else if (next_poster_) {
-        poster_ = next_poster_;
-        next_poster_.reset();
-        poster_y_ = static_cast<float>(kPosterSlides[*poster_].closed_y);
-        phase_ = Phase::kOpening;
+      office.next_poster = drawer == kDrawerColors.end()
+                               ? std::nullopt
+                               : PosterFor(state, static_cast<std::size_t>(drawer - kDrawerColors.begin()));
+      if (office.poster) {
+        office.phase = OfficePhase::kClosing;
+      } else if (office.next_poster) {
+        office.poster = office.next_poster;
+        office.next_poster.reset();
+        office.poster_y = static_cast<float>(kPosterSlides[*office.poster].closed_y);
+        office.phase = OfficePhase::kOpening;
       }
     }
   }
 }
 
-void Office::Slide(float delta_seconds) {
-  const auto& slide = kPosterSlides[*poster_];
-  if (phase_ == Phase::kOpening) {
-    poster_y_ = std::max(poster_y_ - (kSlideSpeed * delta_seconds), static_cast<float>(slide.open_y));
-    if (poster_y_ <= static_cast<float>(slide.open_y)) {
-      phase_ = Phase::kPointing;
+void Office::Slide(EngineState& state, float delta_seconds) {
+  auto& office = std::get<OfficeState>(state.scene);
+  const auto& slide = kPosterSlides[*office.poster];
+  if (office.phase == OfficePhase::kOpening) {
+    office.poster_y = std::max(office.poster_y - (kSlideSpeed * delta_seconds), static_cast<float>(slide.open_y));
+    if (office.poster_y <= static_cast<float>(slide.open_y)) {
+      office.phase = OfficePhase::kPointing;
     }
   } else {
-    poster_y_ = std::min(poster_y_ + (kSlideSpeed * delta_seconds), static_cast<float>(slide.closed_y));
-    if (poster_y_ >= static_cast<float>(slide.closed_y)) {
-      poster_ = next_poster_;
-      next_poster_.reset();
-      if (poster_) {
-        poster_y_ = static_cast<float>(kPosterSlides[*poster_].closed_y);
-        phase_ = Phase::kOpening;
+    office.poster_y = std::min(office.poster_y + (kSlideSpeed * delta_seconds), static_cast<float>(slide.closed_y));
+    if (office.poster_y >= static_cast<float>(slide.closed_y)) {
+      office.poster = office.next_poster;
+      office.next_poster.reset();
+      if (office.poster) {
+        office.poster_y = static_cast<float>(kPosterSlides[*office.poster].closed_y);
+        office.phase = OfficePhase::kOpening;
       } else {
-        phase_ = Phase::kPointing;
+        office.phase = OfficePhase::kPointing;
       }
     }
   }
 }
 
-void Office::ComposeDesk() {
-  screen_.Blit(assets_.Picture(EnginePicture::kOffice), Point{});
-  if (poster_) {
-    const auto& bank = assets_.Bank(EngineBank::kOffice);
-    const auto& slide = kPosterSlides[*poster_];
-    const auto top = static_cast<std::int16_t>(poster_y_);
+void Office::ComposeDesk(EngineState& state) {
+  auto& office = std::get<OfficeState>(state.scene);
+  state.screen.Blit(state.assets.Picture(EnginePicture::kOffice), Point{});
+  if (office.poster) {
+    const auto& bank = state.assets.Bank(EngineBank::kOffice);
+    const auto& slide = kPosterSlides[*office.poster];
+    const auto top = static_cast<std::int16_t>(office.poster_y);
     // Only the part above the drawer's bottom shows.
-    auto poster = bank.GetImage(*poster_);
+    auto poster = bank.GetImage(*office.poster);
     const auto visible_rows = std::clamp<int>(slide.clip_bottom - top, 0, poster.height);
     poster.height = static_cast<std::uint16_t>(visible_rows);
     poster.pixels = poster.pixels.first(std::size_t{poster.width} * poster.height);
-    screen_.BlitMasked(poster, Point{.x = slide.x, .y = top});
-    const auto drawer = *poster_ / 2;
+    state.screen.BlitMasked(poster, Point{.x = slide.x, .y = top});
+    const auto drawer = *office.poster / 2;
     auto front = bank.GetImage(kFirstDrawerFront + drawer);
     const auto front_rows = std::clamp<int>(slide.clip_bottom - kDrawerFronts[drawer].y, 0, front.height);
     front.height = static_cast<std::uint16_t>(front_rows);
     front.pixels = front.pixels.first(std::size_t{front.width} * front.height);
-    screen_.BlitMasked(front, kDrawerFronts[drawer]);
+    state.screen.BlitMasked(front, kDrawerFronts[drawer]);
   }
 }
 
-void Office::Compose() {
-  ComposeDesk();
-  const auto& bank = assets_.Bank(EngineBank::kOffice);
+void Office::Compose(EngineState& state) {
+  ComposeDesk(state);
+  const auto& bank = state.assets.Bank(EngineBank::kOffice);
   const auto& sprite = bank.sprites[kPointerImage];
-  const auto pointer = Pointer();
-  screen_.BlitMasked(bank.GetImage(kPointerImage), Point{.x = static_cast<std::int16_t>(pointer.x - sprite.origin_x),
-                                                         .y = static_cast<std::int16_t>(pointer.y - sprite.origin_y)});
+  const auto pointer = Pointer(state);
+  state.screen.BlitMasked(bank.GetImage(kPointerImage),
+                          Point{.x = static_cast<std::int16_t>(pointer.x - sprite.origin_x),
+                                .y = static_cast<std::int16_t>(pointer.y - sprite.origin_y)});
 }
 
 }  // namespace hp2
