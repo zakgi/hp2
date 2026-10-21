@@ -9,11 +9,11 @@
 namespace hp2 {
 
 enum class DisplayBusAction : std::uint8_t {
-  kChipSelectAssert,
-  kChipSelectDeassert,
-  kWait,
-  kCommand,
-  kData,
+  ChipSelectAssert,
+  ChipSelectDeassert,
+  Wait,
+  Command,
+  Data,
 };
 
 // One bus action and its argument: command byte, data byte, or milliseconds.
@@ -23,19 +23,19 @@ struct DisplayStep {
 };
 
 constexpr DisplayStep SelectPanel() {
-  return {.action = DisplayBusAction::kChipSelectAssert};
+  return {.action = DisplayBusAction::ChipSelectAssert};
 }
 constexpr DisplayStep DeselectPanel() {
-  return {.action = DisplayBusAction::kChipSelectDeassert};
+  return {.action = DisplayBusAction::ChipSelectDeassert};
 }
 constexpr DisplayStep Command(std::uint8_t reg) {
-  return {.action = DisplayBusAction::kCommand, .value = reg};
+  return {.action = DisplayBusAction::Command, .value = reg};
 }
 constexpr DisplayStep Data(std::uint8_t byte) {
-  return {.action = DisplayBusAction::kData, .value = byte};
+  return {.action = DisplayBusAction::Data, .value = byte};
 }
 constexpr DisplayStep WaitMs(std::uint16_t millis) {
-  return {.action = DisplayBusAction::kWait, .value = millis};
+  return {.action = DisplayBusAction::Wait, .value = millis};
 }
 
 }  // namespace hp2

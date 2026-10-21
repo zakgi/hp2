@@ -84,9 +84,9 @@ inline constexpr float kFullTurn = 2.0F * std::numbers::pi_v<float>;
 }
 
 // The four sides of a cell as bits, so the sides a cell type opens onto form a mask (0:5eea).
-enum class Side : std::uint8_t { kEast = 1, kWest = 2, kNorth = 4, kSouth = 8 };
+enum class Side : std::uint8_t { East = 1, West = 2, North = 4, South = 8 };
 using SideMask = std::uint8_t;
-inline constexpr auto kSides = std::to_array<Side>({Side::kEast, Side::kWest, Side::kNorth, Side::kSouth});
+inline constexpr auto kSides = std::to_array<Side>({Side::East, Side::West, Side::North, Side::South});
 
 [[nodiscard]] constexpr bool HasSide(SideMask mask, Side side) {
   return (mask & std::to_underlying(side)) != 0;
@@ -102,16 +102,16 @@ static_assert(kCellExits.size() == kRoadCellTypeCount);
 [[nodiscard]] constexpr WorldPoint GetOutward(Side side) {
   auto result = WorldPoint{};
   switch (side) {
-    case Side::kEast:
+    case Side::East:
       result.x = 1.0F;
       break;
-    case Side::kWest:
+    case Side::West:
       result.x = -1.0F;
       break;
-    case Side::kNorth:
+    case Side::North:
       result.y = 1.0F;
       break;
-    case Side::kSouth:
+    case Side::South:
       result.y = -1.0F;
       break;
   }
@@ -119,19 +119,19 @@ static_assert(kCellExits.size() == kRoadCellTypeCount);
 }
 
 [[nodiscard]] constexpr Side GetOpposite(Side side) {
-  auto result = Side::kWest;
+  auto result = Side::West;
   switch (side) {
-    case Side::kEast:
-      result = Side::kWest;
+    case Side::East:
+      result = Side::West;
       break;
-    case Side::kWest:
-      result = Side::kEast;
+    case Side::West:
+      result = Side::East;
       break;
-    case Side::kNorth:
-      result = Side::kSouth;
+    case Side::North:
+      result = Side::South;
       break;
-    case Side::kSouth:
-      result = Side::kNorth;
+    case Side::South:
+      result = Side::North;
       break;
   }
   return result;
@@ -140,16 +140,16 @@ static_assert(kCellExits.size() == kRoadCellTypeCount);
 [[nodiscard]] constexpr Cell GetNeighbor(Cell cell, Side side) {
   auto result = cell;
   switch (side) {
-    case Side::kEast:
+    case Side::East:
       ++result.x;
       break;
-    case Side::kWest:
+    case Side::West:
       --result.x;
       break;
-    case Side::kNorth:
+    case Side::North:
       ++result.y;
       break;
-    case Side::kSouth:
+    case Side::South:
       --result.y;
       break;
   }

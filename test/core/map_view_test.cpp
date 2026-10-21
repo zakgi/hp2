@@ -56,7 +56,7 @@ TEST_F(MapViewTest, DrawsRoadsDesertAndTheCars) {
   EXPECT_EQ(GetPixel(Point{.x = 10, .y = 100}), kMapBlack);
   EXPECT_EQ(GetPixel(GetMapPixel(player)), kMapPlayer);
   EXPECT_EQ(GetPixel(GetMapPixel(target)), kMapTarget);
-  EXPECT_EQ(screen_.Palette(Viewport::kUpper).Color(kMapTarget), (Rgb{.red = 0xff, .green = 0x00, .blue = 0x00}));
+  EXPECT_EQ(screen_.Palette(Viewport::Upper).Color(kMapTarget), (Rgb{.red = 0xff, .green = 0x00, .blue = 0x00}));
 }
 
 }  // namespace

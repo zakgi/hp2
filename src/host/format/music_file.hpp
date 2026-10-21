@@ -12,10 +12,10 @@
 namespace hp2::host {
 
 enum class MusicFileError : std::uint8_t {
-  kTooShort,
-  kBadSongLength,
-  kPatternsOutOfFile,
-  kSamplesOutOfFile,
+  TooShort,
+  BadSongLength,
+  PatternsOutOfFile,
+  SamplesOutOfFile,
 };
 
 // A decoded .MUS file; the asset manager makes a MusicModule of it.

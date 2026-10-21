@@ -20,14 +20,14 @@ struct Controls {
 // What a collision does to a car while it lasts. The original runs five channels and a crash
 // state side by side (UpdateImpacts, 0:4068); here a car has one impact at a time.
 enum class ImpactKind : std::uint8_t {
-  kNone,
-  kBump,   // stones: the body rides a height profile, the steering is held
-  kSpin,   // cactus, sign or car: turned away from the contact, spinning until slow
-  kCrash,  // too long off the road at speed: shaking to a stop, a tire lost
+  None,
+  Bump,   // stones: the body rides a height profile, the steering is held
+  Spin,   // cactus, sign or car: turned away from the contact, spinning until slow
+  Crash,  // too long off the road at speed: shaking to a stop, a tire lost
 };
 
 struct Impact {
-  ImpactKind kind{ImpactKind::kNone};
+  ImpactKind kind{ImpactKind::None};
   float seconds{};     // since it started
   float spin{};        // kSpin: 1 counter-clockwise, -1 clockwise; how fast follows the speed
   float strength{};    // kBump: 0..1 for the gentlest to the roughest of the four profiles

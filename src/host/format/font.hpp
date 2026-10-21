@@ -9,7 +9,7 @@
 namespace hp2::host {
 
 enum class FontError : std::uint8_t {
-  kBadSize,
+  BadSize,
 };
 
 // A decoded LETTRE*.BIN font: 8x8 glyphs for the characters from kFirstCharacter on.

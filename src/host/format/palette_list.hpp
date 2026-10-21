@@ -11,9 +11,9 @@
 namespace hp2::host {
 
 enum class PaletteListError : std::uint8_t {
-  kOutOfHunk,
-  kPastLastRegister,
-  kTooManySegments,
+  OutOfHunk,
+  PastLastRegister,
+  TooManySegments,
 };
 
 // Reads the copper palette list at `offset` in `hunk` (InstallPalette, 1:19b4): repeated

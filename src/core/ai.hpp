@@ -50,18 +50,18 @@ class RouteField {
 // (TargetCarAI 0:3f26, TrafficCarAI 0:3f62).
 struct AiDriver {
   enum class Plan : std::uint8_t {
-    kCruise,   // toward the goal cell
-    kPullIn,   // into a station's driveway, stopping at the pumps
-    kStopped,  // at the pumps: robbing, or waiting for the player to leave
+    Cruise,   // toward the goal cell
+    PullIn,   // into a station's driveway, stopping at the pumps
+    Stopped,  // at the pumps: robbing, or waiting for the player to leave
   };
 
-  Plan plan{Plan::kCruise};
+  Plan plan{Plan::Cruise};
   // Authoritative goal; the distance field is a separate, rebuildable workspace.
   Cell goal{};
   // The cell the car is in, the side it came in by and the side its lane leaves by.
   Cell cell{};
-  Side entry{Side::kSouth};
-  Side exit{Side::kNorth};
+  Side entry{Side::South};
+  Side exit{Side::North};
   // The lanes through this cell and the next one on the route, so the point the driver chases
   // carries over from one to the other.
   std::array<Lane, 2> lanes{};
@@ -141,7 +141,7 @@ struct LeaveWhenWatched {
 // Where a traffic car appears, and where it heads.
 struct TrafficSpawn {
   Cell cell;
-  Side entry{Side::kSouth};
+  Side entry{Side::South};
   Cell goal;
 };
 

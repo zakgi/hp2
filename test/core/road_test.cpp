@@ -91,18 +91,18 @@ void ExpectOnRoad(const Road& road, const Lane& lane, Cell cell) {
 TEST_F(RoadTest, ALaneKeepsToTheRightOfTheCenterLine) {
   const auto road = MakeRoad();
   const auto straight = Cell{.x = 13, .y = 2};
-  const auto north = road.GetLane(straight, Side::kSouth, Side::kNorth);
+  const auto north = road.GetLane(straight, Side::South, Side::North);
   ASSERT_TRUE(north);
   EXPECT_FLOAT_EQ(north->GetLength(), kCellUnits);
   EXPECT_FLOAT_EQ(north->GetPoint(0.0F).x, Inside(straight, 8448, 0).x);
   EXPECT_FLOAT_EQ(north->GetPoint(kCellUnits).y, Inside(straight, 8448, 16384).y);
   EXPECT_FLOAT_EQ(north->GetHeading(100.0F), kFullTurn / 4.0F);
-  const auto south = road.GetLane(straight, Side::kNorth, Side::kSouth);
+  const auto south = road.GetLane(straight, Side::North, Side::South);
   ASSERT_TRUE(south);
   EXPECT_FLOAT_EQ(south->GetPoint(0.0F).x, Inside(straight, 7936, 0).x);
   // No lane through a closed side, or back out the way in.
-  EXPECT_FALSE(road.GetLane(straight, Side::kSouth, Side::kEast));
-  EXPECT_FALSE(road.GetLane(straight, Side::kSouth, Side::kSouth));
+  EXPECT_FALSE(road.GetLane(straight, Side::South, Side::East));
+  EXPECT_FALSE(road.GetLane(straight, Side::South, Side::South));
 }
 
 TEST_F(RoadTest, EveryLaneCrossesItsCellOnTheRoad) {
@@ -148,13 +148,13 @@ TEST_F(RoadTest, ADrivewayPassesThePumpsAndComesBackToTheRoad) {
       }
     }
   }
-  EXPECT_FALSE(road.GetDriveway(Cell{.x = 13, .y = 2}, Side::kSouth));
+  EXPECT_FALSE(road.GetDriveway(Cell{.x = 13, .y = 2}, Side::South));
 }
 
 TEST_F(RoadTest, ALaneLocatesAPointBesideIt) {
   const auto road = MakeRoad();
   // A left turn at a crossroads: straight, arc, straight.
-  const auto lane = road.GetLane(Cell{.x = 25, .y = 5}, Side::kSouth, Side::kWest);
+  const auto lane = road.GetLane(Cell{.x = 25, .y = 5}, Side::South, Side::West);
   ASSERT_TRUE(lane);
   const auto steps = static_cast<int>(lane->GetLength() / 500.0F);
   for (auto step = 0; step < steps; ++step) {

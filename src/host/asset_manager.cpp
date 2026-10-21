@@ -52,26 +52,26 @@ struct PaletteSource {
   ColorFormat format;
 };
 constexpr PaletteSource FromPicture(EnginePicture picture) {
-  return PaletteSource{.picture = picture, .list = HunkOffset{}, .format = ColorFormat::kAtariSt};
+  return PaletteSource{.picture = picture, .list = HunkOffset{}, .format = ColorFormat::AtariSt};
 }
 constexpr PaletteSource FromList(std::uint32_t hunk, std::uint32_t offset, ColorFormat format) {
   return PaletteSource{.picture = std::nullopt, .list = HunkOffset{.hunk = hunk, .offset = offset}, .format = format};
 }
 constexpr auto kPaletteSources = std::to_array<PaletteSource>({
-    FromPicture(EnginePicture::kLogo),
-    FromPicture(EnginePicture::kStation),
-    FromPicture(EnginePicture::kSpinOut),
-    FromPicture(EnginePicture::kTiresGone),
-    FromPicture(EnginePicture::kOutOfFuel),
-    FromPicture(EnginePicture::kOverheated),
-    FromPicture(EnginePicture::kWrecked),
-    FromPicture(EnginePicture::kArrest),
-    FromList(1, 0x28e0, ColorFormat::kAtariSt),  // titlePalette
-    FromList(0, 0xca94, ColorFormat::kAmiga),    // officePalette
-    FromList(0, 0xca6e, ColorFormat::kAmiga),    // officePaletteDim
-    FromList(0, 0x7766, ColorFormat::kAmiga),    // scorePalette
-    FromList(0, 0xa520, ColorFormat::kAmiga),    // viewPalette
-    FromList(0, 0xa734, ColorFormat::kAmiga),    // viewPaletteRed
+    FromPicture(EnginePicture::Logo),
+    FromPicture(EnginePicture::Station),
+    FromPicture(EnginePicture::SpinOut),
+    FromPicture(EnginePicture::TiresGone),
+    FromPicture(EnginePicture::OutOfFuel),
+    FromPicture(EnginePicture::Overheated),
+    FromPicture(EnginePicture::Wrecked),
+    FromPicture(EnginePicture::Arrest),
+    FromList(1, 0x28e0, ColorFormat::AtariSt),  // titlePalette
+    FromList(0, 0xca94, ColorFormat::Amiga),    // officePalette
+    FromList(0, 0xca6e, ColorFormat::Amiga),    // officePaletteDim
+    FromList(0, 0x7766, ColorFormat::Amiga),    // scorePalette
+    FromList(0, 0xa520, ColorFormat::Amiga),    // viewPalette
+    FromList(0, 0xa734, ColorFormat::Amiga),    // viewPaletteRed
 });
 static_assert(kPaletteSources.size() == kEnginePaletteCount);
 
@@ -346,7 +346,7 @@ bool AssetManager::LoadRoadShapes() {
     const auto& place = kRoadShapePlaces[type];
     const auto& data = executable_->hunks[place.hunk].data;
     const auto outline = place.offset <= data.size() ? DecodeRoadShape(data.subspan(place.offset))
-                                                     : std::unexpected{RoadShapeError::kTruncated};
+                                                     : std::unexpected{RoadShapeError::Truncated};
     loaded = outline.has_value();
     if (loaded) {
       road_shape_ranges_[type] = IndexRange{.first = static_cast<std::uint32_t>(road_shape_points_.size()),

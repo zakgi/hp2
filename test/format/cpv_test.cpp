@@ -12,14 +12,14 @@ namespace hp2::host {
 namespace {
 
 TEST(Cpv, RejectsBadInput) {
-  EXPECT_EQ(DecodeCpv(std::vector<std::uint8_t>(10)).error(), CpvError::kTooShort);
+  EXPECT_EQ(DecodeCpv(std::vector<std::uint8_t>(10)).error(), CpvError::TooShort);
   auto file = std::vector<std::uint8_t>(34);
-  EXPECT_EQ(DecodeCpv(file).error(), CpvError::kBadMagic);
+  EXPECT_EQ(DecodeCpv(file).error(), CpvError::BadMagic);
   file[0] = 0x12;
   file[1] = 0x34;
-  EXPECT_EQ(DecodeCpv(file).error(), CpvError::kTruncatedStream);
+  EXPECT_EQ(DecodeCpv(file).error(), CpvError::TruncatedStream);
   file.push_back(0x00);
-  EXPECT_EQ(DecodeCpv(file).error(), CpvError::kZeroRun);
+  EXPECT_EQ(DecodeCpv(file).error(), CpvError::ZeroRun);
 }
 
 TEST(Cpv, FillsColumnsThenPlanes) {

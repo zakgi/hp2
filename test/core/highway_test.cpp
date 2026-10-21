@@ -36,8 +36,8 @@ class HighwayTest : public testing::Test {
 
   void Record(Key key, KeyAction action) { keys_.Record({.key = key, .action = action}); }
   void Press(Key key) {
-    Record(key, KeyAction::kPress);
-    Record(key, KeyAction::kRelease);
+    Record(key, KeyAction::Press);
+    Record(key, KeyAction::Release);
   }
   // Steps one second of frames; returns the component the last frame asked for.
   ComponentType RunOneSecond() {
@@ -59,39 +59,39 @@ class HighwayTest : public testing::Test {
 
 TEST_F(HighwayTest, HoldingUpDrivesForward) {
   const auto start = GetPlayerPosition();
-  Record(Key::kUp, KeyAction::kPress);
+  Record(Key::Up, KeyAction::Press);
   EXPECT_EQ(RunOneSecond(), Highway::kType);
   EXPECT_GT(state_->mission.GetPlayer().speed, 0.0F);
   EXPECT_GT(GetLength(GetPlayerPosition() - start), 0.0F);
 }
 
 TEST_F(HighwayTest, PauseStopsTheCarInPlace) {
-  Press(Key::kP);
-  Record(Key::kUp, KeyAction::kPress);
+  Press(Key::P);
+  Record(Key::Up, KeyAction::Press);
   const auto start = GetPlayerPosition();
   RunOneSecond();
   EXPECT_FLOAT_EQ(GetLength(GetPlayerPosition() - start), 0.0F);
-  Press(Key::kP);
+  Press(Key::P);
   RunOneSecond();
   EXPECT_GT(GetLength(GetPlayerPosition() - start), 0.0F);
 }
 
 TEST_F(HighwayTest, TheMapStopsTheCarInPlace) {
-  Press(Key::kM);
-  Record(Key::kUp, KeyAction::kPress);
+  Press(Key::M);
+  Record(Key::Up, KeyAction::Press);
   const auto start = GetPlayerPosition();
   RunOneSecond();
   EXPECT_FLOAT_EQ(GetLength(GetPlayerPosition() - start), 0.0F);
-  Press(Key::kM);
+  Press(Key::M);
   RunOneSecond();
   EXPECT_GT(GetLength(GetPlayerPosition() - start), 0.0F);
 }
 
 TEST_F(HighwayTest, SSwitchesTheSiren) {
-  Press(Key::kS);
+  Press(Key::S);
   highway_.Step(*state_, kFrameSeconds);
   EXPECT_TRUE(state_->mission.GetProgress().siren);
-  Press(Key::kS);
+  Press(Key::S);
   highway_.Step(*state_, kFrameSeconds);
   EXPECT_FALSE(state_->mission.GetProgress().siren);
 }
@@ -101,17 +101,17 @@ TEST_F(HighwayTest, TheEnginesNoteRisesWithTheSpeed) {
   auto& engine = audio_.GetVoice(Highway::kEngineVoice);
   ASSERT_TRUE(engine.Active());
   // Standing: the sample 540 / 640 of its own rate.
-  const auto& sample = manager_.Engine().Sound(EngineSound::kEngine);
+  const auto& sample = manager_.Engine().Sound(EngineSound::Engine);
   const auto own_step = static_cast<float>(sample.rate_hz) / static_cast<float>(AudioEngine::kSampleRate);
   EXPECT_NEAR(engine.Step(), own_step * 540.0F / 640.0F, 1e-4F);
-  Record(Key::kUp, KeyAction::kPress);
+  Record(Key::Up, KeyAction::Press);
   RunOneSecond();
   EXPECT_GT(engine.Step(), own_step * 540.0F / 640.0F);
   // Paused, it is silent; it starts again with the game.
-  Press(Key::kP);
+  Press(Key::P);
   highway_.Step(*state_, kFrameSeconds);
   EXPECT_FALSE(engine.Active());
-  Press(Key::kP);
+  Press(Key::P);
   highway_.Step(*state_, kFrameSeconds);
   EXPECT_TRUE(engine.Active());
   highway_.OnExit(*state_);
@@ -122,7 +122,7 @@ TEST_F(HighwayTest, TheSirenWailsWhileItIsOn) {
   auto& siren = audio_.GetVoice(Highway::kSirenVoice);
   highway_.Step(*state_, kFrameSeconds);
   EXPECT_FALSE(siren.Active());
-  Press(Key::kS);
+  Press(Key::S);
   highway_.Step(*state_, kFrameSeconds);
   EXPECT_TRUE(siren.Active());
   // It loops: still sounding long after the sample's length.
@@ -131,17 +131,17 @@ TEST_F(HighwayTest, TheSirenWailsWhileItIsOn) {
     audio_.Step(1'000'000);
   }
   EXPECT_TRUE(siren.Active());
-  Press(Key::kS);
+  Press(Key::S);
   highway_.Step(*state_, kFrameSeconds);
   EXPECT_FALSE(siren.Active());
 }
 
 TEST_F(HighwayTest, TheGunSoundsWhenItFires) {
   auto& effect = audio_.GetVoice(Highway::kEffectVoice);
-  Record(Key::kSpace, KeyAction::kPress);
+  Record(Key::Space, KeyAction::Press);
   RunOneSecond();
   EXPECT_FALSE(effect.Active());
-  Press(Key::kT);
+  Press(Key::T);
   highway_.Step(*state_, kFrameSeconds);
   highway_.Step(*state_, kFrameSeconds);
   highway_.Step(*state_, kFrameSeconds);
@@ -161,8 +161,8 @@ TEST_F(HighwayTest, ComingBackFromTheStationGoesOnWithTheMission) {
 
 TEST_F(HighwayTest, TheBountyCountsOnFromTheScore) {
   // A second mission, entered with a score from the first.
-  Press(Key::kEscape);
-  EXPECT_EQ(highway_.Step(*state_, kFrameSeconds), ComponentType::kMissionEnd);
+  Press(Key::Escape);
+  EXPECT_EQ(highway_.Step(*state_, kFrameSeconds), ComponentType::MissionEnd);
   state_->game.score = 700;
   state_->game.mission = 2;
   highway_.OnEnter(*state_);
@@ -170,9 +170,9 @@ TEST_F(HighwayTest, TheBountyCountsOnFromTheScore) {
 }
 
 TEST_F(HighwayTest, EscapeAbandonsTheMission) {
-  Press(Key::kEscape);
-  EXPECT_EQ(highway_.Step(*state_, kFrameSeconds), ComponentType::kMissionEnd);
-  EXPECT_EQ(state_->mission.GetProgress().end_reason, EndReason::kBountyGone);
+  Press(Key::Escape);
+  EXPECT_EQ(highway_.Step(*state_, kFrameSeconds), ComponentType::MissionEnd);
+  EXPECT_EQ(state_->mission.GetProgress().end_reason, EndReason::BountyGone);
 }
 
 TEST_F(HighwayTest, ReplacingTheControllerKeepsTheMissionAndPauseState) {
@@ -181,7 +181,7 @@ TEST_F(HighwayTest, ReplacingTheControllerKeepsTheMissionAndPauseState) {
   auto replacement = Highway{};
   EXPECT_EQ(replacement.Step(*state_, kFrameSeconds), Highway::kType);
   EXPECT_EQ(state_->mission.GetTick(), tick + 1);
-  Press(Key::kP);
+  Press(Key::P);
   replacement.Step(*state_, kFrameSeconds);
   highway_.Step(*state_, kFrameSeconds);
   EXPECT_EQ(state_->mission.GetTick(), tick + 1);
@@ -189,26 +189,26 @@ TEST_F(HighwayTest, ReplacingTheControllerKeepsTheMissionAndPauseState) {
 
 TEST_F(HighwayTest, StationServicesUpdateTheMissionAcrossEngineTransitions) {
   auto engine = Engine<Highway, Station>{*state_};
-  ASSERT_TRUE(engine.Start(ComponentType::kHighway));
+  ASSERT_TRUE(engine.Start(ComponentType::Highway));
   RunOneSecond();
   const auto tick = state_->mission.GetTick();
   state_->mission.GetCondition().fuel = 0.25F;
   state_->mission.GetCondition().tires = 1;
-  ASSERT_TRUE(engine.Switch(ComponentType::kStation));
+  ASSERT_TRUE(engine.Switch(ComponentType::Station));
   EXPECT_TRUE(std::holds_alternative<StationState>(state_->scene));
-  Press(Key::kUp);
-  Press(Key::kUp);
-  Press(Key::kSpace);
+  Press(Key::Up);
+  Press(Key::Up);
+  Press(Key::Space);
   ASSERT_TRUE(engine.Step(0.0F));
   EXPECT_FLOAT_EQ(state_->mission.GetCondition().fuel, 1.0F);
-  Press(Key::kDown);
-  Press(Key::kSpace);
+  Press(Key::Down);
+  Press(Key::Space);
   ASSERT_TRUE(engine.Step(0.0F));
   EXPECT_EQ(state_->mission.GetCondition().tires, GameState::kFullTires);
-  Press(Key::kDown);
-  Press(Key::kSpace);
+  Press(Key::Down);
+  Press(Key::Space);
   ASSERT_TRUE(engine.Step(0.0F));
-  EXPECT_EQ(engine.Active(), ComponentType::kHighway);
+  EXPECT_EQ(engine.Active(), ComponentType::Highway);
   EXPECT_TRUE(std::holds_alternative<HighwayState>(state_->scene));
   EXPECT_EQ(state_->mission.GetTick(), tick);
   EXPECT_FLOAT_EQ(state_->mission.GetCondition().fuel, 1.0F);
@@ -221,15 +221,15 @@ TEST_F(HighwayTest, AStationVisitPreservesTheNextMissionsSeed) {
   driver.OnEnter(reference);
 
   auto engine = Engine<Highway, Station>{*state_};
-  ASSERT_TRUE(engine.Start(ComponentType::kHighway));
-  ASSERT_TRUE(engine.Switch(ComponentType::kStation));
-  ASSERT_TRUE(engine.Switch(ComponentType::kHighway));
-  Press(Key::kEscape);
-  ASSERT_EQ(highway_.Step(*state_, 0.0F), ComponentType::kMissionEnd);
+  ASSERT_TRUE(engine.Start(ComponentType::Highway));
+  ASSERT_TRUE(engine.Switch(ComponentType::Station));
+  ASSERT_TRUE(engine.Switch(ComponentType::Highway));
+  Press(Key::Escape);
+  ASSERT_EQ(highway_.Step(*state_, 0.0F), ComponentType::MissionEnd);
   highway_.OnEnter(*state_);
 
-  Press(Key::kEscape);
-  ASSERT_EQ(driver.Step(reference, 0.0F), ComponentType::kMissionEnd);
+  Press(Key::Escape);
+  ASSERT_EQ(driver.Step(reference, 0.0F), ComponentType::MissionEnd);
   driver.OnEnter(reference);
   EXPECT_FLOAT_EQ(GetLength(state_->mission.GetPlayer().position - reference.mission.GetPlayer().position), 0.0F);
   EXPECT_FLOAT_EQ(GetLength(state_->mission.GetTarget().position - reference.mission.GetTarget().position), 0.0F);
@@ -237,11 +237,11 @@ TEST_F(HighwayTest, AStationVisitPreservesTheNextMissionsSeed) {
 }
 
 TEST_F(HighwayTest, ANewMissionStartsWithFreshViewHistory) {
-  Press(Key::kT);
-  Record(Key::kUp, KeyAction::kPress);
+  Press(Key::T);
+  Record(Key::Up, KeyAction::Press);
   RunOneSecond();
-  Press(Key::kEscape);
-  ASSERT_EQ(highway_.Step(*state_, kFrameSeconds), ComponentType::kMissionEnd);
+  Press(Key::Escape);
+  ASSERT_EQ(highway_.Step(*state_, kFrameSeconds), ComponentType::MissionEnd);
   state_->game.mission = 2;
   highway_.OnEnter(*state_);
   auto expected = Screen{};
@@ -249,7 +249,7 @@ TEST_F(HighwayTest, ANewMissionStartsWithFreshViewHistory) {
   view.Reset(state_->mission);
   view.Draw(state_->mission);
   EXPECT_EQ(state_->mission.GetTick(), 0U);
-  for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
+  for (const auto viewport : {Viewport::Upper, Viewport::Lower}) {
     EXPECT_TRUE(std::ranges::equal(screen_.Pixels(viewport), expected.Pixels(viewport)));
     EXPECT_TRUE(std::ranges::equal(screen_.Palette(viewport).Colors(), expected.Palette(viewport).Colors()));
   }

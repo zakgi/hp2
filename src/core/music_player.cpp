@@ -21,9 +21,9 @@ enum Effect : std::uint8_t {
 
 // Arpeggio notes by tick within a row (ticks 1..5): the parameter's high nibble in semitones, its
 // low nibble, the note itself, the low nibble, the high nibble.
-enum class ArpeggioNote : std::uint8_t { kHigh, kLow, kBase };
+enum class ArpeggioNote : std::uint8_t { High, Low, Base };
 constexpr auto kArpeggioNotes = std::to_array<ArpeggioNote>(
-    {ArpeggioNote::kHigh, ArpeggioNote::kLow, ArpeggioNote::kBase, ArpeggioNote::kLow, ArpeggioNote::kHigh});
+    {ArpeggioNote::High, ArpeggioNote::Low, ArpeggioNote::Base, ArpeggioNote::Low, ArpeggioNote::High});
 
 constexpr auto kNibble = std::uint8_t{0xf};
 constexpr auto kSemitonesPerOctave = 12.0F;
@@ -162,9 +162,9 @@ void MusicPlayer::RunEffects(std::size_t index) {
   } else if (channel.effect == kArpeggio) {
     const auto which = kArpeggioNotes[static_cast<std::size_t>(tick_ - 1) % kArpeggioNotes.size()];
     auto semitones = std::uint8_t{0};
-    if (which == ArpeggioNote::kHigh) {
+    if (which == ArpeggioNote::High) {
       semitones = High(channel.parameter);
-    } else if (which == ArpeggioNote::kLow) {
+    } else if (which == ArpeggioNote::Low) {
       semitones = Low(channel.parameter);
     }
     SetPeriod(index, Transpose(channel.note_period, static_cast<float>(semitones)));

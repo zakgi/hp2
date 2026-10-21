@@ -44,13 +44,13 @@ std::expected<MusicFile, MusicFileError> DecodeMusicFile(std::span<const std::ui
   const auto bytes = std::as_bytes(file);
   auto result = std::expected<MusicFile, MusicFileError>{MusicFile{}};
   if (file.size() < kSizeTableBytes + kPatternsOffset) {
-    result = std::unexpected{MusicFileError::kTooShort};
+    result = std::unexpected{MusicFileError::TooShort};
   } else {
     const auto module = bytes.subspan(kSizeTableBytes);
     const auto song_length = std::to_integer<std::size_t>(module[kSongLengthOffset]);
     const auto positions = file.subspan(kSizeTableBytes + kPositionsOffset, kPositionCount);
     if (song_length == 0 or song_length > kPositionCount) {
-      result = std::unexpected{MusicFileError::kBadSongLength};
+      result = std::unexpected{MusicFileError::BadSongLength};
     } else {
       // As many patterns as the song's highest position names.
       const auto pattern_count = std::size_t{*std::ranges::max_element(positions.first(song_length))} + 1;
@@ -61,9 +61,9 @@ std::expected<MusicFile, MusicFileError> DecodeMusicFile(std::span<const std::ui
         samples_bytes += *ReadBigEndian<std::uint32_t>(bytes.subspan(4 * index));
       }
       if (module.size() < samples_offset) {
-        result = std::unexpected{MusicFileError::kPatternsOutOfFile};
+        result = std::unexpected{MusicFileError::PatternsOutOfFile};
       } else if (module.size() - samples_offset < samples_bytes) {
-        result = std::unexpected{MusicFileError::kSamplesOutOfFile};
+        result = std::unexpected{MusicFileError::SamplesOutOfFile};
       } else {
         result->timer = Word(module, kTimerOffset);
         result->positions.assign(positions.begin(), positions.begin() + static_cast<std::ptrdiff_t>(song_length));

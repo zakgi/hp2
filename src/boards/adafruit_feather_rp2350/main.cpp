@@ -51,9 +51,9 @@ constexpr auto kReportFrames = std::uint32_t{120};
 
 const char* StatusName(hp2::flash::AssetStatus status) {
   const auto* name = "FAIL";
-  if (status == hp2::flash::AssetStatus::kPass) {
+  if (status == hp2::flash::AssetStatus::Pass) {
     name = "PASS";
-  } else if (status == hp2::flash::AssetStatus::kAbsent) {
+  } else if (status == hp2::flash::AssetStatus::Absent) {
     name = "ABSENT";
   }
   return name;
@@ -67,7 +67,7 @@ const char* StatusName(hp2::flash::AssetStatus status) {
   static hp2::EngineState state{assets, screen, key_events, audio, get_rand_64()};
   static hp2::Engine<hp2::Title, hp2::Office, hp2::Highway, hp2::Station, hp2::MissionEnd> engine{state};
 
-  if (not engine.Start(hp2::ComponentType::kTitle)) {
+  if (not engine.Start(hp2::ComponentType::Title)) {
     std::printf("[engine] could not start\n");
   }
   auto last_us = time_us_64();
@@ -85,7 +85,7 @@ const char* StatusName(hp2::flash::AssetStatus status) {
 
     const auto step_timer = hp2::CycleTimer{};
     if (not engine.Step(delta_seconds) or not engine.Running()) {
-      if (not engine.Running() and not engine.Start(hp2::ComponentType::kTitle)) {
+      if (not engine.Running() and not engine.Start(hp2::ComponentType::Title)) {
         std::printf("[engine] could not restart\n");
       }
     }
@@ -115,7 +115,7 @@ constexpr auto kTestColorCount = std::size_t{16};
 void InstallTestPalette() {
   constexpr auto kDim = std::uint8_t{0xaa};
   constexpr auto kBright = std::uint8_t{0xff};
-  auto& palette = screen.Palette(hp2::Viewport::kUpper);
+  auto& palette = screen.Palette(hp2::Viewport::Upper);
   for (auto index = std::size_t{0}; index < kTestColorCount; ++index) {
     const auto level = (index & 8U) != 0 ? kBright : kDim;
     palette.SetColor(static_cast<std::uint8_t>(index),
@@ -190,7 +190,7 @@ int main() {
               static_cast<unsigned long>(hp2::flash::asset_layout::kImageSize),
               static_cast<unsigned long>(hp2::flash::kAssets.address),
               static_cast<unsigned long>(verify_timer.Elapsed()));
-  if (status == hp2::flash::AssetStatus::kPass) {
+  if (status == hp2::flash::AssetStatus::Pass) {
     assets = hp2::flash::asset_layout::FlashAssets(hp2::flash::Image());
     std::printf("[assets] %u pictures, %u sprite banks, title music of %u notes\n",
                 static_cast<unsigned>(assets.pictures.size()), static_cast<unsigned>(assets.banks.size()),

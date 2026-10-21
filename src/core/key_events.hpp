@@ -9,13 +9,13 @@
 
 namespace hp2 {
 
-enum class KeyAction : std::uint8_t { kPress, kRelease };
+enum class KeyAction : std::uint8_t { Press, Release };
 
 // One keystroke edge as the platform saw it. The engine keeps no key levels: whatever needs to know
 // that a key is down follows the presses and releases it consumes.
 struct KeyEvent {
-  Key key{Key::kNone};
-  KeyAction action{KeyAction::kPress};
+  Key key{Key::None};
+  KeyAction action{KeyAction::Press};
 
   constexpr bool operator==(const KeyEvent&) const = default;
 };

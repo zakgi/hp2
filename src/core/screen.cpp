@@ -13,12 +13,12 @@ namespace hp2 {
 
 void Screen::EnableSplit(std::uint16_t split_row) {
   split_row_ = split_row > 0 and split_row < kHeight ? split_row : std::uint16_t{0};
-  selected_ = Viewport::kUpper;
+  selected_ = Viewport::Upper;
 }
 
 void Screen::DisableSplit() {
   split_row_ = 0;
-  selected_ = Viewport::kUpper;
+  selected_ = Viewport::Upper;
 }
 
 void Screen::SetViewport(Viewport viewport) {
@@ -28,14 +28,14 @@ void Screen::SetViewport(Viewport viewport) {
 }
 
 std::uint16_t Screen::FirstRow(Viewport viewport) const {
-  return viewport == Viewport::kLower ? split_row_ : std::uint16_t{0};
+  return viewport == Viewport::Lower ? split_row_ : std::uint16_t{0};
 }
 
 std::uint16_t Screen::Rows(Viewport viewport) const {
   auto rows = kHeight;
   if (split_row_ != 0) {
-    rows = viewport == Viewport::kUpper ? split_row_ : static_cast<std::uint16_t>(kHeight - split_row_);
-  } else if (viewport == Viewport::kLower) {
+    rows = viewport == Viewport::Upper ? split_row_ : static_cast<std::uint16_t>(kHeight - split_row_);
+  } else if (viewport == Viewport::Lower) {
     rows = 0;
   }
   return rows;

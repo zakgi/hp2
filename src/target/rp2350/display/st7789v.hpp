@@ -303,19 +303,19 @@ class St7789v {
   void SendInitSequence() {
     for (const auto& step : kSt7789vInitSequence) {
       switch (step.action) {
-        case DisplayBusAction::kChipSelectAssert:
+        case DisplayBusAction::ChipSelectAssert:
           Select();
           break;
-        case DisplayBusAction::kChipSelectDeassert:
+        case DisplayBusAction::ChipSelectDeassert:
           Deselect();
           break;
-        case DisplayBusAction::kWait:
+        case DisplayBusAction::Wait:
           sleep_ms(step.value);
           break;
-        case DisplayBusAction::kCommand:
+        case DisplayBusAction::Command:
           WriteCommand(static_cast<std::uint8_t>(step.value));
           break;
-        case DisplayBusAction::kData:
+        case DisplayBusAction::Data:
           WriteData(static_cast<std::uint8_t>(step.value));
           break;
       }

@@ -14,15 +14,7 @@
 
 namespace hp2 {
 
-enum class MissionEndStage : std::uint8_t {
-  kPicture,
-  kPictureShown,
-  kPictureOut,
-  kScore,
-  kScoreShown,
-  kScoreOut,
-  kDone
-};
+enum class MissionEndStage : std::uint8_t { Picture, PictureShown, PictureOut, Score, ScoreShown, ScoreOut, Done };
 
 // The end of a mission (CheckMissionEnd, 0:6008; docs/game.md, "Scenes and endings"): the picture
 // of what happened, if there is one, then the score screen, each faded in, held until Space or
@@ -30,7 +22,7 @@ enum class MissionEndStage : std::uint8_t {
 // last poster; every other ending clears the score and starts a new career. Escape quits.
 class MissionEnd {
  public:
-  static constexpr ComponentType kType = ComponentType::kMissionEnd;
+  static constexpr ComponentType kType = ComponentType::MissionEnd;
 
   // How an ending shows (the handlers listed in work/analysis/frontend.md, section 4).
   struct Ending {
@@ -75,7 +67,7 @@ struct MissionEndState {
   using Actions = ActionStack<kActionCapacity, Fade>;
 
   Actions actions;
-  MissionEndStage stage{MissionEndStage::kDone};
+  MissionEndStage stage{MissionEndStage::Done};
   MissionEnd::Ending ending{};
   bool new_career{};
 };

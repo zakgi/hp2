@@ -34,7 +34,7 @@ std::size_t GetIndex(Cell cell) {
 
 // The open side of `cell` nearest to `position`: the side a car just in came by.
 Side GetNearestSide(SideMask exits, Cell cell, WorldPoint position) {
-  auto result = Side::kSouth;
+  auto result = Side::South;
   auto nearest = std::numeric_limits<float>::max();
   const auto middle = GetCellOrigin(cell) + WorldPoint{.x = kHalfCell, .y = kHalfCell};
   for (const auto side : kSides) {
@@ -50,7 +50,7 @@ Side GetNearestSide(SideMask exits, Cell cell, WorldPoint position) {
 // A lane through a cell and the side it leaves by.
 struct PlannedLane {
   Lane lane;
-  Side exit{Side::kNorth};
+  Side exit{Side::North};
 };
 
 // The lane through `cell` from `entry` toward the goal of `route`; no lane where the road does not
@@ -94,10 +94,10 @@ float GetTargetSpeed(const AiDriver& driver, float distance, const VehicleTuning
       start += piece.length;
     }
   }
-  if (driver.plan == AiDriver::Plan::kPullIn) {
+  if (driver.plan == AiDriver::Plan::PullIn) {
     const auto stop = (driver.lanes[0].GetLength() / 2.0F) - distance;
     target = std::min(target, std::sqrt(2.0F * braking * std::max(stop, 0.0F)));
-  } else if (driver.plan == AiDriver::Plan::kStopped) {
+  } else if (driver.plan == AiDriver::Plan::Stopped) {
     target = 0.0F;
   }
   return target;
@@ -109,7 +109,7 @@ bool IsWithinOneCell(Cell first, Cell second) {
 
 // The side of its cell a car heading along `heading` faces.
 Side GetFacingSide(float heading) {
-  auto result = Side::kEast;
+  auto result = Side::East;
   auto most = -2.0F;
   for (const auto side : kSides) {
     if (const auto along = Dot(GetDirection(heading), GetOutward(side)); along > most) {
@@ -312,8 +312,7 @@ bool LeaveWhenWatched::Flee([[maybe_unused]] const PolicyContext& context, [[may
 }
 
 bool LeaveWhenWatched::Shoot(const PolicyContext& context, [[maybe_unused]] Random& random) const {
-  return context.arrest == ArrestMethod::kShoot and
-         GetCell(context.player.position) == GetCell(context.target.position);
+  return context.arrest == ArrestMethod::Shoot and GetCell(context.player.position) == GetCell(context.target.position);
 }
 
 std::optional<TrafficSpawn> AheadOfPlayer::Spawn(const PolicyContext& context, Random& random) const {

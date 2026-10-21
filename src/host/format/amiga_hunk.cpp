@@ -19,7 +19,7 @@ constexpr auto kMemoryFlags = std::uint32_t{0xc0000000};
 constexpr auto kLongBytes = std::size_t{4};
 
 std::expected<std::uint32_t, HunkError> TakeLong(ConstDataSpan& data) {
-  auto result = std::expected<std::uint32_t, HunkError>{std::unexpected{HunkError::kTruncated}};
+  auto result = std::expected<std::uint32_t, HunkError>{std::unexpected{HunkError::Truncated}};
   if (const auto value = TakeBigEndian<std::uint32_t>(data)) {
     result = *value;
   }
@@ -28,7 +28,7 @@ std::expected<std::uint32_t, HunkError> TakeLong(ConstDataSpan& data) {
 
 // `count` longwords of `data`, consumed.
 std::expected<ConstDataSpan, HunkError> TakeLongs(ConstDataSpan& data, std::uint32_t count) {
-  auto result = std::expected<ConstDataSpan, HunkError>{std::unexpected{HunkError::kTruncated}};
+  auto result = std::expected<ConstDataSpan, HunkError>{std::unexpected{HunkError::Truncated}};
   if (count <= data.size() / kLongBytes) {
     result = data.first(std::size_t{count} * kLongBytes);
     data = data.subspan(std::size_t{count} * kLongBytes);
@@ -91,18 +91,18 @@ std::expected<LoadableHunk, HunkError> ParseHunk(ConstDataSpan& data, std::uint3
   if (not size_longs) {
     result = std::unexpected{size_longs.error()};
   } else if (std::size_t{*size_longs & ~kMemoryFlags} * kLongBytes > size) {
-    result = std::unexpected{HunkError::kSizeMismatch};
+    result = std::unexpected{HunkError::SizeMismatch};
   } else {
     hunk.type = static_cast<HunkType>(*type & ~kMemoryFlags);
-    if (hunk.type == HunkType::kCode or hunk.type == HunkType::kData) {
+    if (hunk.type == HunkType::Code or hunk.type == HunkType::Data) {
       const auto bytes = TakeLongs(data, *size_longs & ~kMemoryFlags);
       if (bytes) {
         hunk.data = *bytes;
       } else {
         result = std::unexpected{bytes.error()};
       }
-    } else if (hunk.type != HunkType::kBss) {
-      result = std::unexpected{HunkError::kUnsupportedBlock};
+    } else if (hunk.type != HunkType::Bss) {
+      result = std::unexpected{HunkError::UnsupportedBlock};
     }
   }
   auto ended = false;
@@ -112,17 +112,17 @@ std::expected<LoadableHunk, HunkError> ParseHunk(ConstDataSpan& data, std::uint3
       result = std::unexpected{block.error()};
     } else {
       switch (static_cast<HunkType>(*block & ~kMemoryFlags)) {
-        case HunkType::kReloc32:
+        case HunkType::Reloc32:
           result = ParseRelocations(data, hunk);
           break;
-        case HunkType::kSymbols:
+        case HunkType::Symbols:
           result = ParseSymbols(data, hunk);
           break;
-        case HunkType::kEnd:
+        case HunkType::End:
           ended = true;
           break;
         default:
-          result = std::unexpected{HunkError::kUnsupportedBlock};
+          result = std::unexpected{HunkError::UnsupportedBlock};
           break;
       }
     }
@@ -140,15 +140,15 @@ std::expected<HunkFile, HunkError> HunkFile::FromBytes(ConstDataSpan file) {
   const auto table_size = libraries ? TakeLong(data) : std::unexpected{libraries.error()};
   const auto first = table_size ? TakeLong(data) : std::unexpected{table_size.error()};
   const auto last = first ? TakeLong(data) : std::unexpected{first.error()};
-  if (not header or *header != std::to_underlying(HunkType::kHeader)) {
-    result = std::unexpected{HunkError::kNotExecutable};
+  if (not header or *header != std::to_underlying(HunkType::Header)) {
+    result = std::unexpected{HunkError::NotExecutable};
   } else if (not last) {
     result = std::unexpected{last.error()};
   } else if (*libraries != 0) {
     // Resident library names only occur in overlaid or library files, not in executables.
-    result = std::unexpected{HunkError::kResidentLibraries};
+    result = std::unexpected{HunkError::ResidentLibraries};
   } else if (*last < *first or *last - *first + 1 != *table_size) {
-    result = std::unexpected{HunkError::kSizeMismatch};
+    result = std::unexpected{HunkError::SizeMismatch};
   } else {
     const auto sizes = TakeLongs(data, *table_size);
     if (not sizes) {

@@ -26,11 +26,11 @@ class OfficeTest : public ::testing::Test {
     ASSERT_TRUE(manager_.Load(test::DiskImage()));
     state_.emplace(manager_.Engine(), screen_, keys_, audio_, 42);
     office_.OnEnter(*state_);
-    EXPECT_EQ(office_.Step(*state_, Office::kLightsSeconds), ComponentType::kOffice);
+    EXPECT_EQ(office_.Step(*state_, Office::kLightsSeconds), ComponentType::Office);
   }
 
-  void Press(Key key) { keys_.Record({.key = key, .action = KeyAction::kPress}); }
-  void Release(Key key) { keys_.Record({.key = key, .action = KeyAction::kRelease}); }
+  void Press(Key key) { keys_.Record({.key = key, .action = KeyAction::Press}); }
+  void Release(Key key) { keys_.Record({.key = key, .action = KeyAction::Release}); }
 
   // Holds an arrow for as long as it takes to bring the pointer to `target`, landing half a pixel
   // past it so that the pointer reads exactly `target`.
@@ -38,11 +38,11 @@ class OfficeTest : public ::testing::Test {
     const auto travel = [this](float distance, Key forward, Key backward) {
       const auto key = distance >= 0.0F ? forward : backward;
       Press(key);
-      EXPECT_EQ(office_.Step(*state_, std::abs(distance) / Office::kPointerSpeed), ComponentType::kOffice);
+      EXPECT_EQ(office_.Step(*state_, std::abs(distance) / Office::kPointerSpeed), ComponentType::Office);
       Release(key);
     };
-    travel(static_cast<float>(target.x) + 0.5F - pointer_x_, Key::kRight, Key::kLeft);
-    travel(static_cast<float>(target.y) + 0.5F - pointer_y_, Key::kDown, Key::kUp);
+    travel(static_cast<float>(target.x) + 0.5F - pointer_x_, Key::Right, Key::Left);
+    travel(static_cast<float>(target.y) + 0.5F - pointer_y_, Key::Down, Key::Up);
     pointer_x_ = static_cast<float>(target.x) + 0.5F;
     pointer_y_ = static_cast<float>(target.y) + 0.5F;
     ASSERT_EQ(Office::Pointer(*state_).x, target.x);
@@ -50,16 +50,16 @@ class OfficeTest : public ::testing::Test {
   }
 
   void Click() {
-    Press(Key::kSpace);
-    EXPECT_EQ(office_.Step(*state_, 0.0F), ComponentType::kOffice);
-    Release(Key::kSpace);
+    Press(Key::Space);
+    EXPECT_EQ(office_.Step(*state_, 0.0F), ComponentType::Office);
+    Release(Key::Space);
     // Long enough for any slide to finish.
-    EXPECT_EQ(office_.Step(*state_, 1.0F), ComponentType::kOffice);
+    EXPECT_EQ(office_.Step(*state_, 1.0F), ComponentType::Office);
   }
 
   // A point of the desk in the color of `drawer`, away from the drawer's edges.
   [[nodiscard]] std::optional<Point> DrawerPoint(std::size_t drawer) const {
-    const auto& picture = manager_.Engine().Picture(EnginePicture::kOffice);
+    const auto& picture = manager_.Engine().Picture(EnginePicture::Office);
     const auto color = Office::kDrawerColors[drawer];
     const auto pixel = [&picture](int column, int row) {
       return picture.Row(static_cast<std::uint16_t>(row))[static_cast<std::size_t>(column)];
@@ -97,8 +97,8 @@ class OfficeTest : public ::testing::Test {
 };
 
 TEST_F(OfficeTest, TurnsTheLightsOn) {
-  const auto colors = manager_.Engine().Palette(EnginePalette::kOffice);
-  EXPECT_EQ(screen_.Palette(Viewport::kUpper).Color(15), colors[15]);
+  const auto colors = manager_.Engine().Palette(EnginePalette::Office);
+  EXPECT_EQ(screen_.Palette(Viewport::Upper).Color(15), colors[15]);
   EXPECT_FALSE(Office::Poster(*state_).has_value());
 }
 
@@ -109,9 +109,9 @@ TEST_F(OfficeTest, OpensAPosterAndTakesItsMission) {
   Click();
   ASSERT_EQ(Office::Poster(*state_), 0U);
   MoveTo(Middle(Office::kPosterAreas[0]));
-  Press(Key::kEnter);
-  EXPECT_EQ(office_.Step(*state_, 0.0F), ComponentType::kOffice);
-  EXPECT_EQ(office_.Step(*state_, Office::kLightsSeconds), ComponentType::kHighway);
+  Press(Key::Enter);
+  EXPECT_EQ(office_.Step(*state_, 0.0F), ComponentType::Office);
+  EXPECT_EQ(office_.Step(*state_, Office::kLightsSeconds), ComponentType::Highway);
   EXPECT_EQ(state_->game.mission, 0U);
   EXPECT_FALSE(state_->game.missions_available[0]);
   EXPECT_EQ(state_->game.MissionsLeft(), 5U);
@@ -143,8 +143,8 @@ TEST_F(OfficeTest, ClicksOutsideTheDeskDoNothing) {
   MoveTo(Point{.x = 250, .y = 100});
   Click();
   EXPECT_FALSE(Office::Poster(*state_).has_value());
-  Press(Key::kEscape);
-  EXPECT_EQ(office_.Step(*state_, 0.0F), ComponentType::kQuit);
+  Press(Key::Escape);
+  EXPECT_EQ(office_.Step(*state_, 0.0F), ComponentType::Quit);
 }
 
 }  // namespace

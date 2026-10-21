@@ -51,10 +51,10 @@ constexpr auto kCarBackView = 6;
 constexpr auto kFirstMirroredView = std::uint8_t{7};
 constexpr auto kLastMirroredView = std::uint8_t{16};
 constexpr auto kCarBanks = std::to_array<EngineBank>({
-    EngineBank::kCar2, EngineBank::kCar2, EngineBank::kCar3, EngineBank::kCar3, EngineBank::kCar4, EngineBank::kCar5,
-    EngineBank::kCar6, EngineBank::kCar5, EngineBank::kCar4, EngineBank::kCar3, EngineBank::kCar3, EngineBank::kCar2,
-    EngineBank::kCar2, EngineBank::kCar2, EngineBank::kCar1, EngineBank::kCar1, EngineBank::kCar1, EngineBank::kCar0,
-    EngineBank::kCar0, EngineBank::kCar0, EngineBank::kCar1, EngineBank::kCar1, EngineBank::kCar1, EngineBank::kCar2,
+    EngineBank::Car2, EngineBank::Car2, EngineBank::Car3, EngineBank::Car3, EngineBank::Car4, EngineBank::Car5,
+    EngineBank::Car6, EngineBank::Car5, EngineBank::Car4, EngineBank::Car3, EngineBank::Car3, EngineBank::Car2,
+    EngineBank::Car2, EngineBank::Car2, EngineBank::Car1, EngineBank::Car1, EngineBank::Car1, EngineBank::Car0,
+    EngineBank::Car0, EngineBank::Car0, EngineBank::Car1, EngineBank::Car1, EngineBank::Car1, EngineBank::Car2,
 });
 static_assert(kCarBanks.size() == kCarViewCount);
 // The cars' own size for each step of depth (0:8192).
@@ -83,7 +83,7 @@ constexpr auto kStationPoles = std::to_array<PolePair>({
 });
 
 // The side of a sign the eye sees.
-enum class SignView : std::uint8_t { kEdge, kBack, kFront };
+enum class SignView : std::uint8_t { Edge, Back, Front };
 
 // The step of the size table a depth falls in.
 std::size_t GetDepthStep(float depth) {
@@ -102,11 +102,11 @@ std::size_t GetDepthStep(float depth) {
 SignView GetSignView(float heading, std::uint16_t sign_angle) {
   constexpr auto kQuarterTurn = std::numbers::pi_v<float> / 2.0F;
   const auto turned = std::abs(WrapAngle(heading - FromHalfDegrees(sign_angle)));
-  auto view = SignView::kEdge;
+  auto view = SignView::Edge;
   if (turned < kQuarterTurn / 2.0F) {
-    view = SignView::kBack;
+    view = SignView::Back;
   } else if (turned >= kQuarterTurn * 1.5F) {
-    view = SignView::kFront;
+    view = SignView::Front;
   }
   return view;
 }
@@ -140,28 +140,28 @@ void DrawImage(const SpriteBank& bank, std::size_t image, Point foot, std::uint8
 // A road sign on its pole: the face the eye sees, then the pole under it.
 void DrawRoadSign(EngineBank front, SignView sign_view, std::size_t size, Point foot, std::uint8_t index_offset,
                   const EngineAssets& assets, Screen& screen) {
-  auto bank = EngineBank::kSignEdge;
-  if (sign_view == SignView::kBack) {
-    bank = EngineBank::kSignBack;
-  } else if (sign_view == SignView::kFront) {
+  auto bank = EngineBank::SignEdge;
+  if (sign_view == SignView::Back) {
+    bank = EngineBank::SignBack;
+  } else if (sign_view == SignView::Front) {
     bank = front;
   }
   DrawImage(assets.Bank(bank), size, foot, index_offset, screen);
-  DrawImage(assets.Bank(EngineBank::kSignPole), size, foot, index_offset, screen);
+  DrawImage(assets.Bank(EngineBank::SignPole), size, foot, index_offset, screen);
 }
 
 // A station's sign: from the side its edge on one pole; from the front or the back the arrow
 // toward the station under the board, on two poles.
 void DrawStationSign(SignView sign_view, std::size_t size, Point foot, std::uint8_t index_offset,
                      const EngineAssets& assets, Screen& screen) {
-  const auto& pole = assets.Bank(EngineBank::kSignPole);
-  if (sign_view == SignView::kEdge) {
-    DrawImage(assets.Bank(EngineBank::kStationEdge), size, foot, index_offset, screen);
+  const auto& pole = assets.Bank(EngineBank::SignPole);
+  if (sign_view == SignView::Edge) {
+    DrawImage(assets.Bank(EngineBank::StationEdge), size, foot, index_offset, screen);
     DrawImage(pole, size, foot, index_offset, screen);
   } else {
-    const auto arrow = sign_view == SignView::kBack ? EngineBank::kStationArrowLeft : EngineBank::kStationArrowRight;
+    const auto arrow = sign_view == SignView::Back ? EngineBank::StationArrowLeft : EngineBank::StationArrowRight;
     DrawImage(assets.Bank(arrow), size, foot, index_offset, screen);
-    DrawImage(assets.Bank(EngineBank::kStationBoard), size, foot, index_offset, screen);
+    DrawImage(assets.Bank(EngineBank::StationBoard), size, foot, index_offset, screen);
     const auto poles = kStationPoles[std::min(size, kStationPoles.size() - 1)];
     DrawImage(pole, size, Point{.x = static_cast<std::int16_t>(foot.x + poles.first), .y = foot.y}, index_offset,
               screen);
@@ -267,20 +267,20 @@ void RoadsideObjects::Draw(const ViewDescription& view, const ViewInput& input, 
     if (object.type >= kFirstStone and object.type <= kLastStone) {
       if (step < kStoneStepCount) {
         const auto kind = static_cast<std::size_t>(object.type - kFirstStone);
-        DrawImage(assets.Bank(EngineBank::kStones), (kind * kStoneSizeCount) + size, foot, index_offset, screen);
+        DrawImage(assets.Bank(EngineBank::Stones), (kind * kStoneSizeCount) + size, foot, index_offset, screen);
       }
     } else if (object.type == kCactus) {
-      DrawImage(assets.Bank(EngineBank::kCactus), size, foot, index_offset, screen);
+      DrawImage(assets.Bank(EngineBank::Cactus), size, foot, index_offset, screen);
     } else if (object.type == kBush) {
-      DrawImage(assets.Bank(EngineBank::kBush), size, foot, index_offset, screen);
+      DrawImage(assets.Bank(EngineBank::Bush), size, foot, index_offset, screen);
     } else if (object.type == kSignLeft) {
-      DrawRoadSign(EngineBank::kSignLeft, GetSignView(input.heading, object.extra), size, foot, index_offset, assets,
+      DrawRoadSign(EngineBank::SignLeft, GetSignView(input.heading, object.extra), size, foot, index_offset, assets,
                    screen);
     } else if (object.type == kSignJunction) {
-      DrawRoadSign(EngineBank::kSignJunction, GetSignView(input.heading, object.extra), size, foot, index_offset,
-                   assets, screen);
+      DrawRoadSign(EngineBank::SignJunction, GetSignView(input.heading, object.extra), size, foot, index_offset, assets,
+                   screen);
     } else if (object.type == kSignRight) {
-      DrawRoadSign(EngineBank::kSignRight, GetSignView(input.heading, object.extra), size, foot, index_offset, assets,
+      DrawRoadSign(EngineBank::SignRight, GetSignView(input.heading, object.extra), size, foot, index_offset, assets,
                    screen);
     } else if (object.type == kStationSign) {
       DrawStationSign(GetSignView(input.heading, object.extra), size, foot, index_offset, assets, screen);

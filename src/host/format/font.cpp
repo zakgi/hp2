@@ -21,7 +21,7 @@ constexpr auto kGlyphBytes = std::size_t{Font::kGlyphSize} * kPlaneCount;
 std::expected<Font, FontError> DecodeFont(std::span<const std::uint8_t> file) {
   auto result = std::expected<Font, FontError>{Font{}};
   if (file.empty() or file.size() % kGlyphBytes != 0) {
-    result = std::unexpected{FontError::kBadSize};
+    result = std::unexpected{FontError::BadSize};
   } else {
     result->pixels.resize(file.size() / kGlyphBytes * Font::kGlyphPixels);
     for (auto row = std::size_t{0}; row < file.size() / kPlaneCount; ++row) {

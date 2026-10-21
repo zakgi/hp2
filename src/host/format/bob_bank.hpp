@@ -8,9 +8,9 @@
 namespace hp2::host {
 
 enum class BobBankError : std::uint8_t {
-  kTooShort,
-  kImageOutOfBank,
-  kTooFewTargetPlanes,
+  TooShort,
+  ImageOutOfBank,
+  TooFewTargetPlanes,
 };
 
 // One image of a bob bank (docs/formats.md, "Bob banks: .IMG"), as color indices.

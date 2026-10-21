@@ -10,9 +10,9 @@
 namespace hp2::host {
 
 enum class RoadShapeError : std::uint8_t {
-  kTruncated,
-  kNotClosed,
-  kNotFlat,
+  Truncated,
+  NotClosed,
+  NotFlat,
 };
 
 // Decodes one road outline from the start of `bytes`, as TranslatePolygon3D (0:1c98) reads it: a

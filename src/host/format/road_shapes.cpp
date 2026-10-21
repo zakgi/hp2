@@ -19,11 +19,11 @@ std::expected<std::vector<ShapePoint>, RoadShapeError> DecodeRoadShape(ConstData
   auto result = std::expected<std::vector<ShapePoint>, RoadShapeError>{std::vector<ShapePoint>{}};
   const auto count_word = TakeBigEndian<std::uint16_t>(bytes);
   if (not count_word) {
-    result = std::unexpected{RoadShapeError::kTruncated};
+    result = std::unexpected{RoadShapeError::Truncated};
   } else if (*count_word != kNoOutline) {
     const auto count = static_cast<std::size_t>(*count_word & kCountMask) + 1;
     if (bytes.size() < count * kPointBytes) {
-      result = std::unexpected{RoadShapeError::kTruncated};
+      result = std::unexpected{RoadShapeError::Truncated};
     }
     for (auto index = std::size_t{0}; result and index < count; ++index) {
       // The shapes' x runs east, z north (the map's y), y up.
@@ -31,13 +31,13 @@ std::expected<std::vector<ShapePoint>, RoadShapeError> DecodeRoadShape(ConstData
       const auto north = *TakeBigEndian<std::int16_t>(bytes);
       const auto height = *TakeBigEndian<std::int16_t>(bytes);
       if (height != 0) {
-        result = std::unexpected{RoadShapeError::kNotFlat};
+        result = std::unexpected{RoadShapeError::NotFlat};
       } else {
         result->push_back(ShapePoint{.x = east, .y = north});
       }
     }
     if (result and result->front() != result->back()) {
-      result = std::unexpected{RoadShapeError::kNotClosed};
+      result = std::unexpected{RoadShapeError::NotClosed};
     }
   }
   return result;

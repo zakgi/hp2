@@ -38,7 +38,7 @@ std::vector<std::uint8_t> TargetPlanes(std::uint16_t flags) {
 
 std::expected<BobImage, BobBankError> DecodeImage(std::span<const std::uint8_t> file, std::size_t offset) {
   const auto bytes = std::as_bytes(file);
-  auto result = std::expected<BobImage, BobBankError>{std::unexpected{BobBankError::kImageOutOfBank}};
+  auto result = std::expected<BobImage, BobBankError>{std::unexpected{BobBankError::ImageOutOfBank}};
   if (offset + kImageHeaderBytes <= file.size()) {
     const auto header = bytes.subspan(offset);
     const auto flags = *ReadBigEndian<std::uint16_t>(header);
@@ -49,7 +49,7 @@ std::expected<BobImage, BobBankError> DecodeImage(std::span<const std::uint8_t> 
     const auto plane_bytes = row_bytes * height;
     const auto stored = static_cast<std::size_t>(flags & kStoredPlanesMask);
     if (targets.size() != stored) {
-      result = std::unexpected{BobBankError::kTooFewTargetPlanes};
+      result = std::unexpected{BobBankError::TooFewTargetPlanes};
     } else if (offset + kImageHeaderBytes + (stored * plane_bytes) <= file.size()) {
       auto image = BobImage{.width = static_cast<std::uint16_t>(width_words * 16),
                             .height = height,
@@ -80,7 +80,7 @@ std::expected<std::vector<BobImage>, BobBankError> DecodeBobBank(std::span<const
   auto result = std::expected<std::vector<BobImage>, BobBankError>{std::vector<BobImage>{}};
   const auto count = ReadBigEndian<std::uint16_t>(bytes);
   if (not count or file.size() < 2 + (2 * std::size_t{*count})) {
-    result = std::unexpected{BobBankError::kTooShort};
+    result = std::unexpected{BobBankError::TooShort};
   }
   for (auto index = std::size_t{0}; result and index < count.value_or(0); ++index) {
     const auto offset = *ReadBigEndian<std::uint16_t>(bytes.subspan(2 + (2 * index)));

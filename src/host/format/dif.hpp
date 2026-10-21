@@ -12,10 +12,10 @@
 namespace hp2::host {
 
 enum class DifError : std::uint8_t {
-  kTooShort,
-  kFrameOutOfFile,
-  kOddOffset,
-  kRunPastScreen,
+  TooShort,
+  FrameOutOfFile,
+  OddOffset,
+  RunPastScreen,
 };
 
 // One run of a delta frame as pixel XOR masks: whole 16-pixel groups from screen pixel `offset`
@@ -39,9 +39,9 @@ struct DifFrame {
 [[nodiscard]] std::expected<std::vector<DifFrame>, DifError> DecodeDif(std::span<const std::uint8_t> file);
 
 enum class PlayListError : std::uint8_t {
-  kOutOfHunk,
-  kUnknownFrame,
-  kTooLong,
+  OutOfHunk,
+  UnknownFrame,
+  TooLong,
 };
 
 // Reads the play list at `offset` in `hunk` that PlayDIF (0:106e) walks: {word frame (1-based,

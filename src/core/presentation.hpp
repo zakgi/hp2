@@ -44,7 +44,7 @@ class Hold {
 class Fade {
  public:
   Fade(Screen& screen, float start, float end, float seconds)
-      : palette_(screen.Palette(Viewport::kUpper)), colors_(palette_), start_(start), end_(end), seconds_(seconds) {
+      : palette_(screen.Palette(Viewport::Upper)), colors_(palette_), start_(start), end_(end), seconds_(seconds) {
     Show(start_);
   }
 

@@ -16,9 +16,9 @@ namespace hp2 {
 // choose; Escape quits.
 class Station {
  public:
-  static constexpr ComponentType kType = ComponentType::kStation;
+  static constexpr ComponentType kType = ComponentType::Station;
 
-  enum class Item : std::uint8_t { kFillUp, kRepairTire, kExit };
+  enum class Item : std::uint8_t { FillUp, RepairTire, Exit };
   static constexpr std::size_t kItemCount = 3;
 
   // A horizontal line of the cursor: columns left to right on one row.
@@ -67,7 +67,7 @@ class Station {
 
 // Persistent scene data, owned by EngineState.
 struct StationState {
-  Station::Item cursor{Station::Item::kExit};
+  Station::Item cursor{Station::Item::Exit};
   bool fill_up_used{};
   bool repair_used{};
   bool leaving{};

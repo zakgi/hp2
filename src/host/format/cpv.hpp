@@ -10,10 +10,10 @@
 namespace hp2::host {
 
 enum class CpvError : std::uint8_t {
-  kTooShort,
-  kBadMagic,
-  kZeroRun,
-  kTruncatedStream,
+  TooShort,
+  BadMagic,
+  ZeroRun,
+  TruncatedStream,
 };
 
 // A decoded .CPV picture (docs/formats.md, "Pictures: .CPV").

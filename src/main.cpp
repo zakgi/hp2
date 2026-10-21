@@ -45,7 +45,7 @@ AudioEngine audio;
 struct Options {
   std::filesystem::path disk_image;
   std::uint32_t scaling{};
-  ComponentType start{ComponentType::kTitle};
+  ComponentType start{ComponentType::Title};
   std::optional<EndReason> ending;
   bool station_robbed{};
   std::uint32_t score{};
@@ -85,7 +85,7 @@ int Run(const Options& options) {
     state.mission.GetProgress().end_reason = options.ending;
     state.mission.GetProgress().robbed.set(0, options.station_robbed);
     state.game.score = options.score;
-    if (options.start == ComponentType::kStation) {
+    if (options.start == ComponentType::Station) {
       // A car that needs both services, at the map's first station.
       state.mission.GetCondition().tires = 1;
       state.mission.GetCondition().fuel = 0.5F;
@@ -117,19 +117,19 @@ int main(int argc, char* argv[]) try {
   auto help = args::HelpFlag{parser, "help", "Display this help menu", {'h', "help"}};
   auto scaling = args::ValueFlag<std::uint32_t>{parser, "scaling", "Window scale (1-8)", {'s', "scaling"}, 3};
   auto disk = args::ValueFlag<std::string>{parser, "disk", "Game disk image (ADF)", {'d', "disk"}, "assets/hp2.adf"};
-  const auto screens = std::unordered_map<std::string, hp2::ComponentType>{{"title", hp2::ComponentType::kTitle},
-                                                                           {"office", hp2::ComponentType::kOffice},
-                                                                           {"highway", hp2::ComponentType::kHighway},
-                                                                           {"station", hp2::ComponentType::kStation},
-                                                                           {"ending", hp2::ComponentType::kMissionEnd}};
+  const auto screens = std::unordered_map<std::string, hp2::ComponentType>{{"title", hp2::ComponentType::Title},
+                                                                           {"office", hp2::ComponentType::Office},
+                                                                           {"highway", hp2::ComponentType::Highway},
+                                                                           {"station", hp2::ComponentType::Station},
+                                                                           {"ending", hp2::ComponentType::MissionEnd}};
   auto start = args::MapFlag<std::string, hp2::ComponentType>{
       parser,    "screen", "Screen to start on: title, office, highway, station or ending",
-      {"start"}, screens,  hp2::ComponentType::kTitle};
+      {"start"}, screens,  hp2::ComponentType::Title};
   const auto endings = std::unordered_map<std::string, hp2::EndReason>{
-      {"out-of-fuel", hp2::EndReason::kOutOfFuel}, {"stations-robbed", hp2::EndReason::kStationsRobbed},
-      {"overheated", hp2::EndReason::kOverheated}, {"wrecked", hp2::EndReason::kWrecked},
-      {"tires-gone", hp2::EndReason::kTiresGone},  {"shot", hp2::EndReason::kShot},
-      {"arrest", hp2::EndReason::kArrest},         {"bounty-gone", hp2::EndReason::kBountyGone}};
+      {"out-of-fuel", hp2::EndReason::OutOfFuel}, {"stations-robbed", hp2::EndReason::StationsRobbed},
+      {"overheated", hp2::EndReason::Overheated}, {"wrecked", hp2::EndReason::Wrecked},
+      {"tires-gone", hp2::EndReason::TiresGone},  {"shot", hp2::EndReason::Shot},
+      {"arrest", hp2::EndReason::Arrest},         {"bounty-gone", hp2::EndReason::BountyGone}};
   auto ending = args::MapFlag<std::string, hp2::EndReason>{
       parser,
       "reason",

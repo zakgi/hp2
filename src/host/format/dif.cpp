@@ -49,19 +49,19 @@ std::expected<DifFrame, DifError> DecodeFrame(ConstDataSpan file, std::uint32_t 
   while (result and not finished) {
     const auto count = TakeBigEndian<std::uint16_t>(data);
     if (not count) {
-      result = std::unexpected{DifError::kFrameOutOfFile};
+      result = std::unexpected{DifError::FrameOutOfFile};
     } else if (*count == 0) {
       finished = true;
     } else {
       const auto offset = TakeBigEndian<std::uint16_t>(data);
       const auto bytes = 2 * std::size_t{*count};
       if (not offset or data.size() < bytes) {
-        result = std::unexpected{DifError::kFrameOutOfFile};
+        result = std::unexpected{DifError::FrameOutOfFile};
       } else if (*offset % 2 != 0) {
         // The 68000 cannot XOR a word at an odd address.
-        result = std::unexpected{DifError::kOddOffset};
+        result = std::unexpected{DifError::OddOffset};
       } else if (std::uint32_t{*offset} + bytes > kScreenBytes) {
-        result = std::unexpected{DifError::kRunPastScreen};
+        result = std::unexpected{DifError::RunPastScreen};
       } else {
         result->runs.push_back(ToPixelRun(*offset, data.first(bytes), *count));
         result->words += *count;
@@ -79,7 +79,7 @@ std::expected<std::vector<DifFrame>, DifError> DecodeDif(std::span<const std::ui
   auto result = std::expected<std::vector<DifFrame>, DifError>{std::vector<DifFrame>{}};
   const auto count = ReadBigEndian<std::uint32_t>(bytes);
   if (not count or (file.size() - 4) / 4 < *count) {
-    result = std::unexpected{DifError::kTooShort};
+    result = std::unexpected{DifError::TooShort};
   }
   for (auto frame = std::size_t{1}; result and frame <= count.value_or(0); ++frame) {
     auto decoded = DecodeFrame(bytes, *ReadBigEndian<std::uint32_t>(bytes.subspan(4 * frame)));
@@ -101,13 +101,13 @@ std::expected<std::vector<AnimationStep>, PlayListError> ReadPlayList(const Load
     // The end marker has no delay after it.
     const auto delay = frame == 0 ? std::optional<std::uint16_t>{0} : hunk.Read<std::uint16_t>(offset + 2);
     if (not frame or not delay) {
-      result = std::unexpected{PlayListError::kOutOfHunk};
+      result = std::unexpected{PlayListError::OutOfHunk};
     } else if (*frame == 0) {
       finished = true;
     } else if (*frame > frame_count) {
-      result = std::unexpected{PlayListError::kUnknownFrame};
+      result = std::unexpected{PlayListError::UnknownFrame};
     } else if (result->size() == kMaxSteps) {
-      result = std::unexpected{PlayListError::kTooLong};
+      result = std::unexpected{PlayListError::TooLong};
     } else {
       result->push_back(AnimationStep{.frame = static_cast<std::uint16_t>(*frame - 1), .delay = *delay});
       offset += 4;

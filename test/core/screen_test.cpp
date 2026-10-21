@@ -12,12 +12,12 @@ namespace {
 
 TEST(Screen, SplitsIntoTwoViewports) {
   auto screen = Screen{};
-  EXPECT_EQ(screen.Rows(Viewport::kUpper), Screen::kHeight);
-  EXPECT_EQ(screen.Rows(Viewport::kLower), 0);
+  EXPECT_EQ(screen.Rows(Viewport::Upper), Screen::kHeight);
+  EXPECT_EQ(screen.Rows(Viewport::Lower), 0);
   screen.EnableSplit(132);
-  EXPECT_EQ(screen.Rows(Viewport::kUpper), 132);
-  EXPECT_EQ(screen.FirstRow(Viewport::kLower), 132);
-  EXPECT_EQ(screen.Rows(Viewport::kLower), 68);
+  EXPECT_EQ(screen.Rows(Viewport::Upper), 132);
+  EXPECT_EQ(screen.FirstRow(Viewport::Lower), 132);
+  EXPECT_EQ(screen.Rows(Viewport::Lower), 68);
   screen.EnableSplit(0);
   EXPECT_EQ(screen.SplitRow(), 0);
   screen.EnableSplit(Screen::kHeight);
@@ -27,9 +27,9 @@ TEST(Screen, SplitsIntoTwoViewports) {
 TEST(Screen, DrawsInViewportCoordinates) {
   auto screen = Screen{};
   screen.EnableSplit(100);
-  screen.SetViewport(Viewport::kUpper);
+  screen.SetViewport(Viewport::Upper);
   screen.Clear(1);
-  screen.SetViewport(Viewport::kLower);
+  screen.SetViewport(Viewport::Lower);
   screen.Clear(2);
   EXPECT_EQ(screen.ScreenRow(99)[0], 1);
   EXPECT_EQ(screen.ScreenRow(100)[0], 2);
@@ -57,15 +57,15 @@ TEST(Screen, SwapsAViewportsPaletteWithItsShadow) {
   auto screen = Screen{};
   const auto white = Rgb{.red = 255, .green = 255, .blue = 255};
   const auto red = Rgb{.red = 255};
-  screen.Palette(Viewport::kUpper).SetColor(1, white);
-  screen.ShadowPalette(Viewport::kUpper).SetColor(1, red);
-  screen.SwapPalettes(Viewport::kUpper);
-  EXPECT_EQ(screen.Palette(Viewport::kUpper).Color(1), red);
-  EXPECT_EQ(screen.ShadowPalette(Viewport::kUpper).Color(1), white);
+  screen.Palette(Viewport::Upper).SetColor(1, white);
+  screen.ShadowPalette(Viewport::Upper).SetColor(1, red);
+  screen.SwapPalettes(Viewport::Upper);
+  EXPECT_EQ(screen.Palette(Viewport::Upper).Color(1), red);
+  EXPECT_EQ(screen.ShadowPalette(Viewport::Upper).Color(1), white);
   // The other viewport keeps its own.
-  EXPECT_EQ(screen.Palette(Viewport::kLower).Color(1), Rgb{});
-  screen.SwapPalettes(Viewport::kUpper);
-  EXPECT_EQ(screen.Palette(Viewport::kUpper).Color(1), white);
+  EXPECT_EQ(screen.Palette(Viewport::Lower).Color(1), Rgb{});
+  screen.SwapPalettes(Viewport::Upper);
+  EXPECT_EQ(screen.Palette(Viewport::Upper).Color(1), white);
 }
 
 TEST(Screen, BlitsAMaskedImageFlippedLeftToRight) {
@@ -91,7 +91,7 @@ TEST(Screen, BlitsAMaskedImageFlippedLeftToRight) {
 TEST(Screen, CopiesOverlappingAreas) {
   auto screen = Screen{};
   screen.EnableSplit(10);
-  screen.SetViewport(Viewport::kLower);
+  screen.SetViewport(Viewport::Lower);
   for (auto row = std::uint16_t{0}; row < 4; ++row) {
     screen.Row(row)[0] = static_cast<std::uint8_t>(row + 1);
     screen.Row(row)[1] = static_cast<std::uint8_t>(row + 11);
@@ -124,8 +124,8 @@ TEST(Screen, XorsAcrossRowsAndViewports) {
 
 TEST(Screen, SelectingLowerWithoutSplitIsIgnored) {
   auto screen = Screen{};
-  screen.SetViewport(Viewport::kLower);
-  EXPECT_EQ(screen.SelectedViewport(), Viewport::kUpper);
+  screen.SetViewport(Viewport::Lower);
+  EXPECT_EQ(screen.SelectedViewport(), Viewport::Upper);
 }
 
 TEST(Screen, DrawsClippedVerticalLines) {
@@ -142,13 +142,13 @@ TEST(Screen, DrawsClippedVerticalLines) {
 
 TEST(Screen, HandsOutEachViewportsPixels) {
   auto screen = Screen{};
-  EXPECT_EQ(screen.Pixels(Viewport::kUpper).size(), std::size_t{Screen::kWidth} * Screen::kHeight);
-  EXPECT_TRUE(screen.Pixels(Viewport::kLower).empty());
+  EXPECT_EQ(screen.Pixels(Viewport::Upper).size(), std::size_t{Screen::kWidth} * Screen::kHeight);
+  EXPECT_TRUE(screen.Pixels(Viewport::Lower).empty());
   screen.EnableSplit(132);
-  screen.SetViewport(Viewport::kLower);
+  screen.SetViewport(Viewport::Lower);
   screen.Clear(9);
-  const auto upper = screen.Pixels(Viewport::kUpper);
-  const auto lower = screen.Pixels(Viewport::kLower);
+  const auto upper = screen.Pixels(Viewport::Upper);
+  const auto lower = screen.Pixels(Viewport::Lower);
   EXPECT_EQ(upper.size(), std::size_t{132} * Screen::kWidth);
   EXPECT_EQ(lower.size(), std::size_t{68} * Screen::kWidth);
   EXPECT_EQ(upper.back(), 0);

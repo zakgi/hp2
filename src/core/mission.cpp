@@ -114,26 +114,26 @@ constexpr auto kContactPenalty = std::int32_t{20};
 constexpr auto kFlashSeconds = 2.0F / kOriginalFramesPerSecond;
 
 // What a scenery object is to a car that runs into it, the worst last.
-enum class Obstacle : std::uint8_t { kNone, kBush, kStones, kSolid };
+enum class Obstacle : std::uint8_t { None, Bush, Stones, Solid };
 
 Obstacle GetObstacle(std::uint16_t type) {
   constexpr auto kCactus = std::uint16_t{1};
   constexpr auto kFirstStone = std::uint16_t{3};
   constexpr auto kBush = std::uint16_t{7};
   constexpr auto kLastSign = std::uint16_t{11};
-  auto obstacle = Obstacle::kNone;
+  auto obstacle = Obstacle::None;
   if (type == kCactus or (type > kBush and type <= kLastSign)) {
-    obstacle = Obstacle::kSolid;
+    obstacle = Obstacle::Solid;
   } else if (type >= kFirstStone and type < kBush) {
-    obstacle = Obstacle::kStones;
+    obstacle = Obstacle::Stones;
   } else if (type == kBush) {
-    obstacle = Obstacle::kBush;
+    obstacle = Obstacle::Bush;
   }
   return obstacle;
 }
 
 struct Touch {
-  Obstacle obstacle{Obstacle::kNone};
+  Obstacle obstacle{Obstacle::None};
   bool on_right{};
 };
 
@@ -174,13 +174,13 @@ Hit HitScenery(Vehicle& car, const Road& road, float seconds) {
   const auto speed = std::abs(car.speed);
   if (speed >= kContactSpeed) {
     const auto touch = FindTouch(car, road);
-    if (touch.obstacle == Obstacle::kBush) {
+    if (touch.obstacle == Obstacle::Bush) {
       hit.damage = speed * kStoneDamage * kOriginalFramesPerSecond * seconds;
       car.speed -= car.speed * std::min(1.0F, kBushDrag * seconds);
-    } else if (touch.obstacle == Obstacle::kStones and car.impact.kind == ImpactKind::kNone) {
+    } else if (touch.obstacle == Obstacle::Stones and car.impact.kind == ImpactKind::None) {
       hit.damage = speed * kStoneDamage;
       StartBump(car);
-    } else if (touch.obstacle == Obstacle::kSolid and car.impact.kind == ImpactKind::kNone) {
+    } else if (touch.obstacle == Obstacle::Solid and car.impact.kind == ImpactKind::None) {
       hit = Hit{.damage = speed * kSolidDamage, .hard = true};
       StartSpin(car, touch.on_right);
     }
@@ -326,7 +326,7 @@ void Mission::Start(MissionPathfinding& pathfinding, const MissionType& mission,
   target_driver_ = AiDriver{.cruise_speed = static_cast<float>(mission.target_max_speed) * kOriginalFramesPerSecond};
   if (not SendTarget(pathfinding, progress_.robbed)) {
     // No station to go to: the criminal stays where it is.
-    target_driver_.plan = AiDriver::Plan::kStopped;
+    target_driver_.plan = AiDriver::Plan::Stopped;
   }
   pathfinding.target_route.Update(road_, target_driver_.goal);
   PlanLanes(target_driver_, pathfinding.target_route, road_, target_.position, true);
@@ -350,7 +350,7 @@ void Mission::LeaveStation() {
   if (road_.GetStationIndex(cell)) {
     const auto stopped = player_.position - GetCellOrigin(cell);
     auto exit = stopped.x < kCellUnits / 2.0F ? kEastExit : kWestExit;
-    if (HasSide(road_.GetExits(cell), Side::kNorth)) {
+    if (HasSide(road_.GetExits(cell), Side::North)) {
       exit = stopped.y < kCellUnits / 2.0F ? kNorthExit : kSouthExit;
     }
     player_ = PlaceVehicle(cell, exit.east, exit.north, exit.heading);
@@ -366,9 +366,9 @@ void Mission::StepPlayer(const PlayerCommands& commands, MissionEvents& events) 
   progress_.siren = progress_.siren != commands.toggle_siren;
   progress_.aiming = progress_.aiming != commands.toggle_aim;
   const auto over = progress_.end_reason.has_value();
-  const auto crashing = player_.impact.kind == ImpactKind::kCrash;
+  const auto crashing = player_.impact.kind == ImpactKind::Crash;
   const auto in_station =
-      not over and player_.impact.kind == ImpactKind::kNone and road_.IsInStationArea(player_.position);
+      not over and player_.impact.kind == ImpactKind::None and road_.IsInStationArea(player_.position);
   player_.controls = commands.controls;
   if (over or crashing or in_station) {
     // The car slows by itself: no throttle.
@@ -385,7 +385,7 @@ void Mission::StepPlayer(const PlayerCommands& commands, MissionEvents& events) 
     if (std::abs(player_.speed) < kStationStopSpeed) {
       player_.speed = 0.0F;
       station_ = road_.GetStationIndex(GetCell(player_.position));
-      events.set(std::to_underlying(MissionEvent::kStationStop));
+      events.set(std::to_underlying(MissionEvent::StationStop));
     }
   }
   if (crashing) {
@@ -405,7 +405,7 @@ void Mission::StepCrash(MissionEvents& events) {
     player_.impact = Impact{};
     // With a tire left the mission goes on after the spin-out picture; without, the rules end it.
     if (condition_.tires > 0 and not progress_.end_reason) {
-      events.set(std::to_underlying(MissionEvent::kSpinOut));
+      events.set(std::to_underlying(MissionEvent::SpinOut));
     }
   }
 }
@@ -417,8 +417,8 @@ void Mission::TrackOffRoad(MissionEvents& events) {
     if (condition_.off_road_seconds >= kOffRoadSeconds) {
       condition_.off_road_seconds = 0.0F;
       condition_.tires = static_cast<std::uint8_t>(std::max(condition_.tires - 1, 0));
-      player_.impact = Impact{.kind = ImpactKind::kCrash};
-      events.set(std::to_underlying(MissionEvent::kCrash));
+      player_.impact = Impact{.kind = ImpactKind::Crash};
+      events.set(std::to_underlying(MissionEvent::Crash));
     }
   } else if (not off_road and condition_.off_road) {
     condition_.off_road_seconds /= 2.0F;
@@ -438,7 +438,7 @@ void Mission::ResolveContacts(MissionEvents& events) {
   const auto hit = HitScenery(player_, road_, kTickSeconds);
   condition_.damage = std::min(1.0F, condition_.damage + hit.damage);
   if (hit.hard) {
-    events.set(std::to_underlying(MissionEvent::kCrash));
+    events.set(std::to_underlying(MissionEvent::Crash));
   }
   HitScenery(target_, road_, kTickSeconds);
   for (auto& car : std::span{traffic_}.first(traffic_count_)) {
@@ -477,18 +477,18 @@ void Mission::HitCars(Vehicle& first, Vehicle& second, bool first_is_player, boo
     second.speed = first_speed / 2.0F;
   }
   // Each spins away from the side the other is on.
-  if (first.impact.kind == ImpactKind::kNone) {
+  if (first.impact.kind == ImpactKind::None) {
     StartSpin(first, GetBodyPoint(first, second.position).right >= 0.0F);
   }
-  if (second.impact.kind == ImpactKind::kNone) {
+  if (second.impact.kind == ImpactKind::None) {
     StartSpin(second, GetBodyPoint(second, first.position).right >= 0.0F);
   }
   if (first_is_player) {
     condition_.damage = std::min(1.0F, condition_.damage + (std::abs(first.speed) * kCarDamage));
-    events.set(std::to_underlying(MissionEvent::kCrash));
+    events.set(std::to_underlying(MissionEvent::Crash));
     progress_.flash_seconds = kFlashSeconds;
     auto penalty = 2 * kContactPenalty;
-    if (second_is_target and progress_.mission.arrest == ArrestMethod::kRoadblock) {
+    if (second_is_target and progress_.mission.arrest == ArrestMethod::Roadblock) {
       rammed_standing_ = rammed_standing_ or first_speed < kContactSpeed;
     } else if (second_is_target) {
       penalty += kContactPenalty;
@@ -522,7 +522,7 @@ void Mission::ResolveShots(MissionPathfinding& pathfinding, const PlayerCommands
 }
 
 void Mission::FirePlayerShot(MissionEvents& events) {
-  events.set(std::to_underlying(MissionEvent::kShot));
+  events.set(std::to_underlying(MissionEvent::Shot));
   // The nearest car the sight's line meets while it is over the ground and no higher than a car.
   const auto direction = GetDirection(player_.GetBodyHeading() + progress_.sight.bearing);
   auto nearest = std::numeric_limits<float>::max();
@@ -542,18 +542,18 @@ void Mission::FirePlayerShot(MissionEvents& events) {
     auto penalty = std::int32_t{0};
     auto spins = true;
     if (*hit != 1) {
-      events.set(std::to_underlying(MissionEvent::kTrafficHit));
+      events.set(std::to_underlying(MissionEvent::TrafficHit));
       penalty = kTrafficHitPenalty;
     } else {
-      events.set(std::to_underlying(MissionEvent::kTargetHit));
+      events.set(std::to_underlying(MissionEvent::TargetHit));
       progress_.target_hits = static_cast<std::uint8_t>(std::min(progress_.target_hits + 1, int{kArrestHits}));
-      const auto shooting = progress_.mission.arrest == ArrestMethod::kShoot;
+      const auto shooting = progress_.mission.arrest == ArrestMethod::Shoot;
       penalty = shooting ? 0 : kContactPenalty;
       // The hit that makes the arrest spins the criminal's car out.
       spins = shooting and progress_.target_hits == kArrestHits;
     }
-    if (spins and car.impact.kind == ImpactKind::kNone) {
-      car.impact = Impact{.kind = ImpactKind::kSpin, .spin = 1.0F};
+    if (spins and car.impact.kind == ImpactKind::None) {
+      car.impact = Impact{.kind = ImpactKind::Spin, .spin = 1.0F};
     }
     progress_.bounty = std::max(progress_.bounty - penalty, std::int32_t{0});
   }
@@ -572,7 +572,7 @@ void Mission::FireTargetShot(MissionEvents& events) {
   if (std::abs(along) < kBulletRange and travel >= 0.0F and travel <= kBulletRange) {
     const auto right = start.right - (travel * Cross(forward, fire));
     if (std::abs(right) < kWindshieldDepth * kViewSlope) {
-      events.set(std::to_underlying(MissionEvent::kWindshieldHit));
+      events.set(std::to_underlying(MissionEvent::WindshieldHit));
       const auto hole = ViewDirection{.bearing = std::atan2(-right, kWindshieldDepth),
                                       .elevation = -2.0F * target_.body_lift / kWindshieldDepth};
       const auto deadly = std::abs(right) < kWindshieldDepth * kDeadlySlope and std::abs(hole.elevation) < kDeadlySlope;
@@ -589,13 +589,13 @@ void Mission::FireTargetShot(MissionEvents& events) {
 bool Mission::IsArrested() const {
   auto arrested = false;
   switch (progress_.mission.arrest) {
-    case ArrestMethod::kPullOver:
+    case ArrestMethod::PullOver:
       arrested = progress_.siren and IsInArrestReach(player_, target_);
       break;
-    case ArrestMethod::kRoadblock:
+    case ArrestMethod::Roadblock:
       arrested = rammed_standing_;
       break;
-    case ArrestMethod::kShoot:
+    case ArrestMethod::Shoot:
       arrested = progress_.target_hits >= kArrestHits;
       break;
   }
@@ -610,25 +610,25 @@ void Mission::ApplyRules(MissionEvents& events) {
     // The first that holds, in the original's order, is the ending shown (CheckMissionEnd, 0:6008).
     auto reason = std::optional<EndReason>{};
     if (condition_.fuel <= 0.0F) {
-      reason = EndReason::kOutOfFuel;
+      reason = EndReason::OutOfFuel;
     } else if (progress_.robbed.count() >= road_.GetStations().size()) {
-      reason = EndReason::kStationsRobbed;
+      reason = EndReason::StationsRobbed;
     } else if (condition_.temperature >= 1.0F) {
-      reason = EndReason::kOverheated;
+      reason = EndReason::Overheated;
     } else if (condition_.damage >= 1.0F) {
-      reason = EndReason::kWrecked;
+      reason = EndReason::Wrecked;
     } else if (condition_.tires == 0) {
-      reason = EndReason::kTiresGone;
+      reason = EndReason::TiresGone;
     } else if (shot_dead_) {
-      reason = EndReason::kShot;
+      reason = EndReason::Shot;
     } else if (IsArrested()) {
-      reason = EndReason::kArrest;
+      reason = EndReason::Arrest;
     } else if (progress_.bounty <= 0) {
-      reason = EndReason::kBountyGone;
+      reason = EndReason::BountyGone;
     }
     if (reason) {
       progress_.end_reason = reason;
-      events.set(std::to_underlying(MissionEvent::kMissionOver));
+      events.set(std::to_underlying(MissionEvent::MissionOver));
     }
   }
 }
@@ -640,7 +640,7 @@ void Mission::StepTarget(MissionPathfinding& pathfinding, [[maybe_unused]] Missi
   if (GetCell(target_.position) != driver.cell and not progress_.end_reason) {
     // A new cell: the moment to give up the station it was heading for, if the player is closing in.
     const auto context = GetPolicyContext(pathfinding, progress_.robbed);
-    if (driver.plan == AiDriver::Plan::kCruise and
+    if (driver.plan == AiDriver::Plan::Cruise and
         std::visit([&](const auto& policy) { return policy.Flee(context, random_); }, policies_.reaction)) {
       auto skipped = progress_.robbed;
       if (const auto station = road_.GetStationIndex(driver.goal)) {
@@ -653,23 +653,23 @@ void Mission::StepTarget(MissionPathfinding& pathfinding, [[maybe_unused]] Missi
   }
   if (progress_.end_reason) {
     // The mission is over: the criminal's car stops too, where it is.
-    driver.plan = AiDriver::Plan::kStopped;
-  } else if (driver.plan == AiDriver::Plan::kCruise and driver.cell == driver.goal) {
+    driver.plan = AiDriver::Plan::Stopped;
+  } else if (driver.plan == AiDriver::Plan::Cruise and driver.cell == driver.goal) {
     // In the station's cell, on its driveway.
-    driver.plan = AiDriver::Plan::kPullIn;
+    driver.plan = AiDriver::Plan::PullIn;
     driver.plan_seconds = 0.0F;
-  } else if (driver.plan == AiDriver::Plan::kPullIn and target_.speed == 0.0F and
+  } else if (driver.plan == AiDriver::Plan::PullIn and target_.speed == 0.0F and
              road_.IsInStationArea(target_.position)) {
-    driver.plan = AiDriver::Plan::kStopped;
+    driver.plan = AiDriver::Plan::Stopped;
     driver.plan_seconds = 0.0F;
-  } else if (driver.plan == AiDriver::Plan::kStopped) {
+  } else if (driver.plan == AiDriver::Plan::Stopped) {
     RobStation(pathfinding);
   }
   auto tuning = kComputerCar;
   tuning.top_speed = driver.cruise_speed;
   target_.controls = FollowLane(driver, target_, tuning);
   Drive(target_, tuning, road_, kTickSeconds);
-  if (progress_.end_reason and target_.impact.kind == ImpactKind::kNone) {
+  if (progress_.end_reason and target_.impact.kind == ImpactKind::None) {
     // Once the mission is over the criminal's car takes the player's speed, so the two roll to a
     // stop together (CheckMissionEnd, 0:6008).
     target_.speed = std::abs(player_.speed);
@@ -729,7 +729,7 @@ void Mission::SpawnTraffic(MissionPathfinding& pathfinding) {
   const auto spawn = std::visit([&](const auto& policy) { return policy.Spawn(context, random_); }, policies_.traffic);
   if (spawn) {
     auto& driver = traffic_drivers_[traffic_count_];
-    driver.plan = AiDriver::Plan::kCruise;
+    driver.plan = AiDriver::Plan::Cruise;
     driver.plan_seconds = 0.0F;
     driver.goal = spawn->goal;
     auto& route = pathfinding.traffic_routes[traffic_count_];
@@ -772,7 +772,7 @@ bool Mission::SendTarget(MissionPathfinding& pathfinding, const std::bitset<kSta
   if (station) {
     target_driver_.goal = road_.GetStations()[*station];
     pathfinding.target_route.Update(road_, target_driver_.goal);
-    target_driver_.plan = AiDriver::Plan::kCruise;
+    target_driver_.plan = AiDriver::Plan::Cruise;
     target_driver_.plan_seconds = 0.0F;
   }
   return station.has_value();

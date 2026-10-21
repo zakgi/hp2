@@ -160,7 +160,7 @@ TEST_F(VehicleTest, SpinsOutAwayFromWhatItHit) {
   EXPECT_NEAR(car.position.x, kStart.x - 430.0F, 0.01F);
   EXPECT_FLOAT_EQ(car.heading, kQuarterTurn / 2.0F);
   EXPECT_NEAR(car.GetBodyHeading(), 0.0F, 1e-5F);
-  EXPECT_EQ(car.impact.kind, ImpactKind::kSpin);
+  EXPECT_EQ(car.impact.kind, ImpactKind::Spin);
   // The body spins clockwise and shakes, and the throttle does nothing.
   auto shaken = 0.0F;
   for (auto tick = 0; tick < kTicksPerSecond / 5; ++tick) {
@@ -171,10 +171,10 @@ TEST_F(VehicleTest, SpinsOutAwayFromWhatItHit) {
   EXPECT_LT(car.speed, 4000.0F);
   EXPECT_GT(shaken, 10.0F);
   // Until the car stands, pointing where its body does.
-  for (auto tick = 0; tick < 3 * kTicksPerSecond and car.impact.kind == ImpactKind::kSpin; ++tick) {
+  for (auto tick = 0; tick < 3 * kTicksPerSecond and car.impact.kind == ImpactKind::Spin; ++tick) {
     Drive(car, kTuning, road, kTickSeconds);
   }
-  EXPECT_EQ(car.impact.kind, ImpactKind::kNone);
+  EXPECT_EQ(car.impact.kind, ImpactKind::None);
   EXPECT_FLOAT_EQ(car.speed, 0.0F);
   EXPECT_FLOAT_EQ(car.slip, 0.0F);
   EXPECT_FLOAT_EQ(car.body_lift, 0.0F);
@@ -193,7 +193,7 @@ TEST_F(VehicleTest, RidesABumpWithTheWheelHeld) {
   const auto road = MakeRoad(1);
   auto car = Vehicle{.position = kStart, .speed = 4000.0F};
   StartBump(car);
-  EXPECT_EQ(car.impact.kind, ImpactKind::kBump);
+  EXPECT_EQ(car.impact.kind, ImpactKind::Bump);
   // The third of the four profiles, at 200 units a frame: up to 60 units, over half a second.
   car.controls.steer = 1.0F;
   auto highest = 0.0F;
@@ -203,9 +203,9 @@ TEST_F(VehicleTest, RidesABumpWithTheWheelHeld) {
   }
   EXPECT_NEAR(highest, 60.0F, 1.0F);
   EXPECT_FLOAT_EQ(car.heading, 0.0F);
-  EXPECT_EQ(car.impact.kind, ImpactKind::kBump);
+  EXPECT_EQ(car.impact.kind, ImpactKind::Bump);
   Run(car, road, kTicksPerSecond / 4);
-  EXPECT_EQ(car.impact.kind, ImpactKind::kNone);
+  EXPECT_EQ(car.impact.kind, ImpactKind::None);
   // It has cost a twentieth of the speed a frame, for 9 frames.
   EXPECT_LT(car.speed, 3000.0F);
   EXPECT_GT(car.speed, 2000.0F);

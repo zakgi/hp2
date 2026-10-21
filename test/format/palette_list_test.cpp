@@ -24,7 +24,7 @@ TEST(PaletteList, ReadsTheGamesLists) {
   const auto& data = hunks->hunks[1];
 
   // titlePalette (1:28e0): ST colors, the sky's set, then PRESENT.CPV's.
-  const auto title = ReadPaletteList(data, 0x28e0, ColorFormat::kAtariSt);
+  const auto title = ReadPaletteList(data, 0x28e0, ColorFormat::AtariSt);
   ASSERT_TRUE(title.has_value());
   ASSERT_EQ(title->size(), 2 * kColorRegisterCount);
   // The stored ST word 0x257, decoded.
@@ -32,7 +32,7 @@ TEST(PaletteList, ReadsTheGamesLists) {
 
   // viewPalette (0:a520): 39 segments. The third writes register 8 only; the other registers keep
   // the second set's colors.
-  const auto view = ReadPaletteList(code, 0xa520, ColorFormat::kAmiga);
+  const auto view = ReadPaletteList(code, 0xa520, ColorFormat::Amiga);
   ASSERT_TRUE(view.has_value());
   ASSERT_EQ(view->size(), 39 * kColorRegisterCount);
   const auto second = std::span{*view}.subspan(kColorRegisterCount, kColorRegisterCount);
@@ -42,7 +42,7 @@ TEST(PaletteList, ReadsTheGamesLists) {
   EXPECT_TRUE(std::ranges::equal(third.subspan(9), second.subspan(9)));
 
   // A header that runs past the end of the hunk.
-  EXPECT_EQ(ReadPaletteList(data, 0x3f98, ColorFormat::kAmiga).error(), PaletteListError::kOutOfHunk);
+  EXPECT_EQ(ReadPaletteList(data, 0x3f98, ColorFormat::Amiga).error(), PaletteListError::OutOfHunk);
 }
 
 }  // namespace

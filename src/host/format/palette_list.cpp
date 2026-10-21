@@ -27,18 +27,18 @@ std::expected<std::vector<Rgb>, PaletteListError> ReadPaletteList(const Loadable
     const auto count = hunk.Read<std::uint16_t>(offset + 2);
     const auto lines = hunk.Read<std::uint16_t>(offset + 4);
     if (not first or not count or not lines) {
-      result = std::unexpected{PaletteListError::kOutOfHunk};
+      result = std::unexpected{PaletteListError::OutOfHunk};
     } else if (std::size_t{*first} + *count > kColorRegisterCount) {
-      result = std::unexpected{PaletteListError::kPastLastRegister};
+      result = std::unexpected{PaletteListError::PastLastRegister};
     } else if (result->size() == kMaxSegments * kColorRegisterCount) {
-      result = std::unexpected{PaletteListError::kTooManySegments};
+      result = std::unexpected{PaletteListError::TooManySegments};
     } else {
       for (auto index = std::uint32_t{0}; index < *count and result; ++index) {
         const auto color = hunk.Read<std::uint16_t>(offset + kSegmentHeaderBytes + (2 * index));
         if (color) {
           colors[*first + index] = FromColorWord(*color, format);
         } else {
-          result = std::unexpected{PaletteListError::kOutOfHunk};
+          result = std::unexpected{PaletteListError::OutOfHunk};
         }
       }
       if (result) {

@@ -41,9 +41,9 @@ TEST(ObjectPlacement, ReadsTheListOfEveryCellType) {
 }
 
 TEST(ObjectPlacement, RejectsListsPastTheEnd) {
-  EXPECT_EQ(DecodeObjectPlacement(std::vector<std::uint8_t>(51)).error(), ObjectPlacementError::kTooShort);
+  EXPECT_EQ(DecodeObjectPlacement(std::vector<std::uint8_t>(51)).error(), ObjectPlacementError::TooShort);
   EXPECT_EQ(DecodeObjectPlacement(OneList({0x00, 0x02, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0})).error(),
-            ObjectPlacementError::kListOutOfFile);
+            ObjectPlacementError::ListOutOfFile);
 }
 
 TEST(ObjectPlacement, DecodesTheGamesScenery) {

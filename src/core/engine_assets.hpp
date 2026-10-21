@@ -19,92 +19,92 @@ namespace hp2 {
 
 // The full-screen pictures (.CPV files), 320 x 200 each, named by meaning.
 enum class EnginePicture : std::uint8_t {
-  kLogo,        // LOGO.CPV, the publisher's logo
-  kTitle,       // PRESENT.CPV
-  kOffice,      // bureau.cpv, where the missions are chosen
-  kStation,     // STATION.CPV, the gas station
-  kSpinOut,     // PAGE_F1.CPV: spun out after leaving the road, the game goes on
-  kTiresGone,   // PAGE_F2.CPV
-  kOutOfFuel,   // PAGE_F3.CPV
-  kOverheated,  // PAGE_F4.CPV
-  kWrecked,     // PAGE_F5.CPV
-  kArrest,      // PAGE_F6.CPV
-  kCount,
+  Logo,        // LOGO.CPV, the publisher's logo
+  Title,       // PRESENT.CPV
+  Office,      // bureau.cpv, where the missions are chosen
+  Station,     // STATION.CPV, the gas station
+  SpinOut,     // PAGE_F1.CPV: spun out after leaving the road, the game goes on
+  TiresGone,   // PAGE_F2.CPV
+  OutOfFuel,   // PAGE_F3.CPV
+  Overheated,  // PAGE_F4.CPV
+  Wrecked,     // PAGE_F5.CPV
+  Arrest,      // PAGE_F6.CPV
+  Count,
 };
 
 // Palettes: a picture's own (the header of its .CPV) or one of the executable's lists
 // (docs/formats.md, "Palettes in the executable").
 enum class EnginePalette : std::uint8_t {
-  kLogo,
-  kStation,
-  kSpinOut,
-  kTiresGone,
-  kOutOfFuel,
-  kOverheated,
-  kWrecked,
-  kArrest,
-  kTitle,      // 1:28e0: the sky's colors, then PRESENT.CPV's
-  kOffice,     // 0:ca94
-  kOfficeDim,  // 0:ca6e
-  kScore,      // 0:7766: end and score screens
-  kView,       // 0:a520: the driving screen
-  kViewRed,    // 0:a734: the driving screen's red flash
-  kCount,
+  Logo,
+  Station,
+  SpinOut,
+  TiresGone,
+  OutOfFuel,
+  Overheated,
+  Wrecked,
+  Arrest,
+  Title,      // 1:28e0: the sky's colors, then PRESENT.CPV's
+  Office,     // 0:ca94
+  OfficeDim,  // 0:ca6e
+  Score,      // 0:7766: end and score screens
+  View,       // 0:a520: the driving screen
+  ViewRed,    // 0:a734: the driving screen's red flash
+  Count,
 };
 
 // The sprite banks (.IMG files), named by meaning; the file names are French.
 enum class EngineBank : std::uint8_t {
-  kNames,              // NAME.IMG, the title's lettering
-  kOffice,             // BUREAU.IMG: wanted posters, drawer fronts, the pointer
-  kStation,            // STATION.IMG: menu items and attendants
-  kScore,              // GAME_SCO.IMG: GAME OVER, SCORE:, the digits
-  kGun,                // BALLE.IMG: gun, bullet, muzzle flash
-  kCactus,             // CACTUS.IMG
-  kBush,               // BUISSON.IMG
-  kStones,             // CAILLOUX.IMG
-  kBackdrop,           // DEC_FOND.IMG: horizon strips
-  kCockpit,            // DES_TABB.IMG: steering wheel, hands, dashboard, roof
-  kSignPole,           // PAN_POT.IMG
-  kSignLeft,           // PAN_GAU.IMG
-  kSignJunction,       // PAN_CRO.IMG
-  kSignRight,          // PAN_DRO.IMG
-  kSignBack,           // PAN_ARR.IMG
-  kSignEdge,           // PAN_PRO.IMG
-  kStationArrowLeft,   // PST_FLG.IMG
-  kStationArrowRight,  // PST_FLD.IMG
-  kStationEdge,        // PST_PRO.IMG
-  kStationBoard,       // PST_STA.IMG
-  kCar0,               // VOITURE0.IMG .. VOITURE6.IMG: the cars at 10 sizes
-  kCar1,
-  kCar2,
-  kCar3,
-  kCar4,
-  kCar5,
-  kCar6,
-  kCount,
+  Names,              // NAME.IMG, the title's lettering
+  Office,             // BUREAU.IMG: wanted posters, drawer fronts, the pointer
+  Station,            // STATION.IMG: menu items and attendants
+  Score,              // GAME_SCO.IMG: GAME OVER, SCORE:, the digits
+  Gun,                // BALLE.IMG: gun, bullet, muzzle flash
+  Cactus,             // CACTUS.IMG
+  Bush,               // BUISSON.IMG
+  Stones,             // CAILLOUX.IMG
+  Backdrop,           // DEC_FOND.IMG: horizon strips
+  Cockpit,            // DES_TABB.IMG: steering wheel, hands, dashboard, roof
+  SignPole,           // PAN_POT.IMG
+  SignLeft,           // PAN_GAU.IMG
+  SignJunction,       // PAN_CRO.IMG
+  SignRight,          // PAN_DRO.IMG
+  SignBack,           // PAN_ARR.IMG
+  SignEdge,           // PAN_PRO.IMG
+  StationArrowLeft,   // PST_FLG.IMG
+  StationArrowRight,  // PST_FLD.IMG
+  StationEdge,        // PST_PRO.IMG
+  StationBoard,       // PST_STA.IMG
+  Car0,               // VOITURE0.IMG .. VOITURE6.IMG: the cars at 10 sizes
+  Car1,
+  Car2,
+  Car3,
+  Car4,
+  Car5,
+  Car6,
+  Count,
 };
 
 // The two fonts differ in colors only.
 enum class EngineFont : std::uint8_t {
-  kLettre1,  // LETTRE1.BIN
-  kLettre2,  // LETTRE2.BIN
-  kCount,
+  Lettre1,  // LETTRE1.BIN
+  Lettre2,  // LETTRE2.BIN
+  Count,
 };
 
 enum class EngineSound : std::uint8_t {
-  kEngine,  // MOTEUR.SND
-  kSiren,   // SIRENE.SND
-  kShot,    // TIR.SND
-  kSkid,    // DERAP.SND
-  kCrash,   // CHOC.SND
-  kCount,
+  Engine,  // MOTEUR.SND
+  Siren,   // SIRENE.SND
+  Shot,    // TIR.SND
+  Skid,    // DERAP.SND
+  Crash,   // CHOC.SND
+  Count,
 };
 
-inline constexpr std::size_t kEnginePictureCount = std::to_underlying(EnginePicture::kCount);
-inline constexpr std::size_t kEnginePaletteCount = std::to_underlying(EnginePalette::kCount);
-inline constexpr std::size_t kEngineBankCount = std::to_underlying(EngineBank::kCount);
-inline constexpr std::size_t kEngineFontCount = std::to_underlying(EngineFont::kCount);
-inline constexpr std::size_t kEngineSoundCount = std::to_underlying(EngineSound::kCount);
+inline constexpr std::size_t kEnginePictureCount = std::to_underlying(EnginePicture::Count);
+inline constexpr std::size_t kEnginePaletteCount = std::to_underlying(EnginePalette::Count);
+inline constexpr std::size_t kEngineBankCount = std::to_underlying(EngineBank::Count);
+inline constexpr std::size_t kEngineFontCount = std::to_underlying(EngineFont::Count);
+inline constexpr std::size_t kEngineSoundCount = std::to_underlying(EngineSound::Count);
 
 // Everything the game disk supplies, decoded: views only, no file names or decoders. Filled once by
 // the host asset manager, or bound to the flash image by the generated asset_layout::FlashAssets()

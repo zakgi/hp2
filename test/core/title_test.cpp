@@ -27,7 +27,7 @@ constexpr auto kFinishedRgb = "e86067cfadd46145b43e81c43013a60c30edce91937e027ec
 // The screen's pixels through each viewport's palette, as RGB rows.
 std::vector<std::uint8_t> ResolveRgb(const Screen& screen) {
   auto rgb = std::vector<std::uint8_t>{};
-  for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
+  for (const auto viewport : {Viewport::Upper, Viewport::Lower}) {
     const auto& palette = screen.Palette(viewport);
     const auto first = screen.FirstRow(viewport);
     for (auto row = first; row < first + screen.Rows(viewport); ++row) {
@@ -47,7 +47,7 @@ bool ShowsTheTitle(const Screen& screen) {
 
 // Whether every palette entry is black.
 bool AllBlack(const Screen& screen) {
-  return std::ranges::all_of(screen.Palette(Viewport::kUpper).Colors(), [](Rgb color) { return color == Rgb{}; });
+  return std::ranges::all_of(screen.Palette(Viewport::Upper).Colors(), [](Rgb color) { return color == Rgb{}; });
 }
 
 class TitleTest : public ::testing::Test {
@@ -60,7 +60,7 @@ class TitleTest : public ::testing::Test {
     state_.emplace(manager_.Engine(), screen_, keys_, audio_, 42);
   }
 
-  void Press(Key key) { keys_.Record({.key = key, .action = KeyAction::kPress}); }
+  void Press(Key key) { keys_.Record({.key = key, .action = KeyAction::Press}); }
 
   host::AssetManager manager_;
   Screen screen_;
@@ -72,11 +72,11 @@ class TitleTest : public ::testing::Test {
 TEST_F(TitleTest, FadesTheLogoIn) {
   auto title = Title{};
   title.OnEnter(*state_);
-  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::Title);
   EXPECT_FALSE(ShowsTheTitle(screen_));
   EXPECT_TRUE(AllBlack(screen_));
   // One long tick runs the whole fade.
-  EXPECT_EQ(title.Step(*state_, kFadeSeconds), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, kFadeSeconds), ComponentType::Title);
   EXPECT_EQ(test::Sha256Hex(ResolveRgb(screen_)), kLogoRgb);
 }
 
@@ -85,7 +85,7 @@ TEST_F(TitleTest, PlaysThroughToTheFinishedTitle) {
   title.OnEnter(*state_);
   // About 9.5 seconds of presentation; the finished title then waits for a keystroke.
   for (auto tick = 0; tick < 600; ++tick) {
-    ASSERT_EQ(title.Step(*state_, 1.0F / 30.0F), ComponentType::kTitle);
+    ASSERT_EQ(title.Step(*state_, 1.0F / 30.0F), ComponentType::Title);
   }
   EXPECT_TRUE(ShowsTheTitle(screen_));
   EXPECT_EQ(test::Sha256Hex(ResolveRgb(screen_)), kFinishedRgb);
@@ -94,18 +94,18 @@ TEST_F(TitleTest, PlaysThroughToTheFinishedTitle) {
 TEST_F(TitleTest, SkipsToTheFinishedTitleThenFadesOutToTheOffice) {
   auto title = Title{};
   title.OnEnter(*state_);
-  EXPECT_EQ(title.Step(*state_, 0.5F), ComponentType::kTitle);
-  keys_.Record({.key = Key::kSpace, .action = KeyAction::kRelease});
-  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
+  EXPECT_EQ(title.Step(*state_, 0.5F), ComponentType::Title);
+  keys_.Record({.key = Key::Space, .action = KeyAction::Release});
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::Title);
   EXPECT_FALSE(ShowsTheTitle(screen_));  // a release alone is not a keystroke to act on
-  Press(Key::kEnter);
-  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
+  Press(Key::Enter);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::Title);
   EXPECT_EQ(test::Sha256Hex(ResolveRgb(screen_)), kFinishedRgb);
 
-  Press(Key::kSpace);
-  EXPECT_EQ(title.Step(*state_, kFadeSeconds), ComponentType::kTitle);
+  Press(Key::Space);
+  EXPECT_EQ(title.Step(*state_, kFadeSeconds), ComponentType::Title);
   EXPECT_TRUE(AllBlack(screen_));
-  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kOffice);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::Office);
 }
 
 TEST_F(TitleTest, PlaysTheMusicFromTheTitleToTheFadeOut) {
@@ -113,29 +113,29 @@ TEST_F(TitleTest, PlaysTheMusicFromTheTitleToTheFadeOut) {
   title.OnEnter(*state_);
   // The logo fades in, stays and goes; the music starts with the title picture.
   for (auto tick = 0; tick < 150; ++tick) {
-    ASSERT_EQ(title.Step(*state_, 1.0F / 30.0F), ComponentType::kTitle);
+    ASSERT_EQ(title.Step(*state_, 1.0F / 30.0F), ComponentType::Title);
     if (not ShowsTheTitle(screen_)) {
       EXPECT_FALSE(audio_.MusicPlaying());
     }
   }
   EXPECT_TRUE(ShowsTheTitle(screen_));
   EXPECT_TRUE(audio_.MusicPlaying());
-  Press(Key::kSpace);  // to the finished title
-  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
+  Press(Key::Space);  // to the finished title
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::Title);
   EXPECT_TRUE(audio_.MusicPlaying());
-  Press(Key::kSpace);  // fade out
-  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
+  Press(Key::Space);  // fade out
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::Title);
   EXPECT_FALSE(audio_.MusicPlaying());
 }
 
 TEST_F(TitleTest, SkippingStartsTheMusic) {
   auto title = Title{};
   title.OnEnter(*state_);
-  Press(Key::kEnter);
-  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
+  Press(Key::Enter);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::Title);
   EXPECT_TRUE(audio_.MusicPlaying());
-  Press(Key::kEscape);
-  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kQuit);
+  Press(Key::Escape);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::Quit);
   title.OnExit(*state_);
   EXPECT_FALSE(audio_.MusicPlaying());
 }
@@ -143,10 +143,10 @@ TEST_F(TitleTest, SkippingStartsTheMusic) {
 TEST_F(TitleTest, QuitsOnEscapeAtAnyTime) {
   auto title = Title{};
   title.OnEnter(*state_);
-  Press(Key::kA);
-  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kTitle);
-  Press(Key::kEscape);
-  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::kQuit);
+  Press(Key::A);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::Title);
+  Press(Key::Escape);
+  EXPECT_EQ(title.Step(*state_, 0.0F), ComponentType::Quit);
 }
 
 TEST(OriginalTiming, CountsThePresentationWaits) {

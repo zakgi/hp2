@@ -22,8 +22,8 @@ Station::Item Station::Cursor(const EngineState& state) {
 void Station::OnEnter(EngineState& state) {
   state.scene.emplace<StationState>();
   state.screen.DisableSplit();
-  state.screen.Palette(Viewport::kUpper).Reset();
-  state.screen.Palette(Viewport::kUpper).Overlay(state.assets.Palette(EnginePalette::kStation), 0);
+  state.screen.Palette(Viewport::Upper).Reset();
+  state.screen.Palette(Viewport::Upper).Overlay(state.assets.Palette(EnginePalette::Station), 0);
   state.keys.Clear();
   Compose(state);
 }
@@ -31,9 +31,9 @@ void Station::OnEnter(EngineState& state) {
 bool Station::Available(const EngineState& state, Item item) {
   const auto& station = std::get<StationState>(state.scene);
   auto available = true;
-  if (item == Item::kFillUp) {
+  if (item == Item::FillUp) {
     available = not IsRobbed(state) and not station.fill_up_used;
-  } else if (item == Item::kRepairTire) {
+  } else if (item == Item::RepairTire) {
     available =
         not IsRobbed(state) and not station.repair_used and state.mission.GetCondition().tires < GameState::kFullTires;
   }
@@ -48,15 +48,15 @@ ComponentType Station::Step(EngineState& state, [[maybe_unused]] float delta_sec
   auto& station = std::get<StationState>(state.scene);
   auto quit = false;
   while (const auto event = state.keys.Next()) {
-    if (event->action == KeyAction::kPress) {
+    if (event->action == KeyAction::Press) {
       const auto index = std::to_underlying(station.cursor);
-      if (event->key == Key::kUp and index > 0) {
+      if (event->key == Key::Up and index > 0) {
         station.cursor = static_cast<Item>(index - 1);
-      } else if (event->key == Key::kDown and std::size_t{index} + 1 < kItemCount) {
+      } else if (event->key == Key::Down and std::size_t{index} + 1 < kItemCount) {
         station.cursor = static_cast<Item>(index + 1);
-      } else if (event->key == Key::kSpace or event->key == Key::kEnter) {
+      } else if (event->key == Key::Space or event->key == Key::Enter) {
         Choose(state);
-      } else if (event->key == Key::kEscape) {
+      } else if (event->key == Key::Escape) {
         quit = true;
       }
     }
@@ -64,9 +64,9 @@ ComponentType Station::Step(EngineState& state, [[maybe_unused]] float delta_sec
   Compose(state);
   auto next = kType;
   if (quit) {
-    next = ComponentType::kQuit;
+    next = ComponentType::Quit;
   } else if (station.leaving) {
-    next = ComponentType::kHighway;
+    next = ComponentType::Highway;
   }
   return next;
 }
@@ -77,15 +77,15 @@ void Station::Choose(EngineState& state) {
   auto& station = std::get<StationState>(state.scene);
   if (Available(state, station.cursor)) {
     switch (station.cursor) {
-      case Item::kFillUp:
+      case Item::FillUp:
         state.mission.GetCondition().fuel = 1.0F;
         station.fill_up_used = true;
         break;
-      case Item::kRepairTire:
+      case Item::RepairTire:
         state.mission.GetCondition().tires = GameState::kFullTires;
         station.repair_used = true;
         break;
-      case Item::kExit:
+      case Item::Exit:
         station.leaving = true;
         break;
     }
@@ -94,8 +94,8 @@ void Station::Choose(EngineState& state) {
 
 void Station::Compose(EngineState& state) {
   auto& station = std::get<StationState>(state.scene);
-  const auto& bank = state.assets.Bank(EngineBank::kStation);
-  state.screen.Blit(state.assets.Picture(EnginePicture::kStation), Point{});
+  const auto& bank = state.assets.Bank(EngineBank::Station);
+  state.screen.Blit(state.assets.Picture(EnginePicture::Station), Point{});
   if (IsRobbed(state)) {
     state.screen.Blit(bank.GetImage(kRobbedAttendantImage), kRobbedAttendantPosition);
   } else {
@@ -105,11 +105,11 @@ void Station::Compose(EngineState& state) {
   const auto item_image = [&state](Item item, std::size_t image, std::size_t grey_image) {
     return Available(state, item) ? image : grey_image;
   };
-  state.screen.BlitMasked(bank.GetImage(item_image(Item::kFillUp, kFillUpImage, kFillUpGrayImage)),
-                          kItemPositions[std::to_underlying(Item::kFillUp)]);
-  state.screen.BlitMasked(bank.GetImage(item_image(Item::kRepairTire, kRepairTireImage, kRepairTireGrayImage)),
-                          kItemPositions[std::to_underlying(Item::kRepairTire)]);
-  state.screen.BlitMasked(bank.GetImage(kExitImage), kItemPositions[std::to_underlying(Item::kExit)]);
+  state.screen.BlitMasked(bank.GetImage(item_image(Item::FillUp, kFillUpImage, kFillUpGrayImage)),
+                          kItemPositions[std::to_underlying(Item::FillUp)]);
+  state.screen.BlitMasked(bank.GetImage(item_image(Item::RepairTire, kRepairTireImage, kRepairTireGrayImage)),
+                          kItemPositions[std::to_underlying(Item::RepairTire)]);
+  state.screen.BlitMasked(bank.GetImage(kExitImage), kItemPositions[std::to_underlying(Item::Exit)]);
   for (const auto& line : kCursorLines[std::to_underlying(station.cursor)]) {
     state.screen.DrawHorizontalLine(line.left, line.right, line.row, kCursorColor);
   }

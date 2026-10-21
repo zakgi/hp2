@@ -9,8 +9,8 @@
 namespace hp2::host {
 
 enum class RoadMapError : std::uint8_t {
-  kBadSize,
-  kUnknownCellType,
+  BadSize,
+  UnknownCellType,
 };
 
 // The road map (CARTE.BIN): one road cell type per cell of a 64 x 64 grid.

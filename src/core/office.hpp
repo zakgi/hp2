@@ -10,7 +10,7 @@
 
 namespace hp2 {
 
-enum class OfficePhase : std::uint8_t { kLightsOn, kPointing, kClosing, kOpening, kLightsOff };
+enum class OfficePhase : std::uint8_t { LightsOn, Pointing, Closing, Opening, LightsOff };
 
 // The office, before every mission (OfficeSelectMission, 0:c3aa; docs/game.md, "Program flow"): a
 // pointer over the desk. Clicking a drawer slides one of its two wanted posters up, clicking the
@@ -18,7 +18,7 @@ enum class OfficePhase : std::uint8_t { kLightsOn, kPointing, kClosing, kOpening
 // be taken again. The arrow keys move the pointer, Space or Enter click; Escape quits.
 class Office {
  public:
-  static constexpr ComponentType kType = ComponentType::kOffice;
+  static constexpr ComponentType kType = ComponentType::Office;
 
   // A rectangle of screen pixels, edges included.
   struct Area {
@@ -96,7 +96,7 @@ class Office {
 
 // Persistent scene data, owned by EngineState.
 struct OfficeState {
-  OfficePhase phase{OfficePhase::kLightsOn};
+  OfficePhase phase{OfficePhase::LightsOn};
   float phase_seconds{};
   float pointer_x{};
   float pointer_y{};

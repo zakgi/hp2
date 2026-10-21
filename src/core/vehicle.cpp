@@ -151,7 +151,7 @@ BodyPoint GetBodyPoint(const Vehicle& vehicle, WorldPoint point) {
 void StartBump(Vehicle& vehicle) {
   const auto level = std::min(std::floor(std::abs(vehicle.speed) / kBumpLevelSpeed), kLastBumpLevel);
   vehicle.impact =
-      Impact{.kind = ImpactKind::kBump, .strength = level / kLastBumpLevel, .held_steer = vehicle.controls.steer};
+      Impact{.kind = ImpactKind::Bump, .strength = level / kLastBumpLevel, .held_steer = vehicle.controls.steer};
 }
 
 void StartSpin(Vehicle& vehicle, bool on_right) {
@@ -161,14 +161,14 @@ void StartSpin(Vehicle& vehicle, bool on_right) {
   vehicle.position = vehicle.position - (GetDirection(vehicle.heading) * thrown);
   vehicle.heading = WrapAngle(vehicle.heading + (away * kSpinTurn));
   vehicle.slip -= away * kSpinTurn;
-  vehicle.impact = Impact{.kind = ImpactKind::kSpin, .spin = -away};
+  vehicle.impact = Impact{.kind = ImpactKind::Spin, .spin = -away};
 }
 
 void Drive(Vehicle& vehicle, const VehicleTuning& tuning, const Road& road, float seconds) {
   // An impact takes the throttle away, and a bump holds the wheel where it was.
   const auto impact = vehicle.impact.kind;
-  const auto throttle = impact == ImpactKind::kNone ? vehicle.controls.throttle : 0.0F;
-  const auto steer = impact == ImpactKind::kBump ? vehicle.impact.held_steer : vehicle.controls.steer;
+  const auto throttle = impact == ImpactKind::None ? vehicle.controls.throttle : 0.0F;
+  const auto steer = impact == ImpactKind::Bump ? vehicle.impact.held_steer : vehicle.controls.steer;
   auto speed = vehicle.speed;
   if (throttle > 0.0F) {
     speed = speed < 0.0F ? std::min(0.0F, speed + (tuning.braking * throttle * seconds))
@@ -188,7 +188,7 @@ void Drive(Vehicle& vehicle, const VehicleTuning& tuning, const Road& road, floa
   const auto max_yaw = tuning.grip / std::max(std::abs(speed), kMinGripSpeed);
   const auto yaw = std::clamp(wanted_yaw, -max_yaw, max_yaw);
   auto turned = yaw * seconds;
-  if (impact != ImpactKind::kSpin) {
+  if (impact != ImpactKind::Spin) {
     // The slip there is dies away, turning the car after its body and scrubbing its speed.
     const auto recovered = vehicle.slip * std::min(1.0F, kSlipRecovery * seconds);
     speed -= std::copysign(std::min(std::abs(speed), kSlipScrub * std::abs(vehicle.slip) * seconds), speed);
@@ -200,9 +200,9 @@ void Drive(Vehicle& vehicle, const VehicleTuning& tuning, const Road& road, floa
   vehicle.heading = WrapAngle(vehicle.heading + turned);
   vehicle.position = vehicle.position + (GetDirection(vehicle.heading) * (speed * seconds));
   vehicle.speed = speed;
-  if (impact == ImpactKind::kBump) {
+  if (impact == ImpactKind::Bump) {
     UpdateBump(vehicle, seconds);
-  } else if (impact == ImpactKind::kSpin) {
+  } else if (impact == ImpactKind::Spin) {
     UpdateSpin(vehicle, seconds);
   } else if (speed != 0.0F) {
     const auto rate = std::max(kMinBounceRate, std::abs(speed) * kBounceRatePerSpeed);

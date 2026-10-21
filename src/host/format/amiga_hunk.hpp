@@ -17,28 +17,28 @@ namespace hp2::host {
 // Keep the file format's 32-bit hunk tag representation.
 // NOLINTNEXTLINE(performance-enum-size)
 enum class HunkType : std::uint32_t {
-  kHeader = 0x3f3,
-  kCode = 0x3e9,
-  kData = 0x3ea,
-  kBss = 0x3eb,
-  kReloc32 = 0x3ec,
-  kSymbols = 0x3f0,
-  kEnd = 0x3f2,
+  Header = 0x3f3,
+  Code = 0x3e9,
+  Data = 0x3ea,
+  Bss = 0x3eb,
+  Reloc32 = 0x3ec,
+  Symbols = 0x3f0,
+  End = 0x3f2,
 };
 
 enum class HunkError : std::uint8_t {
-  kTruncated,
-  kNotExecutable,
-  kResidentLibraries,
-  kSizeMismatch,
-  kUnsupportedBlock,
+  Truncated,
+  NotExecutable,
+  ResidentLibraries,
+  SizeMismatch,
+  UnsupportedBlock,
 };
 
 // One code, data or BSS hunk with the blocks that follow it up to HUNK_END. Data is read
 // unrelocated: a longword the loader would relocate holds an offset into its target hunk (the
 // target is in `relocations`), which is how pointer tables are followed.
 struct LoadableHunk {
-  HunkType type{HunkType::kCode};
+  HunkType type{HunkType::Code};
   // Size in memory, from the header's size table; BSS hunks have it without data in the file.
   std::uint32_t size{};
   // The hunk's bytes in the file (empty for BSS); may be shorter than `size`.

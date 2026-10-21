@@ -38,7 +38,7 @@ class PanelPresenter {
   // the table, its pixels after it. The upper viewport's push is waited for, since the table
   // changes for the lower one; the last push is left running.
   void Present(const Screen& screen) {
-    for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
+    for (const auto viewport : {Viewport::Upper, Viewport::Lower}) {
       const auto pixels = screen.Pixels(viewport);
       if (not pixels.empty()) {
         WaitDrained();

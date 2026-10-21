@@ -38,7 +38,7 @@ bool PlayAnimation::Tick(float delta_seconds) {
 void Title::OnEnter(EngineState& state) {
   state.scene.emplace<TitleState>();
   state.keys.Clear();
-  Enter(state, TitleStage::kLogo);
+  Enter(state, TitleStage::Logo);
 }
 
 void Title::OnExit(EngineState& state) {
@@ -48,8 +48,8 @@ void Title::OnExit(EngineState& state) {
 
 TitleStage Title::Next(const EngineState& state) {
   const auto& title = std::get<TitleState>(state.scene);
-  return title.stage == TitleStage::kDone ? TitleStage::kDone
-                                          : static_cast<TitleStage>(std::to_underlying(title.stage) + 1);
+  return title.stage == TitleStage::Done ? TitleStage::Done
+                                         : static_cast<TitleStage>(std::to_underlying(title.stage) + 1);
 }
 
 ComponentType Title::Step(EngineState& state, float delta_seconds) {
@@ -57,26 +57,26 @@ ComponentType Title::Step(EngineState& state, float delta_seconds) {
   auto quit = false;
   auto proceed = false;
   while (const auto event = state.keys.Next()) {
-    if (event->action == KeyAction::kPress) {
-      quit = quit or event->key == Key::kEscape;
-      proceed = proceed or event->key == Key::kSpace or event->key == Key::kEnter;
+    if (event->action == KeyAction::Press) {
+      quit = quit or event->key == Key::Escape;
+      proceed = proceed or event->key == Key::Space or event->key == Key::Enter;
     }
   }
-  if (proceed and title.stage < TitleStage::kNames) {
+  if (proceed and title.stage < TitleStage::Names) {
     Finish(state);
-  } else if (proceed and title.stage == TitleStage::kNames) {
-    Enter(state, TitleStage::kFadeOut);
+  } else if (proceed and title.stage == TitleStage::Names) {
+    Enter(state, TitleStage::FadeOut);
   }
   // The lettering stays until a keystroke; every other stage ends when its actions have run.
-  if (title.actions.Empty() and title.stage != TitleStage::kNames and title.stage != TitleStage::kDone) {
+  if (title.actions.Empty() and title.stage != TitleStage::Names and title.stage != TitleStage::Done) {
     Enter(state, Next(state));
   }
   title.actions.Tick(delta_seconds);
   auto next = kType;
   if (quit) {
-    next = ComponentType::kQuit;
-  } else if (title.stage == TitleStage::kDone) {
-    next = ComponentType::kOffice;
+    next = ComponentType::Quit;
+  } else if (title.stage == TitleStage::Done) {
+    next = ComponentType::Office;
   }
   return next;
 }
@@ -89,52 +89,52 @@ void Title::Enter(EngineState& state, TitleStage stage) {
   auto& title = std::get<TitleState>(state.scene);
   title.stage = stage;
   switch (stage) {
-    case TitleStage::kLogo:
+    case TitleStage::Logo:
       state.screen.DisableSplit();
-      state.screen.Palette(Viewport::kUpper).Reset();
+      state.screen.Palette(Viewport::Upper).Reset();
       state.screen.Clear(0);
-      state.screen.Blit(state.assets.Picture(EnginePicture::kLogo), Point{});
-      state.screen.Palette(Viewport::kUpper).Overlay(state.assets.Palette(EnginePalette::kLogo), 0);
+      state.screen.Blit(state.assets.Picture(EnginePicture::Logo), Point{});
+      state.screen.Palette(Viewport::Upper).Overlay(state.assets.Palette(EnginePalette::Logo), 0);
       std::ignore = title.actions.Push<Hold>(kLogoHoldSeconds);
       std::ignore = title.actions.Push<Fade>(state.screen, 0.0F, 1.0F, kFadeSeconds);
       break;
 
-    case TitleStage::kLogoGone:
+    case TitleStage::LogoGone:
       std::ignore = title.actions.Push<Fade>(state.screen, 1.0F, 0.0F, kFadeSeconds);
       break;
 
-    case TitleStage::kTitle:
+    case TitleStage::Title:
       ComposeTitle(state);
       state.audio.PlayMusic(state.assets.title_music);
       std::ignore = title.actions.Push<Fade>(state.screen, 0.0F, 1.0F, kFadeSeconds);
       break;
 
-    case TitleStage::kAnimation:
+    case TitleStage::Animation:
       std::ignore = title.actions.Push<PlayAnimation>(state.screen, state.assets.title_animation);
       std::ignore = title.actions.Push<Hold>(original_timing::kAnimationLeadSeconds);
       break;
 
-    case TitleStage::kNames:
+    case TitleStage::Names:
       DrawNames(state);
       break;
 
-    case TitleStage::kFadeOut:
+    case TitleStage::FadeOut:
       state.audio.StopMusic();
       std::ignore = title.actions.Push<Fade>(state.screen, 1.0F, 0.0F, kFadeSeconds);
       break;
 
-    case TitleStage::kDone:
+    case TitleStage::Done:
       break;
   }
 }
 
 void Title::ComposeTitle(EngineState& state) {
-  auto& palette = state.screen.Palette(Viewport::kUpper);
+  auto& palette = state.screen.Palette(Viewport::Upper);
   state.screen.DisableSplit();
   palette.Reset();
-  palette.Overlay(state.assets.Palette(EnginePalette::kTitle), 0);
+  palette.Overlay(state.assets.Palette(EnginePalette::Title), 0);
   state.screen.Clear(0);
-  const auto picture = state.assets.Picture(EnginePicture::kTitle);
+  const auto picture = state.assets.Picture(EnginePicture::Title);
   if (picture.height > kSkyRows) {
     const auto sky_pixels = std::size_t{kSkyRows} * picture.width;
     state.screen.Blit(ImageView{.width = picture.width, .height = kSkyRows, .pixels = picture.pixels.first(sky_pixels)},
@@ -148,7 +148,7 @@ void Title::ComposeTitle(EngineState& state) {
 
 // Everything here lies below the sky, so it is drawn with the picture's offset.
 void Title::DrawNames(EngineState& state) {
-  const auto& names = state.assets.Bank(EngineBank::kNames);
+  const auto& names = state.assets.Bank(EngineBank::Names);
   if (names.sprites.size() >= 3) {
     state.screen.BlitMasked(names.GetImage(1), kLowerNamePosition, kPictureIndexOffset);
     state.screen.BlitMasked(names.GetImage(2), kRightNamePosition, kPictureIndexOffset);
@@ -169,7 +169,7 @@ void Title::Finish(EngineState& state) {
   if (not state.audio.MusicPlaying()) {
     state.audio.PlayMusic(state.assets.title_music);
   }
-  Enter(state, TitleStage::kNames);
+  Enter(state, TitleStage::Names);
 }
 
 }  // namespace hp2

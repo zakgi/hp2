@@ -9,11 +9,11 @@
 namespace hp2 {
 
 enum class HighwayPhase : std::uint8_t {
-  kDriving,
-  kPaused,    // P
-  kMap,       // M: paused on the road map, with the player's car and the criminal's
-  kSpinOut,   // PAGE_F1 until a key, then on
-  kCoasting,  // the mission is over: the cars roll to a stop before the ending (0:6008)
+  Driving,
+  Paused,    // P
+  Map,       // M: paused on the road map, with the player's car and the criminal's
+  SpinOut,   // PAGE_F1 until a key, then on
+  Coasting,  // the mission is over: the cars roll to a stop before the ending (0:6008)
 };
 
 // Keys held, followed through their presses and releases.
@@ -32,7 +32,7 @@ struct HighwayHeldKeys {
 // M shows the map; Escape abandons the mission (the bounty drops to 0).
 class Highway {
  public:
-  static constexpr ComponentType kType = ComponentType::kHighway;
+  static constexpr ComponentType kType = ComponentType::Highway;
   // Ticks run per frame at most: after a longer stall the game slows down instead of jumping.
   static constexpr int kMaxTicksPerFrame = 4;
   // How fast held keys turn the wheel, full lock per second; the original turns it 6 of 60 a frame
@@ -83,7 +83,7 @@ class Highway {
 // Data used only while the driving screen is active.
 struct HighwayState {
   MissionPathfinding pathfinding;
-  HighwayPhase phase{HighwayPhase::kDriving};
+  HighwayPhase phase{HighwayPhase::Driving};
   HighwayHeldKeys held{};
   // The wheel as the held keys have turned it, -1 full right .. 1 full left.
   float key_steer{};

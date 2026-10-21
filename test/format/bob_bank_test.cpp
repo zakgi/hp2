@@ -34,18 +34,18 @@ TEST(BobBank, MapsStoredPlanesToTheChosenScreenPlanes) {
 }
 
 TEST(BobBank, RejectsBadBanks) {
-  EXPECT_EQ(DecodeBobBank(std::vector<std::uint8_t>{0x00}).error(), BobBankError::kTooShort);
-  EXPECT_EQ(DecodeBobBank(std::vector<std::uint8_t>{0x00, 0x02, 0x00, 0x06}).error(), BobBankError::kTooShort);
+  EXPECT_EQ(DecodeBobBank(std::vector<std::uint8_t>{0x00}).error(), BobBankError::TooShort);
+  EXPECT_EQ(DecodeBobBank(std::vector<std::uint8_t>{0x00, 0x02, 0x00, 0x06}).error(), BobBankError::TooShort);
   // The image's planes run past the end.
   EXPECT_EQ(DecodeBobBank(std::vector<std::uint8_t>{0x00, 0x01, 0x00, 0x04, 0x0f, 0x04, 0x00, 0x01, 0x00, 0x01, 0x00,
                                                     0x00, 0x00, 0x00, 0x12})
                 .error(),
-            BobBankError::kImageOutOfBank);
+            BobBankError::ImageOutOfBank);
   // Three stored planes, two chosen.
   EXPECT_EQ(DecodeBobBank(std::vector<std::uint8_t>{0x00, 0x01, 0x00, 0x04, 0x03, 0x03, 0x00, 0x01, 0x00, 0x01, 0x00,
                                                     0x00, 0x00, 0x00})
                 .error(),
-            BobBankError::kTooFewTargetPlanes);
+            BobBankError::TooFewTargetPlanes);
 }
 
 // Digests from scripts/reference_digests.py ("name N pixels").

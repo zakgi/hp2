@@ -14,13 +14,13 @@ bool SfmlInput::Handle(const sf::Event& event) {
   if (event.is<sf::Event::Closed>()) {
     quit = true;
   } else if (const auto* pressed = event.getIf<sf::Event::KeyPressed>()) {
-    Record(kSfmlKeys.FromNative(std::to_underlying(pressed->scancode)), KeyAction::kPress);
+    Record(kSfmlKeys.FromNative(std::to_underlying(pressed->scancode)), KeyAction::Press);
   } else if (const auto* released = event.getIf<sf::Event::KeyReleased>()) {
-    Record(kSfmlKeys.FromNative(std::to_underlying(released->scancode)), KeyAction::kRelease);
+    Record(kSfmlKeys.FromNative(std::to_underlying(released->scancode)), KeyAction::Release);
   } else if (event.is<sf::Event::FocusLost>()) {
     for (auto index = std::size_t{1}; index < down_.size(); ++index) {
       if (down_[index]) {
-        Record(static_cast<Key>(index), KeyAction::kRelease);
+        Record(static_cast<Key>(index), KeyAction::Release);
       }
     }
   }
@@ -29,9 +29,9 @@ bool SfmlInput::Handle(const sf::Event& event) {
 
 void SfmlInput::Record(Key key, KeyAction action) {
   const auto index = std::size_t{std::to_underlying(key)};
-  const auto down = action == KeyAction::kPress;
+  const auto down = action == KeyAction::Press;
   // A press of a key already down, or a release of one already up, is not a keystroke.
-  if (key != Key::kNone and index < down_.size() and down_[index] != down) {
+  if (key != Key::None and index < down_.size() and down_[index] != down) {
     down_[index] = down;
     events_.Record(KeyEvent{.key = key, .action = action});
   }

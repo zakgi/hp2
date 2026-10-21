@@ -12,7 +12,7 @@ constexpr auto kWhite = Rgb{.red = 0xff, .green = 0xff, .blue = 0xff};
 
 TEST(Fade, MovesThePaletteEasedToItsEnd) {
   auto screen = Screen{};
-  auto& palette = screen.Palette(Viewport::kUpper);
+  auto& palette = screen.Palette(Viewport::Upper);
   palette.SetColor(1, kWhite);
   auto fade = Fade{screen, 0.0F, 1.0F, 0.5F};
   EXPECT_EQ(palette.Color(1), Rgb{});  // black as soon as it is made
@@ -26,7 +26,7 @@ TEST(Fade, MovesThePaletteEasedToItsEnd) {
 
 TEST(Fade, FadesOut) {
   auto screen = Screen{};
-  auto& palette = screen.Palette(Viewport::kUpper);
+  auto& palette = screen.Palette(Viewport::Upper);
   palette.SetColor(1, kWhite);
   auto fade = Fade{screen, 1.0F, 0.0F, 0.5F};
   fade.Init();

@@ -31,8 +31,8 @@ void Office::OnEnter(EngineState& state) {
   state.scene.emplace<OfficeState>();
   auto& office = std::get<OfficeState>(state.scene);
   state.screen.DisableSplit();
-  state.screen.Palette(Viewport::kUpper).Reset();
-  state.screen.Palette(Viewport::kUpper).Overlay(state.assets.Palette(EnginePalette::kOfficeDim), 0);
+  state.screen.Palette(Viewport::Upper).Reset();
+  state.screen.Palette(Viewport::Upper).Overlay(state.assets.Palette(EnginePalette::OfficeDim), 0);
   office.pointer_x = static_cast<float>(kPointerStart.x);
   office.pointer_y = static_cast<float>(kPointerStart.y);
   state.keys.Clear();
@@ -51,31 +51,31 @@ ComponentType Office::Step(EngineState& state, float delta_seconds) {
   ReadKeys(state, clicked, quit);
   office.phase_seconds += delta_seconds;
   switch (office.phase) {
-    case OfficePhase::kLightsOn:
+    case OfficePhase::LightsOn:
       if (office.phase_seconds >= kLightsSeconds) {
-        state.screen.Palette(Viewport::kUpper).Overlay(state.assets.Palette(EnginePalette::kOffice), 0);
-        office.phase = OfficePhase::kPointing;
+        state.screen.Palette(Viewport::Upper).Overlay(state.assets.Palette(EnginePalette::Office), 0);
+        office.phase = OfficePhase::Pointing;
       }
       break;
-    case OfficePhase::kPointing:
+    case OfficePhase::Pointing:
       MovePointer(state, delta_seconds);
       if (clicked) {
         Click(state);
       }
       break;
-    case OfficePhase::kClosing:
-    case OfficePhase::kOpening:
+    case OfficePhase::Closing:
+    case OfficePhase::Opening:
       MovePointer(state, delta_seconds);
       Slide(state, delta_seconds);
       break;
-    case OfficePhase::kLightsOff:
+    case OfficePhase::LightsOff:
       if (office.phase_seconds >= kLightsSeconds) {
-        next = ComponentType::kHighway;
+        next = ComponentType::Highway;
       }
       break;
   }
   Compose(state);
-  return quit ? ComponentType::kQuit : next;
+  return quit ? ComponentType::Quit : next;
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static)
@@ -83,25 +83,25 @@ ComponentType Office::Step(EngineState& state, float delta_seconds) {
 void Office::ReadKeys(EngineState& state, bool& clicked, bool& quit) {
   auto& office = std::get<OfficeState>(state.scene);
   while (const auto event = state.keys.Next()) {
-    const auto pressed = event->action == KeyAction::kPress;
+    const auto pressed = event->action == KeyAction::Press;
     switch (event->key) {
-      case Key::kLeft:
+      case Key::Left:
         office.held[kLeftArrow] = pressed;
         break;
-      case Key::kRight:
+      case Key::Right:
         office.held[kRightArrow] = pressed;
         break;
-      case Key::kUp:
+      case Key::Up:
         office.held[kUpArrow] = pressed;
         break;
-      case Key::kDown:
+      case Key::Down:
         office.held[kDownArrow] = pressed;
         break;
-      case Key::kSpace:
-      case Key::kEnter:
+      case Key::Space:
+      case Key::Enter:
         clicked = clicked or pressed;
         break;
-      case Key::kEscape:
+      case Key::Escape:
         quit = quit or pressed;
         break;
       default:
@@ -141,8 +141,8 @@ void Office::Click(EngineState& state) {
     if (office.poster and kPosterAreas[*office.poster / 2].Contains(pointer)) {
       state.game.missions_available[*office.poster] = false;
       state.game.mission = office.poster;
-      state.screen.Palette(Viewport::kUpper).Overlay(state.assets.Palette(EnginePalette::kOfficeDim), 0);
-      office.phase = OfficePhase::kLightsOff;
+      state.screen.Palette(Viewport::Upper).Overlay(state.assets.Palette(EnginePalette::OfficeDim), 0);
+      office.phase = OfficePhase::LightsOff;
       office.phase_seconds = 0.0F;
     } else {
       // The color of the desk as shown, poster included, picks the drawer.
@@ -154,12 +154,12 @@ void Office::Click(EngineState& state) {
                                ? std::nullopt
                                : PosterFor(state, static_cast<std::size_t>(drawer - kDrawerColors.begin()));
       if (office.poster) {
-        office.phase = OfficePhase::kClosing;
+        office.phase = OfficePhase::Closing;
       } else if (office.next_poster) {
         office.poster = office.next_poster;
         office.next_poster.reset();
         office.poster_y = static_cast<float>(kPosterSlides[*office.poster].closed_y);
-        office.phase = OfficePhase::kOpening;
+        office.phase = OfficePhase::Opening;
       }
     }
   }
@@ -168,10 +168,10 @@ void Office::Click(EngineState& state) {
 void Office::Slide(EngineState& state, float delta_seconds) {
   auto& office = std::get<OfficeState>(state.scene);
   const auto& slide = kPosterSlides[*office.poster];
-  if (office.phase == OfficePhase::kOpening) {
+  if (office.phase == OfficePhase::Opening) {
     office.poster_y = std::max(office.poster_y - (kSlideSpeed * delta_seconds), static_cast<float>(slide.open_y));
     if (office.poster_y <= static_cast<float>(slide.open_y)) {
-      office.phase = OfficePhase::kPointing;
+      office.phase = OfficePhase::Pointing;
     }
   } else {
     office.poster_y = std::min(office.poster_y + (kSlideSpeed * delta_seconds), static_cast<float>(slide.closed_y));
@@ -180,9 +180,9 @@ void Office::Slide(EngineState& state, float delta_seconds) {
       office.next_poster.reset();
       if (office.poster) {
         office.poster_y = static_cast<float>(kPosterSlides[*office.poster].closed_y);
-        office.phase = OfficePhase::kOpening;
+        office.phase = OfficePhase::Opening;
       } else {
-        office.phase = OfficePhase::kPointing;
+        office.phase = OfficePhase::Pointing;
       }
     }
   }
@@ -190,9 +190,9 @@ void Office::Slide(EngineState& state, float delta_seconds) {
 
 void Office::ComposeDesk(EngineState& state) {
   auto& office = std::get<OfficeState>(state.scene);
-  state.screen.Blit(state.assets.Picture(EnginePicture::kOffice), Point{});
+  state.screen.Blit(state.assets.Picture(EnginePicture::Office), Point{});
   if (office.poster) {
-    const auto& bank = state.assets.Bank(EngineBank::kOffice);
+    const auto& bank = state.assets.Bank(EngineBank::Office);
     const auto& slide = kPosterSlides[*office.poster];
     const auto top = static_cast<std::int16_t>(office.poster_y);
     // Only the part above the drawer's bottom shows.
@@ -212,7 +212,7 @@ void Office::ComposeDesk(EngineState& state) {
 
 void Office::Compose(EngineState& state) {
   ComposeDesk(state);
-  const auto& bank = state.assets.Bank(EngineBank::kOffice);
+  const auto& bank = state.assets.Bank(EngineBank::Office);
   const auto& sprite = bank.sprites[kPointerImage];
   const auto pointer = Pointer(state);
   state.screen.BlitMasked(bank.GetImage(kPointerImage),

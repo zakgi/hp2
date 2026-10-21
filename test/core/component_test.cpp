@@ -43,13 +43,13 @@ class Fake {
   }
 };
 
-using Title = Fake<ComponentType::kTitle, ComponentType::kOffice, 'T', 2>;
-using Office = Fake<ComponentType::kOffice, ComponentType::kQuit, 'O', 1>;
-using Orphan = Fake<ComponentType::kStation, ComponentType::kHighway, 'S', 1>;
+using Title = Fake<ComponentType::Title, ComponentType::Office, 'T', 2>;
+using Office = Fake<ComponentType::Office, ComponentType::Quit, 'O', 1>;
+using Orphan = Fake<ComponentType::Station, ComponentType::Highway, 'S', 1>;
 
 class PrivateCounter {
  public:
-  static constexpr ComponentType kType = ComponentType::kTitle;
+  static constexpr ComponentType kType = ComponentType::Title;
 
   void OnEnter([[maybe_unused]] EngineState& state) { log.events += '>'; }
   void OnExit([[maybe_unused]] EngineState& state) { log.events += '<'; }
@@ -64,14 +64,14 @@ class PrivateCounter {
 
 class QuitController {
  public:
-  static constexpr ComponentType kType = ComponentType::kTitle;
+  static constexpr ComponentType kType = ComponentType::Title;
 
   QuitController() { log.events += 'C'; }
   ~QuitController() { log.events += 'D'; }
   void OnEnter([[maybe_unused]] EngineState& state) { log.events += '>'; }
   void OnExit([[maybe_unused]] EngineState& state) { log.events += '<'; }
   ComponentType Step([[maybe_unused]] EngineState& state, [[maybe_unused]] float delta_seconds) {
-    return ComponentType::kQuit;
+    return ComponentType::Quit;
   }
 };
 
@@ -92,13 +92,13 @@ class EngineTest : public testing::Test {
 TEST_F(EngineTest, RunsTransitionsAndQuits) {
   auto engine = Engine<Title, Office>{state_};
   EXPECT_FALSE(engine.Running());
-  ASSERT_TRUE(engine.Start(ComponentType::kTitle));
+  ASSERT_TRUE(engine.Start(ComponentType::Title));
   EXPECT_TRUE(engine.Running());
   EXPECT_EQ(state_.game.score, 2U);
   EXPECT_TRUE(engine.Step(1.0F));
   EXPECT_EQ(state_.game.score, 1U);
   EXPECT_TRUE(engine.Step(2.0F));
-  EXPECT_EQ(engine.Active(), ComponentType::kOffice);
+  EXPECT_EQ(engine.Active(), ComponentType::Office);
   EXPECT_TRUE(engine.Step(3.0F));
   EXPECT_FALSE(engine.Running());
   EXPECT_FALSE(engine.Step(4.0F));
@@ -107,27 +107,27 @@ TEST_F(EngineTest, RunsTransitionsAndQuits) {
 
 TEST_F(EngineTest, RefusesUnregisteredTransitions) {
   auto engine = Engine<Orphan>{state_};
-  EXPECT_FALSE(engine.Start(ComponentType::kOffice));
+  EXPECT_FALSE(engine.Start(ComponentType::Office));
   EXPECT_FALSE(engine.Running());
-  ASSERT_TRUE(engine.Start(ComponentType::kStation));
+  ASSERT_TRUE(engine.Start(ComponentType::Station));
   EXPECT_FALSE(engine.Step(1.0F));
-  EXPECT_EQ(engine.Active(), ComponentType::kStation);
+  EXPECT_EQ(engine.Active(), ComponentType::Station);
   EXPECT_TRUE(engine.Running());
   EXPECT_EQ(log.events, "S>S1");
 }
 
 TEST_F(EngineTest, SwitchesFromOutside) {
-  using LongTitle = Fake<ComponentType::kTitle, ComponentType::kOffice, 'T', 5>;
-  using LongOffice = Fake<ComponentType::kOffice, ComponentType::kQuit, 'O', 5>;
+  using LongTitle = Fake<ComponentType::Title, ComponentType::Office, 'T', 5>;
+  using LongOffice = Fake<ComponentType::Office, ComponentType::Quit, 'O', 5>;
   auto engine = Engine<LongTitle, LongOffice>{state_};
-  EXPECT_FALSE(engine.Switch(ComponentType::kOffice));
-  ASSERT_TRUE(engine.Start(ComponentType::kTitle));
+  EXPECT_FALSE(engine.Switch(ComponentType::Office));
+  ASSERT_TRUE(engine.Start(ComponentType::Title));
   EXPECT_TRUE(engine.Step(1.0F));
-  EXPECT_TRUE(engine.Switch(ComponentType::kOffice));
-  EXPECT_EQ(engine.Active(), ComponentType::kOffice);
-  EXPECT_FALSE(engine.Switch(ComponentType::kHighway));
-  EXPECT_EQ(engine.Active(), ComponentType::kOffice);
-  EXPECT_TRUE(engine.Switch(ComponentType::kOffice));
+  EXPECT_TRUE(engine.Switch(ComponentType::Office));
+  EXPECT_EQ(engine.Active(), ComponentType::Office);
+  EXPECT_FALSE(engine.Switch(ComponentType::Highway));
+  EXPECT_EQ(engine.Active(), ComponentType::Office);
+  EXPECT_TRUE(engine.Switch(ComponentType::Office));
   EXPECT_EQ(log.events, "T>T1T<O>O<O>");
 }
 
@@ -135,8 +135,8 @@ TEST_F(EngineTest, IndependentEnginesKeepSeparateState) {
   auto other_state = EngineState{assets_, screen_, keys_, audio_, 99};
   auto first = Engine<Title>{state_};
   auto second = Engine<Title>{other_state};
-  ASSERT_TRUE(first.Start(ComponentType::kTitle));
-  ASSERT_TRUE(second.Start(ComponentType::kTitle));
+  ASSERT_TRUE(first.Start(ComponentType::Title));
+  ASSERT_TRUE(second.Start(ComponentType::Title));
   ASSERT_TRUE(first.Step(1.0F));
   EXPECT_EQ(state_.game.score, 1U);
   EXPECT_EQ(other_state.game.score, 2U);
@@ -144,26 +144,26 @@ TEST_F(EngineTest, IndependentEnginesKeepSeparateState) {
 
 TEST_F(EngineTest, MovingTheEngineLeavesMissionStorageInPlace) {
   // The empty map completes on the first tick; a fake ending accepts that transition.
-  using Ending = Fake<ComponentType::kMissionEnd, ComponentType::kQuit, 'E', 1>;
+  using Ending = Fake<ComponentType::MissionEnd, ComponentType::Quit, 'E', 1>;
   auto engine = Engine<Highway, Ending>{state_};
   // Exercise relocation even when the registered controllers are trivially copyable.
   // NOLINTNEXTLINE(performance-move-const-arg)
   auto moved = std::move(engine);
-  ASSERT_TRUE(moved.Start(ComponentType::kHighway));
+  ASSERT_TRUE(moved.Start(ComponentType::Highway));
   EXPECT_EQ(state_.mission.GetTick(), 0U);
   EXPECT_TRUE(moved.Step(Mission::kTickSeconds));
   EXPECT_EQ(state_.mission.GetTick(), 1U);
-  EXPECT_EQ(moved.Active(), ComponentType::kMissionEnd);
+  EXPECT_EQ(moved.Active(), ComponentType::MissionEnd);
 }
 
 TEST_F(EngineTest, ReenteringConstructsFreshPrivateControllerState) {
   auto engine = Engine<PrivateCounter>{state_};
-  ASSERT_TRUE(engine.Start(ComponentType::kTitle));
+  ASSERT_TRUE(engine.Start(ComponentType::Title));
   ASSERT_TRUE(engine.Step(0.0F));
   EXPECT_EQ(state_.game.score, 1U);
   ASSERT_TRUE(engine.Step(0.0F));
   EXPECT_EQ(state_.game.score, 2U);
-  ASSERT_TRUE(engine.Switch(ComponentType::kTitle));
+  ASSERT_TRUE(engine.Switch(ComponentType::Title));
   ASSERT_TRUE(engine.Step(0.0F));
   EXPECT_EQ(state_.game.score, 1U);
   EXPECT_EQ(log.events, "><>");
@@ -172,18 +172,18 @@ TEST_F(EngineTest, ReenteringConstructsFreshPrivateControllerState) {
 TEST_F(EngineTest, ConstructsOnlyOnEntryAndDestroysOnQuit) {
   auto engine = Engine<QuitController>{state_};
   EXPECT_TRUE(log.events.empty());
-  EXPECT_EQ(engine.Active(), ComponentType::kQuit);
-  ASSERT_TRUE(engine.Start(ComponentType::kTitle));
+  EXPECT_EQ(engine.Active(), ComponentType::Quit);
+  ASSERT_TRUE(engine.Start(ComponentType::Title));
   EXPECT_EQ(log.events, "C>");
   ASSERT_TRUE(engine.Step(0.0F));
   EXPECT_FALSE(engine.Running());
-  EXPECT_EQ(engine.Active(), ComponentType::kQuit);
+  EXPECT_EQ(engine.Active(), ComponentType::Quit);
   EXPECT_EQ(log.events, "C><D");
 }
 
 static_assert(ComponentLike<PrivateCounter>);
-static_assert(Engine<Title, Office>::IsRegistered(ComponentType::kOffice));
-static_assert(not Engine<Title, Office>::IsRegistered(ComponentType::kHighway));
+static_assert(Engine<Title, Office>::IsRegistered(ComponentType::Office));
+static_assert(not Engine<Title, Office>::IsRegistered(ComponentType::Highway));
 static_assert(not std::is_copy_constructible_v<EngineState>);
 static_assert(not std::is_move_constructible_v<EngineState>);
 

@@ -26,8 +26,8 @@ TEST(Font, BuildsPixelsFromTheFourPlanesOfEachRow) {
 }
 
 TEST(Font, RejectsPartialGlyphs) {
-  EXPECT_EQ(DecodeFont(std::vector<std::uint8_t>(33)).error(), FontError::kBadSize);
-  EXPECT_EQ(DecodeFont(std::vector<std::uint8_t>{}).error(), FontError::kBadSize);
+  EXPECT_EQ(DecodeFont(std::vector<std::uint8_t>(33)).error(), FontError::BadSize);
+  EXPECT_EQ(DecodeFont(std::vector<std::uint8_t>{}).error(), FontError::BadSize);
 }
 
 // Digests from scripts/reference_digests.py ("font N pixels").

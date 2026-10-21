@@ -20,36 +20,36 @@ MissionEnd::Ending MissionEnd::GetEnding(EndReason reason) {
   auto ending =
       Ending{.picture = std::nullopt, .palette = std::nullopt, .text = {}, .text_cell = {}, .game_over = true};
   switch (reason) {
-    case EndReason::kOutOfFuel:
-      ending.picture = EnginePicture::kOutOfFuel;
-      ending.palette = EnginePalette::kOutOfFuel;
+    case EndReason::OutOfFuel:
+      ending.picture = EnginePicture::OutOfFuel;
+      ending.palette = EnginePalette::OutOfFuel;
       break;
-    case EndReason::kStationsRobbed:
+    case EndReason::StationsRobbed:
       ending.text = "ALL THE STATIONS HAVE BEEN ROBBED...";
       ending.text_cell = Point{.x = 2, .y = 22};
       break;
-    case EndReason::kOverheated:
-      ending.picture = EnginePicture::kOverheated;
-      ending.palette = EnginePalette::kOverheated;
+    case EndReason::Overheated:
+      ending.picture = EnginePicture::Overheated;
+      ending.palette = EnginePalette::Overheated;
       break;
-    case EndReason::kWrecked:
-      ending.picture = EnginePicture::kWrecked;
-      ending.palette = EnginePalette::kWrecked;
+    case EndReason::Wrecked:
+      ending.picture = EnginePicture::Wrecked;
+      ending.palette = EnginePalette::Wrecked;
       break;
-    case EndReason::kTiresGone:
-      ending.picture = EnginePicture::kTiresGone;
-      ending.palette = EnginePalette::kTiresGone;
+    case EndReason::TiresGone:
+      ending.picture = EnginePicture::TiresGone;
+      ending.palette = EnginePalette::TiresGone;
       break;
-    case EndReason::kShot:
+    case EndReason::Shot:
       ending.text = "YOU HAVE BEEN SHOT...";
       ending.text_cell = Point{.x = 9, .y = 22};
       break;
-    case EndReason::kArrest:
-      ending.picture = EnginePicture::kArrest;
-      ending.palette = EnginePalette::kArrest;
+    case EndReason::Arrest:
+      ending.picture = EnginePicture::Arrest;
+      ending.palette = EnginePalette::Arrest;
       ending.game_over = false;
       break;
-    case EndReason::kBountyGone:
+    case EndReason::BountyGone:
       break;
   }
   return ending;
@@ -61,13 +61,13 @@ void MissionEnd::OnEnter(EngineState& state) {
   state.scene.emplace<MissionEndState>();
   auto& mission_end = std::get<MissionEndState>(state.scene);
   state.keys.Clear();
-  auto reason = state.mission.GetProgress().end_reason.value_or(EndReason::kBountyGone);
+  auto reason = state.mission.GetProgress().end_reason.value_or(EndReason::BountyGone);
   // An arrest with nothing left of the bounty ends like a bounty run out.
-  if (reason == EndReason::kArrest and state.game.score == 0) {
-    reason = EndReason::kBountyGone;
+  if (reason == EndReason::Arrest and state.game.score == 0) {
+    reason = EndReason::BountyGone;
   }
   mission_end.ending = GetEnding(reason);
-  if (reason == EndReason::kArrest) {
+  if (reason == EndReason::Arrest) {
     mission_end.new_career = state.game.MissionsLeft() == 0;
     if (mission_end.new_career) {
       mission_end.ending.text = kLastPosterText;
@@ -77,7 +77,7 @@ void MissionEnd::OnEnter(EngineState& state) {
     state.game.score = 0;
     mission_end.new_career = true;
   }
-  Enter(state, mission_end.ending.picture ? MissionEndStage::kPicture : MissionEndStage::kScore);
+  Enter(state, mission_end.ending.picture ? MissionEndStage::Picture : MissionEndStage::Score);
 }
 
 void MissionEnd::OnExit(EngineState& state) {
@@ -89,28 +89,28 @@ ComponentType MissionEnd::Step(EngineState& state, float delta_seconds) {
   auto quit = false;
   auto proceed = false;
   while (const auto event = state.keys.Next()) {
-    if (event->action == KeyAction::kPress) {
-      quit = quit or event->key == Key::kEscape;
-      proceed = proceed or event->key == Key::kSpace or event->key == Key::kEnter;
+    if (event->action == KeyAction::Press) {
+      quit = quit or event->key == Key::Escape;
+      proceed = proceed or event->key == Key::Space or event->key == Key::Enter;
     }
   }
   const auto waiting =
-      mission_end.stage == MissionEndStage::kPictureShown or mission_end.stage == MissionEndStage::kScoreShown;
+      mission_end.stage == MissionEndStage::PictureShown or mission_end.stage == MissionEndStage::ScoreShown;
   if ((waiting and proceed) or
-      (not waiting and mission_end.stage != MissionEndStage::kDone and mission_end.actions.Empty())) {
+      (not waiting and mission_end.stage != MissionEndStage::Done and mission_end.actions.Empty())) {
     Enter(state, static_cast<MissionEndStage>(std::to_underlying(mission_end.stage) + 1));
   }
   mission_end.actions.Tick(delta_seconds);
   auto next = kType;
   if (quit) {
-    next = ComponentType::kQuit;
-  } else if (mission_end.stage == MissionEndStage::kDone) {
+    next = ComponentType::Quit;
+  } else if (mission_end.stage == MissionEndStage::Done) {
     if (mission_end.new_career) {
       state.game.ResetCareer();
     }
     state.game.mission.reset();
     state.mission.GetProgress().end_reason.reset();
-    next = ComponentType::kOffice;
+    next = ComponentType::Office;
   }
   return next;
 }
@@ -121,41 +121,41 @@ void MissionEnd::Enter(EngineState& state, MissionEndStage stage) {
   auto& mission_end = std::get<MissionEndState>(state.scene);
   mission_end.stage = stage;
   switch (stage) {
-    case MissionEndStage::kPicture: {
+    case MissionEndStage::Picture: {
       const auto palette = state.assets.Palette(*mission_end.ending.palette);
       state.screen.DisableSplit();
-      state.screen.Palette(Viewport::kUpper).Reset();
+      state.screen.Palette(Viewport::Upper).Reset();
       state.screen.Clear(0);
       state.screen.Blit(state.assets.Picture(*mission_end.ending.picture), Point{});
-      state.screen.Palette(Viewport::kUpper).Overlay(palette, 0);
+      state.screen.Palette(Viewport::Upper).Overlay(palette, 0);
       std::ignore = mission_end.actions.Push<Fade>(state.screen, 0.0F, 1.0F, kFadeSeconds);
       break;
     }
-    case MissionEndStage::kPictureOut:
+    case MissionEndStage::PictureOut:
       std::ignore = mission_end.actions.Push<Fade>(state.screen, 1.0F, 0.0F, kFadeSeconds);
       break;
-    case MissionEndStage::kScore:
+    case MissionEndStage::Score:
       ComposeScore(state);
       std::ignore = mission_end.actions.Push<Fade>(state.screen, 0.0F, 1.0F, kFadeSeconds);
       break;
-    case MissionEndStage::kScoreOut:
+    case MissionEndStage::ScoreOut:
       std::ignore = mission_end.actions.Push<Fade>(state.screen, 1.0F, 0.0F, kFadeSeconds);
       break;
-    case MissionEndStage::kPictureShown:
-    case MissionEndStage::kScoreShown:
-    case MissionEndStage::kDone:
+    case MissionEndStage::PictureShown:
+    case MissionEndStage::ScoreShown:
+    case MissionEndStage::Done:
       break;
   }
 }
 
 void MissionEnd::ComposeScore(EngineState& state) {
   auto& mission_end = std::get<MissionEndState>(state.scene);
-  auto& palette = state.screen.Palette(Viewport::kUpper);
+  auto& palette = state.screen.Palette(Viewport::Upper);
   state.screen.DisableSplit();
   palette.Reset();
-  palette.Overlay(state.assets.Palette(EnginePalette::kScore), 0);
+  palette.Overlay(state.assets.Palette(EnginePalette::Score), 0);
   state.screen.Clear(0);
-  const auto& bank = state.assets.Bank(EngineBank::kScore);
+  const auto& bank = state.assets.Bank(EngineBank::Score);
   if (mission_end.ending.game_over) {
     state.screen.BlitMasked(bank.GetImage(kGameOverImage), kGameOverPosition);
   }
@@ -170,7 +170,7 @@ void MissionEnd::ComposeScore(EngineState& state) {
     state.screen.BlitMasked(bank.GetImage(kFirstDigitImage + digit), digit_position);
   }
   if (not mission_end.ending.text.empty()) {
-    const auto& font = state.assets.Font(EngineFont::kLettre1);
+    const auto& font = state.assets.Font(EngineFont::Lettre1);
     state.screen.DrawText(font, mission_end.ending.text,
                           TextCell(mission_end.ending.text_cell.x, mission_end.ending.text_cell.y), kTextIndexOffset);
   }

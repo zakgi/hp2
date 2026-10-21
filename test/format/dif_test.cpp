@@ -44,10 +44,10 @@ TEST(Dif, ConvertsPlaneWordsToPenMasks) {
 }
 
 TEST(Dif, RejectsBadFiles) {
-  EXPECT_EQ(DecodeDif(std::vector<std::uint8_t>{0, 0, 0, 2, 0, 0, 0, 8}).error(), DifError::kTooShort);
-  EXPECT_EQ(DecodeDif(OneFrame({0x00, 0x01, 0x00, 0x02})).error(), DifError::kFrameOutOfFile);
-  EXPECT_EQ(DecodeDif(OneFrame({0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00})).error(), DifError::kOddOffset);
-  EXPECT_EQ(DecodeDif(OneFrame({0x00, 0x01, 0x7d, 0x00, 0x00, 0x00, 0x00, 0x00})).error(), DifError::kRunPastScreen);
+  EXPECT_EQ(DecodeDif(std::vector<std::uint8_t>{0, 0, 0, 2, 0, 0, 0, 8}).error(), DifError::TooShort);
+  EXPECT_EQ(DecodeDif(OneFrame({0x00, 0x01, 0x00, 0x02})).error(), DifError::FrameOutOfFile);
+  EXPECT_EQ(DecodeDif(OneFrame({0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00})).error(), DifError::OddOffset);
+  EXPECT_EQ(DecodeDif(OneFrame({0x00, 0x01, 0x7d, 0x00, 0x00, 0x00, 0x00, 0x00})).error(), DifError::RunPastScreen);
 }
 
 // PRESENT.CPV after every step of the play list, from scripts/reference_digests.py ("animated
@@ -73,7 +73,7 @@ TEST(Dif, MatchesTheReferencePlayer) {
   EXPECT_EQ(steps->front().delay, 0x9c40);
   EXPECT_EQ(steps->back().frame, 18);
   EXPECT_EQ(steps->back().delay, 0);
-  EXPECT_EQ(ReadPlayList(hunks->hunks[1], 0x2870, 18).error(), PlayListError::kUnknownFrame);
+  EXPECT_EQ(ReadPlayList(hunks->hunks[1], 0x2870, 18).error(), PlayListError::UnknownFrame);
 
   auto pixels = DecodeCpv(*picture).value().pixels;
   for (const auto& step : *steps) {

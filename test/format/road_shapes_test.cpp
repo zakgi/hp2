@@ -37,14 +37,14 @@ TEST(RoadShape, NoneIsEmpty) {
 }
 
 TEST(RoadShape, RejectsBadOutlines) {
-  EXPECT_EQ(Decode({0x00}).error(), RoadShapeError::kTruncated);
-  EXPECT_EQ(Decode({0x00, 0x01, 0x00, 0x10, 0x00, 0x20, 0x00, 0x00}).error(), RoadShapeError::kTruncated);
+  EXPECT_EQ(Decode({0x00}).error(), RoadShapeError::Truncated);
+  EXPECT_EQ(Decode({0x00, 0x01, 0x00, 0x10, 0x00, 0x20, 0x00, 0x00}).error(), RoadShapeError::Truncated);
   // The last point is not the first.
   EXPECT_EQ(Decode({0x00, 0x01, 0x00, 0x10, 0x00, 0x20, 0x00, 0x00, 0x00, 0x11, 0x00, 0x20, 0x00, 0x00}).error(),
-            RoadShapeError::kNotClosed);
+            RoadShapeError::NotClosed);
   // A point above the ground.
   EXPECT_EQ(Decode({0x00, 0x01, 0x00, 0x10, 0x00, 0x20, 0x00, 0x05, 0x00, 0x10, 0x00, 0x20, 0x00, 0x05}).error(),
-            RoadShapeError::kNotFlat);
+            RoadShapeError::NotFlat);
 }
 
 }  // namespace

@@ -61,13 +61,13 @@ class PlayAnimation {
 };
 
 enum class TitleStage : std::uint8_t {
-  kLogo,       // LOGO.CPV fades in and stays
-  kLogoGone,   // the logo fades out
-  kTitle,      // PRESENT.CPV fades in and stays
-  kAnimation,  // PRESENT.DIF
-  kNames,      // the lettering; waits for Space or Enter
-  kFadeOut,    // the title palette fades out
-  kDone,
+  Logo,       // LOGO.CPV fades in and stays
+  LogoGone,   // the logo fades out
+  Title,      // PRESENT.CPV fades in and stays
+  Animation,  // PRESENT.DIF
+  Names,      // the lettering; waits for Space or Enter
+  FadeOut,    // the title palette fades out
+  Done,
 };
 
 // The opening presentation (main, 0:a908-0:b05e; docs/game.md, "Program flow"): LOGO.CPV fades
@@ -79,7 +79,7 @@ enum class TitleStage : std::uint8_t {
 // stack empties.
 class Title {
  public:
-  static constexpr ComponentType kType = ComponentType::kTitle;
+  static constexpr ComponentType kType = ComponentType::Title;
 
   // Stands in for the original's disk loading behind the logo (PRESENT.CPV, PRESENT.DIF,
   // HIGHWAY.MUS), which the port does not have.
@@ -121,7 +121,7 @@ struct TitleState {
   using Actions = ActionStack<kActionCapacity, Hold, Fade, PlayAnimation>;
 
   Actions actions;
-  TitleStage stage{TitleStage::kDone};
+  TitleStage stage{TitleStage::Done};
 };
 
 static_assert(ComponentLike<Title>);

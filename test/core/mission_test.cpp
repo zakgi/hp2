@@ -143,7 +143,7 @@ TEST_F(MissionTest, ThePlayerStopsAtAStationAndLeavesServed) {
       PlanLanes(driver, route, road, player.position, true);
     }
     const auto events = mission.Step(pathfinding_, PlayerCommands{.controls = FollowLane(driver, player, kTuning)});
-    stopped = events.test(std::to_underlying(MissionEvent::kStationStop));
+    stopped = events.test(std::to_underlying(MissionEvent::StationStop));
   }
   ASSERT_TRUE(stopped);
   EXPECT_EQ(mission.GetStation(), station);
@@ -159,7 +159,7 @@ TEST_F(MissionTest, ThePlayerStopsAtAStationAndLeavesServed) {
   EXPECT_EQ(GetCell(player.position), stations[station]);
   EXPECT_TRUE(road.IsOnRoad(player.position));
   EXPECT_FALSE(road.IsInStationArea(player.position));
-  EXPECT_FALSE(mission.Step(pathfinding_, PlayerCommands{}).test(std::to_underlying(MissionEvent::kStationStop)));
+  EXPECT_FALSE(mission.Step(pathfinding_, PlayerCommands{}).test(std::to_underlying(MissionEvent::StationStop)));
 }
 
 TEST(MissionRules, APullOverArrestNeedsTheCriminalCloseAhead) {
@@ -275,17 +275,17 @@ TEST_F(MissionRulesTest, ACactusSpinsTheCarOutAndDamagesIt) {
   mission.Start(pathfinding_, kMissions[0], AiPolicies{}, 1);
   // 6192 units from any start to the middle of its cell: the car gets there at about 5000 units a
   // second.
-  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::kCrash, 10));
-  EXPECT_EQ(mission.GetPlayer().impact.kind, ImpactKind::kSpin);
+  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::Crash, 10));
+  EXPECT_EQ(mission.GetPlayer().impact.kind, ImpactKind::Spin);
   // Twice its speed a frame, of 10000.
   EXPECT_NEAR(mission.GetCondition().damage, 0.05F, 0.01F);
   // It spins to a stop, whatever the throttle.
   auto ticks = 0;
-  while (mission.GetPlayer().impact.kind == ImpactKind::kSpin and ticks < 3 * 60) {
+  while (mission.GetPlayer().impact.kind == ImpactKind::Spin and ticks < 3 * 60) {
     mission.Step(pathfinding_, kFlatOut);
     ++ticks;
   }
-  EXPECT_EQ(mission.GetPlayer().impact.kind, ImpactKind::kNone);
+  EXPECT_EQ(mission.GetPlayer().impact.kind, ImpactKind::None);
   EXPECT_EQ(mission.GetPlayer().speed, 0.0F);
   EXPECT_FALSE(mission.GetProgress().end_reason);
 }
@@ -293,18 +293,18 @@ TEST_F(MissionRulesTest, ACactusSpinsTheCarOutAndDamagesIt) {
 TEST_F(MissionRulesTest, StonesBumpTheCar) {
   auto mission = Mission{MakeRoad(1, 3)};
   mission.Start(pathfinding_, kMissions[0], AiPolicies{}, 1);
-  ASSERT_TRUE(RunIntoImpact(mission, ImpactKind::kBump));
+  ASSERT_TRUE(RunIntoImpact(mission, ImpactKind::Bump));
   EXPECT_GT(mission.GetCondition().damage, 0.0F);
   EXPECT_LT(mission.GetCondition().damage, 0.04F);
   auto highest = 0.0F;
   auto crashed = false;
   for (auto tick = 0; tick < 60; ++tick) {
-    crashed = crashed or mission.Step(pathfinding_, kFlatOut).test(std::to_underlying(MissionEvent::kCrash));
+    crashed = crashed or mission.Step(pathfinding_, kFlatOut).test(std::to_underlying(MissionEvent::Crash));
     highest = std::max(highest, mission.GetPlayer().body_lift);
   }
   EXPECT_GT(highest, 30.0F);
   EXPECT_FALSE(crashed);
-  EXPECT_EQ(mission.GetPlayer().impact.kind, ImpactKind::kNone);
+  EXPECT_EQ(mission.GetPlayer().impact.kind, ImpactKind::None);
 }
 
 TEST_F(MissionRulesTest, ABushScratchesAndDragsWithoutAnImpact) {
@@ -319,7 +319,7 @@ TEST_F(MissionRulesTest, ABushScratchesAndDragsWithoutAnImpact) {
   ASSERT_GT(mission.GetCondition().damage, 0.0F);
   EXPECT_GT(before, 4000.0F);
   EXPECT_LT(mission.GetPlayer().speed, before);
-  EXPECT_EQ(mission.GetPlayer().impact.kind, ImpactKind::kNone);
+  EXPECT_EQ(mission.GetPlayer().impact.kind, ImpactKind::None);
 }
 
 TEST_F(MissionRulesTest, RammingTheCriminalCostsTheBounty) {
@@ -332,7 +332,7 @@ TEST_F(MissionRulesTest, RammingTheCriminalCostsTheBounty) {
       const auto bounty = mission.GetProgress().bounty;
       const auto throttle = mission.GetPlayer().speed < 5000.0F ? 1.0F : 0.0F;
       const auto events = mission.Step(pathfinding_, PlayerCommands{.controls = {.throttle = throttle}});
-      if (events.test(std::to_underlying(MissionEvent::kCrash))) {
+      if (events.test(std::to_underlying(MissionEvent::Crash))) {
         taken = bounty - mission.GetProgress().bounty;
       }
     }
@@ -344,8 +344,8 @@ TEST_F(MissionRulesTest, RammingTheCriminalCostsTheBounty) {
   const auto taken = ram();
   EXPECT_GE(taken, 60);
   EXPECT_LE(taken, 61);
-  EXPECT_EQ(mission.GetPlayer().impact.kind, ImpactKind::kSpin);
-  EXPECT_EQ(mission.GetTarget().impact.kind, ImpactKind::kSpin);
+  EXPECT_EQ(mission.GetPlayer().impact.kind, ImpactKind::Spin);
+  EXPECT_EQ(mission.GetTarget().impact.kind, ImpactKind::Spin);
   EXPECT_GT(mission.GetCondition().damage, 0.0F);
   // The criminal's car, which stood still, is knocked on.
   EXPECT_GT(mission.GetTarget().speed, 1000.0F);
@@ -374,15 +374,15 @@ TEST_F(MissionRulesTest, FiveHitsArrestTheCriminalInAShootingMission) {
   auto over = false;
   for (auto tick = 0; tick < 60 and not over; ++tick) {
     const auto events = mission.Step(pathfinding_, PlayerCommands{.firing = true});
-    shots += events.test(std::to_underlying(MissionEvent::kShot)) ? 1 : 0;
-    hits += events.test(std::to_underlying(MissionEvent::kTargetHit)) ? 1 : 0;
-    over = events.test(std::to_underlying(MissionEvent::kMissionOver));
+    shots += events.test(std::to_underlying(MissionEvent::Shot)) ? 1 : 0;
+    hits += events.test(std::to_underlying(MissionEvent::TargetHit)) ? 1 : 0;
+    over = events.test(std::to_underlying(MissionEvent::MissionOver));
   }
   EXPECT_TRUE(over);
   EXPECT_EQ(shots, 5);
   EXPECT_EQ(hits, 5);
   EXPECT_EQ(mission.GetProgress().target_hits, 5);
-  EXPECT_EQ(mission.GetProgress().end_reason, EndReason::kArrest);
+  EXPECT_EQ(mission.GetProgress().end_reason, EndReason::Arrest);
   EXPECT_EQ(mission.GetProgress().hole_count, 0);
 }
 
@@ -394,10 +394,9 @@ TEST_F(MissionRulesTest, ShootingTheCriminalCostsTheBountyInOtherMissions) {
   const auto bounty = mission.GetProgress().bounty;
   auto hits = 0;
   for (auto tick = 0; tick < 30; ++tick) {
-    hits +=
-        mission.Step(pathfinding_, PlayerCommands{.firing = true}).test(std::to_underlying(MissionEvent::kTargetHit))
-            ? 1
-            : 0;
+    hits += mission.Step(pathfinding_, PlayerCommands{.firing = true}).test(std::to_underlying(MissionEvent::TargetHit))
+                ? 1
+                : 0;
   }
   // 30 ticks: 10 shots, 20 dollars each, and a dollar or two of the bounty's own drain.
   EXPECT_EQ(hits, 10);
@@ -412,8 +411,8 @@ TEST_F(MissionRulesTest, ShootingTheCriminalCostsTheBountyInOtherMissions) {
   for (auto tick = 0; tick < 30; ++tick) {
     events |= mission.Step(pathfinding_, PlayerCommands{.firing = true});
   }
-  EXPECT_TRUE(events.test(std::to_underlying(MissionEvent::kShot)));
-  EXPECT_FALSE(events.test(std::to_underlying(MissionEvent::kTargetHit)));
+  EXPECT_TRUE(events.test(std::to_underlying(MissionEvent::Shot)));
+  EXPECT_FALSE(events.test(std::to_underlying(MissionEvent::TargetHit)));
 }
 
 TEST_F(MissionRulesTest, TheCriminalShootsADriverComingUpItsLine) {
@@ -426,9 +425,9 @@ TEST_F(MissionRulesTest, TheCriminalShootsADriverComingUpItsLine) {
     const auto throttle = mission.GetPlayer().speed < 2000.0F ? 1.0F : 0.0F;
     events |= mission.Step(pathfinding_, PlayerCommands{.controls = {.throttle = throttle}});
   }
-  EXPECT_EQ(mission.GetProgress().end_reason, EndReason::kShot);
-  EXPECT_TRUE(events.test(std::to_underlying(MissionEvent::kWindshieldHit)));
-  EXPECT_FALSE(events.test(std::to_underlying(MissionEvent::kCrash)));
+  EXPECT_EQ(mission.GetProgress().end_reason, EndReason::Shot);
+  EXPECT_TRUE(events.test(std::to_underlying(MissionEvent::WindshieldHit)));
+  EXPECT_FALSE(events.test(std::to_underlying(MissionEvent::Crash)));
   EXPECT_EQ(GetCell(mission.GetPlayer().position), GetCell(mission.GetTarget().position));
 }
 
@@ -451,13 +450,13 @@ TEST_F(MissionRulesTest, NoTrafficWhileThePlayerIsCloseToTheCriminal) {
 
 TEST_F(MissionRulesTest, TheCriminalRollsToAStopWithThePlayerOnceTheMissionIsOver) {
   auto mission = Mission{MakeRoad(1)};
-  mission.Start(pathfinding_, MissionType{.arrest = ArrestMethod::kPullOver, .target_max_speed = 200, .bounty = 10},
+  mission.Start(pathfinding_, MissionType{.arrest = ArrestMethod::PullOver, .target_max_speed = 200, .bounty = 10},
                 AiPolicies{}, 1);
-  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::kMissionOver, 5));
+  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::MissionOver, 5));
   mission.Step(pathfinding_, kFlatOut);
   EXPECT_GT(mission.GetPlayer().speed, 4000.0F);
   EXPECT_FLOAT_EQ(mission.GetTarget().speed, mission.GetPlayer().speed);
-  RunUntil(mission, kFlatOut, MissionEvent::kMissionOver, 10);
+  RunUntil(mission, kFlatOut, MissionEvent::MissionOver, 10);
   EXPECT_EQ(mission.GetPlayer().speed, 0.0F);
   EXPECT_EQ(mission.GetTarget().speed, 0.0F);
 }
@@ -465,30 +464,30 @@ TEST_F(MissionRulesTest, TheCriminalRollsToAStopWithThePlayerOnceTheMissionIsOve
 TEST_F(MissionRulesTest, TheBountyDrainsADollarEveryEighteenTicks) {
   auto mission = Mission{MakeRoad(1)};
   mission.Start(pathfinding_, kMissions[0], AiPolicies{}, 1);
-  EXPECT_FALSE(RunUntil(mission, PlayerCommands{}, MissionEvent::kMissionOver, 10));
+  EXPECT_FALSE(RunUntil(mission, PlayerCommands{}, MissionEvent::MissionOver, 10));
   EXPECT_EQ(mission.GetProgress().bounty, 2000 - 33);
   EXPECT_FALSE(mission.GetProgress().end_reason);
 }
 
 TEST_F(MissionRulesTest, TheMissionEndsWhenTheBountyIsGone) {
   auto mission = Mission{MakeRoad(1)};
-  mission.Start(pathfinding_, MissionType{.arrest = ArrestMethod::kPullOver, .target_max_speed = 200, .bounty = 2},
+  mission.Start(pathfinding_, MissionType{.arrest = ArrestMethod::PullOver, .target_max_speed = 200, .bounty = 2},
                 AiPolicies{}, 1);
-  EXPECT_TRUE(RunUntil(mission, PlayerCommands{}, MissionEvent::kMissionOver, 1));
+  EXPECT_TRUE(RunUntil(mission, PlayerCommands{}, MissionEvent::MissionOver, 1));
   EXPECT_EQ(mission.GetTick(), 36U);
-  EXPECT_EQ(mission.GetProgress().end_reason, EndReason::kBountyGone);
+  EXPECT_EQ(mission.GetProgress().end_reason, EndReason::BountyGone);
   // Over is over: no second event, and no more driving.
-  EXPECT_FALSE(RunUntil(mission, kFlatOut, MissionEvent::kMissionOver, 2));
+  EXPECT_FALSE(RunUntil(mission, kFlatOut, MissionEvent::MissionOver, 2));
   EXPECT_EQ(mission.GetPlayer().speed, 0.0F);
 }
 
 TEST_F(MissionRulesTest, FlatOutOverheatsTheEngineAndTheCarRollsToAStop) {
   auto mission = Mission{MakeRoad(1)};
   mission.Start(pathfinding_, kMissions[0], AiPolicies{}, 1);
-  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::kMissionOver, 60));
-  EXPECT_EQ(mission.GetProgress().end_reason, EndReason::kOverheated);
+  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::MissionOver, 60));
+  EXPECT_EQ(mission.GetProgress().end_reason, EndReason::Overheated);
   EXPECT_GT(mission.GetPlayer().speed, 7000.0F);
-  RunUntil(mission, kFlatOut, MissionEvent::kMissionOver, 10);
+  RunUntil(mission, kFlatOut, MissionEvent::MissionOver, 10);
   EXPECT_EQ(mission.GetPlayer().speed, 0.0F);
 }
 
@@ -496,17 +495,17 @@ TEST_F(MissionRulesTest, TooLongOffTheRoadCostsATireThenTheMission) {
   auto mission = Mission{MakeRoad(0)};
   mission.Start(pathfinding_, kMissions[0], AiPolicies{}, 1);
   // The first tire: the car shakes to a stop and the mission goes on.
-  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::kCrash, 30));
+  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::Crash, 30));
   EXPECT_EQ(mission.GetCondition().tires, 1);
   EXPECT_GT(mission.GetTick(), 15U * 60U);
-  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::kSpinOut, 10));
+  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::SpinOut, 10));
   EXPECT_EQ(mission.GetPlayer().speed, 0.0F);
   EXPECT_GT(mission.GetCondition().damage, 0.0F);
   EXPECT_FALSE(mission.GetProgress().end_reason);
   // The second ends it.
-  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::kMissionOver, 30));
+  ASSERT_TRUE(RunUntil(mission, kFlatOut, MissionEvent::MissionOver, 30));
   EXPECT_EQ(mission.GetCondition().tires, 0);
-  EXPECT_EQ(mission.GetProgress().end_reason, EndReason::kTiresGone);
+  EXPECT_EQ(mission.GetProgress().end_reason, EndReason::TiresGone);
 }
 
 TEST_F(MissionTest, TheSameSeedReplaysTheSameMission) {

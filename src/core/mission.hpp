@@ -29,17 +29,17 @@ struct PlayerCommands {
 
 // What happened during a tick, for the sounds and the scenes.
 enum class MissionEvent : std::uint8_t {
-  kCrash,          // the player's car hit something
-  kShot,           // the player fired
-  kTargetHit,      // the shot hit the criminal's car
-  kTrafficHit,     // the shot hit a traffic car
-  kWindshieldHit,  // the criminal's bullet went through the windshield
-  kStationStop,    // the player's car stopped at a station's pumps
-  kSpinOut,        // a tire lost leaving the road (PAGE_F1); the mission goes on
-  kMissionOver,    // the reason is in GetProgress().end_reason
-  kCount,
+  Crash,          // the player's car hit something
+  Shot,           // the player fired
+  TargetHit,      // the shot hit the criminal's car
+  TrafficHit,     // the shot hit a traffic car
+  WindshieldHit,  // the criminal's bullet went through the windshield
+  StationStop,    // the player's car stopped at a station's pumps
+  SpinOut,        // a tire lost leaving the road (PAGE_F1); the mission goes on
+  MissionOver,    // the reason is in GetProgress().end_reason
+  Count,
 };
-using MissionEvents = std::bitset<std::to_underlying(MissionEvent::kCount)>;
+using MissionEvents = std::bitset<std::to_underlying(MissionEvent::Count)>;
 
 // A direction from the player's eye relative to the body, for the sight and the bullet holes: the
 // mission decides what they hit, the views place them.

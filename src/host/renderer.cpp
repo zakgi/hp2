@@ -22,7 +22,7 @@ Renderer::Renderer(sf::RenderWindow& window)
     : window_(window), texture_(sf::Vector2u{Screen::kWidth, Screen::kHeight}) {}
 
 void Renderer::Render(Screen& screen) {
-  for (const auto viewport : {Viewport::kUpper, Viewport::kLower}) {
+  for (const auto viewport : {Viewport::Upper, Viewport::Lower}) {
     auto& palette = screen.Palette(viewport);
     const auto colors = palette.Colors();
     const auto first = screen.FirstRow(viewport);

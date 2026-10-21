@@ -76,7 +76,7 @@ TEST_F(DriverViewTest, SplitsTheScreenAndPlacesTheColors) {
   view.Draw(mission);
 
   EXPECT_EQ(screen_.SplitRow(), kDashboardRow);
-  const auto& upper = screen_.Palette(Viewport::kUpper);
+  const auto& upper = screen_.Palette(Viewport::Upper);
   // The sky at the top of the screen, the lightest shade at the horizon, the sand and the asphalt
   // by the car (viewPalette, 0:a520).
   EXPECT_EQ(upper.Color(GetSkyEntry(0)), (Rgb{.red = 0x00, .green = 0x55, .blue = 0xff}));
@@ -107,7 +107,7 @@ TEST_F(DriverViewTest, DrawsTheCarAroundTheView) {
   }
   // On it the cell the car is in, column then row, two digits each from columns 40 and 64 on row 4.
   const auto cell = GetCell(mission.GetPlayer().position);
-  const auto& font = assets.Font(EngineFont::kLettre2);
+  const auto& font = assets.Font(EngineFont::Lettre2);
   const auto expect_digit = [this, &font](int digit, std::int16_t first_column) {
     const auto glyph = font.GetGlyph(static_cast<char>('0' + digit));
     for (auto row = std::uint16_t{0}; row < BitmapFont::kGlyphSize; ++row) {
@@ -132,7 +132,7 @@ TEST_F(DriverViewTest, DrawsTheCarAroundTheView) {
   EXPECT_EQ(GetPixel(118, 131), 0);
   EXPECT_EQ(GetPixel(319, 131), 0);
   // The dashboard, in its own palette (viewPalette's last set).
-  EXPECT_EQ(screen_.Palette(Viewport::kLower).Color(1), (Rgb{.red = 0xff, .green = 0x88, .blue = 0x44}));
+  EXPECT_EQ(screen_.Palette(Viewport::Lower).Color(1), (Rgb{.red = 0xff, .green = 0x88, .blue = 0x44}));
   auto dashboard_pixels = 0;
   for (auto row = kDashboardRow; row < Screen::kHeight; ++row) {
     for (const auto pixel : screen_.ScreenRow(row)) {
@@ -143,12 +143,12 @@ TEST_F(DriverViewTest, DrawsTheCarAroundTheView) {
 }
 
 TEST_F(DriverViewTest, TheNeedlesShowTheCar) {
-  const auto& cockpit = manager_.Engine().Bank(EngineBank::kCockpit);
+  const auto& cockpit = manager_.Engine().Bank(EngineBank::Cockpit);
   // The needles' red, in the dashboard's rows.
   constexpr auto kNeedle = std::uint8_t{14};
   const auto draw = [this, &cockpit](const DashboardInput& input) {
     screen_.EnableSplit(kDashboardRow);
-    screen_.SetViewport(Viewport::kLower);
+    screen_.SetViewport(Viewport::Lower);
     DrawDashboard(cockpit, input, screen_);
   };
   const auto get_pixel = [this](std::int16_t column, std::int16_t row) {
@@ -186,8 +186,8 @@ TEST_F(DriverViewTest, TheNeedlesShowTheCar) {
 
 TEST_F(DriverViewTest, TheRoofStripTellsWhereTheCarsAreAndTheScore) {
   const auto& assets = manager_.Engine();
-  const auto& player_font = assets.Font(EngineFont::kLettre2);
-  const auto& target_font = assets.Font(EngineFont::kLettre1);
+  const auto& player_font = assets.Font(EngineFont::Lettre2);
+  const auto& target_font = assets.Font(EngineFont::Lettre1);
   const auto text = RoofText{.player = Cell{.x = 11, .y = 15},
                              .player_heading = kNorth,
                              .target = Cell{.x = 25, .y = 5},
@@ -268,10 +268,10 @@ TEST_F(DriverViewTest, TheLeftHandGoesForTheGunAndTheSightComesUp) {
 }
 
 TEST_F(DriverViewTest, TheWarningLightsBlinkAtTheEndsOfTheirGauges) {
-  const auto& cockpit = manager_.Engine().Bank(EngineBank::kCockpit);
+  const auto& cockpit = manager_.Engine().Bank(EngineBank::Cockpit);
   const auto draw = [this, &cockpit](float fuel, float temperature, bool blink) {
     screen_.EnableSplit(kDashboardRow);
-    screen_.SetViewport(Viewport::kLower);
+    screen_.SetViewport(Viewport::Lower);
     DrawDashboard(cockpit, DashboardInput{.fuel = fuel, .temperature = temperature, .warning_blink = blink}, screen_);
     return GetScreenPixels();
   };
@@ -300,10 +300,10 @@ TEST_F(DriverViewTest, TheWarningLightsBlinkAtTheEndsOfTheirGauges) {
 }
 
 TEST_F(DriverViewTest, TheHandsFollowTheWheel) {
-  const auto& cockpit = manager_.Engine().Bank(EngineBank::kCockpit);
+  const auto& cockpit = manager_.Engine().Bank(EngineBank::Cockpit);
   const auto draw = [this, &cockpit](float steer, bool shaken) {
     screen_.EnableSplit(kDashboardRow);
-    screen_.SetViewport(Viewport::kLower);
+    screen_.SetViewport(Viewport::Lower);
     DrawDashboard(cockpit, DashboardInput{.steer = steer, .shaken = shaken}, screen_);
     auto pixels = std::array<std::uint8_t, std::size_t{Screen::kHeight - kDashboardRow} * Screen::kWidth>{};
     for (auto row = kDashboardRow; row < Screen::kHeight; ++row) {
@@ -331,7 +331,7 @@ TEST_F(DriverViewTest, TheHandsFollowTheWheel) {
 }
 
 TEST_F(DriverViewTest, TheBackdropStandsOnTheHorizonAndTurnsWithTheHeading) {
-  const auto& backdrop = manager_.Engine().Bank(EngineBank::kBackdrop);
+  const auto& backdrop = manager_.Engine().Bank(EngineBank::Backdrop);
   DrawSkyHorizon(kDriverView, backdrop, kNorth, 0.0F, screen_);
   const auto ahead = GetViewPixels();
   auto backdrop_pixels = 0;
@@ -425,7 +425,7 @@ TEST_F(DriverViewTest, DrawsACarAheadInItsOwnColors) {
   const auto input = ViewInput{.position = eye, .heading = kNorth, .eye_height = DriverView::kEyeHeight};
   // 1000 units straight ahead and driving away: its back at the third size, the picture's hotspot
   // 100 * 256 / 1000 = 25 rows under the horizon in the middle column.
-  const auto& back = assets.Bank(EngineBank::kCar6).sprites[2];
+  const auto& back = assets.Bank(EngineBank::Car6).sprites[2];
   const auto left = 160 - back.origin_x;
   const auto top = 95 - back.origin_y;
   const auto cars = std::to_array<RoadsideObjects::Car>(
@@ -498,7 +498,7 @@ TEST_F(DriverViewTest, TheCarsHaveTheirPaintInThePalette) {
   ASSERT_EQ(mission.GetTraffic().size(), 1U);
   auto view = DriverView{assets, screen_, mission.GetRoad()};
   view.Draw(mission);
-  const auto& palette = screen_.Palette(Viewport::kUpper);
+  const auto& palette = screen_.Palette(Viewport::Upper);
   // The criminal's red in the view's set; the traffic car's scheme in its copy, after the white,
   // black and gray both share.
   EXPECT_EQ(palette.Color(kCarPaintFirst), kCarPaints[0][0]);

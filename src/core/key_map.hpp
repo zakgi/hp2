@@ -45,7 +45,7 @@ class KeyMap {
 
   [[nodiscard]] constexpr Key FromNative(std::int32_t native) const {
     const auto* found = std::ranges::lower_bound(reverse_, native, {}, &KeyMapping::native);
-    return found != reverse_.end() and found->native == native ? found->key : Key::kNone;
+    return found != reverse_.end() and found->native == native ? found->key : Key::None;
   }
 
  private:

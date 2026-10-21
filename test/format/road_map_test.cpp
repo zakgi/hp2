@@ -12,10 +12,10 @@ namespace hp2::host {
 namespace {
 
 TEST(RoadMap, RejectsBadMaps) {
-  EXPECT_EQ(DecodeRoadMap(std::vector<std::uint8_t>(4095)).error(), RoadMapError::kBadSize);
+  EXPECT_EQ(DecodeRoadMap(std::vector<std::uint8_t>(4095)).error(), RoadMapError::BadSize);
   auto file = std::vector<std::uint8_t>(4096);
   file[100] = 13;
-  EXPECT_EQ(DecodeRoadMap(file).error(), RoadMapError::kUnknownCellType);
+  EXPECT_EQ(DecodeRoadMap(file).error(), RoadMapError::UnknownCellType);
 }
 
 TEST(RoadMap, ReadsRowAfterRow) {

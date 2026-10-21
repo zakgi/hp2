@@ -71,7 +71,7 @@ TEST_F(AiTest, ARouteFieldCountsTheCellsToItsGoal) {
   EXPECT_EQ(route.GetDistance(Cell{.x = 32, .y = 4}), 1);
   EXPECT_EQ(route.GetDistance(Cell{.x = 0, .y = 0}), RouteField::kUnreachable);
   EXPECT_EQ(route.GetDistance(Cell{.x = -1, .y = 70}), RouteField::kUnreachable);
-  EXPECT_FALSE(route.ChooseExit(road, kNearStation, Side::kSouth));
+  EXPECT_FALSE(route.ChooseExit(road, kNearStation, Side::South));
 }
 
 TEST(RouteField, FirstUseAndInvalidationRebuildEvenWhenTheGoalIsUnchanged) {
@@ -161,11 +161,11 @@ TEST_F(AiTest, ADriverPullingInStopsAtThePumps) {
       PlanLanes(driver_, route_, road, car.position, true);
     }
     if (driver_.cell == kNearStation) {
-      driver_.plan = AiDriver::Plan::kPullIn;
+      driver_.plan = AiDriver::Plan::PullIn;
     }
     ASSERT_TRUE(road.IsOnRoad(car.position)) << "tick " << ticks;
     ASSERT_GE(car.speed, 0.0F);
-    stopped = driver_.plan == AiDriver::Plan::kPullIn and car.speed == 0.0F;
+    stopped = driver_.plan == AiDriver::Plan::PullIn and car.speed == 0.0F;
     ++ticks;
   }
   ASSERT_TRUE(stopped);
@@ -189,7 +189,7 @@ TEST_F(AiTest, TheCriminalPicksItsStationByThePolicy) {
   target_distances_.Build(road, GetCell(target.position));
   player_distances_.Build(road, GetCell(player.position));
   const auto context = PolicyContext{.road = road,
-                                     .arrest = ArrestMethod::kPullOver,
+                                     .arrest = ArrestMethod::PullOver,
                                      .player = player,
                                      .target = target,
                                      .robbed = robbed,
@@ -222,7 +222,7 @@ TEST_F(AiTest, TheCriminalRobsOnlyUnwatched) {
   const auto target = PlaceCar(kNearStation);
   auto player = PlaceCar(Cell{.x = 32, .y = 6});
   const auto context = PolicyContext{.road = road,
-                                     .arrest = ArrestMethod::kShoot,
+                                     .arrest = ArrestMethod::Shoot,
                                      .player = player,
                                      .target = target,
                                      .robbed = robbed,

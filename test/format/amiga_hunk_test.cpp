@@ -14,9 +14,9 @@ namespace {
 
 TEST(AmigaHunk, RejectsNonExecutables) {
   const auto bytes = std::vector<std::uint8_t>{0x00, 0x00, 0x03, 0xf2};
-  EXPECT_EQ(HunkFile::FromBytes(std::as_bytes(std::span{bytes})).error(), HunkError::kNotExecutable);
+  EXPECT_EQ(HunkFile::FromBytes(std::as_bytes(std::span{bytes})).error(), HunkError::NotExecutable);
   const auto header_only = std::vector<std::uint8_t>{0x00, 0x00, 0x03, 0xf3, 0x00, 0x00};
-  EXPECT_EQ(HunkFile::FromBytes(std::as_bytes(std::span{header_only})).error(), HunkError::kTruncated);
+  EXPECT_EQ(HunkFile::FromBytes(std::as_bytes(std::span{header_only})).error(), HunkError::Truncated);
 }
 
 TEST(AmigaHunk, ReadsTheGameUnrelocated) {

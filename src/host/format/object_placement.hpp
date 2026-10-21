@@ -11,8 +11,8 @@
 namespace hp2::host {
 
 enum class ObjectPlacementError : std::uint8_t {
-  kTooShort,
-  kListOutOfFile,
+  TooShort,
+  ListOutOfFile,
 };
 
 // COOR_OBJ.BIN: the scenery of every road cell type; every cell of a type has the same.

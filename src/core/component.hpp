@@ -15,12 +15,12 @@ struct EngineState;
 // Top-level application states, after the original's program flow (docs/game.md): title, office
 // (mission choice), the highway, station stop, mission end. kQuit ends the engine loop.
 enum class ComponentType : std::uint8_t {
-  kTitle,
-  kOffice,
-  kHighway,
-  kStation,
-  kMissionEnd,
-  kQuit,
+  Title,
+  Office,
+  Highway,
+  Station,
+  MissionEnd,
+  Quit,
 };
 
 // A component controls one scene. Shared data lives in EngineState; private controller data lives
@@ -57,7 +57,7 @@ class Engine {
   // NOLINTEND(bugprone-dynamic-static-initializers)
   static_assert(kComponentCount > 0, "an engine needs at least one component");
   static_assert(AllUnique(kTypes), "each ComponentType may be registered once");
-  static_assert(((Components::kType != ComponentType::kQuit) and ...), "kQuit is a transition, not a component");
+  static_assert(((Components::kType != ComponentType::Quit) and ...), "kQuit is a transition, not a component");
 
   explicit Engine(EngineState& state) : state_(state) {}
 
@@ -85,7 +85,7 @@ class Engine {
     if (accepted) {
       const ComponentType next =
           Visit([this, delta_seconds](auto& component) { return component.Step(state_, delta_seconds); });
-      if (next == ComponentType::kQuit) {
+      if (next == ComponentType::Quit) {
         Visit([this](auto& component) { component.OnExit(state_); });
         active_.template emplace<std::monostate>();
       } else if (next != Active()) {
@@ -113,7 +113,7 @@ class Engine {
         [](const auto& component) {
           using Current = std::remove_cvref_t<decltype(component)>;
           if constexpr (std::same_as<Current, std::monostate>) {
-            return ComponentType::kQuit;
+            return ComponentType::Quit;
           } else {
             return Current::kType;
           }

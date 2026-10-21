@@ -14,7 +14,7 @@
 
 namespace hp2::flash {
 
-enum class AssetStatus : std::uint8_t { kPass, kFail, kAbsent };
+enum class AssetStatus : std::uint8_t { Pass, Fail, Absent };
 
 static_assert(asset_layout::kImageSize <= kAssets.size, "the asset image does not fit its partition");
 
@@ -33,11 +33,11 @@ static_assert(asset_layout::kImageSize <= kAssets.size, "the asset image does no
 template <auto Sha256Fn>
 [[nodiscard]] AssetStatus VerifyAssets() {
   const auto bytes = ImageBytes();
-  auto status = AssetStatus::kFail;
+  auto status = AssetStatus::Fail;
   if (std::ranges::all_of(bytes, [](std::uint8_t byte) { return byte == 0xff; })) {
-    status = AssetStatus::kAbsent;
+    status = AssetStatus::Absent;
   } else if (Sha256Fn(bytes) == asset_layout::kImageDigest) {
-    status = AssetStatus::kPass;
+    status = AssetStatus::Pass;
   }
   return status;
 }

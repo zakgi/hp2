@@ -242,7 +242,7 @@ std::optional<Lane> Road::GetDriveway(Cell cell, Side entry) const {
     const auto start = GetLaneStart(cell, entry);
     // The station lies east of a north-south road and south of an east-west one: 1 when that is to
     // the left of the way in, -1 to the right.
-    const auto station = GetOutward(type == kNorthSouthStation ? Side::kEast : Side::kSouth);
+    const auto station = GetOutward(type == kNorthSouthStation ? Side::East : Side::South);
     const auto side = Cross(GetDirection(start.heading), station) > 0.0F ? 1.0F : -1.0F;
     // The lane's distance from the center line, toward the station.
     const auto lane = -side * kLaneOffset;

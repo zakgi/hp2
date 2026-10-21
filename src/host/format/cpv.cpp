@@ -58,7 +58,7 @@ struct Run {
 };
 
 std::expected<Run, CpvError> ReadRun(std::span<const std::uint8_t> stream) {
-  auto result = std::expected<Run, CpvError>{std::unexpected{CpvError::kTruncatedStream}};
+  auto result = std::expected<Run, CpvError>{std::unexpected{CpvError::TruncatedStream}};
   if (not stream.empty()) {
     const auto control = stream.front();
     const auto literal = (control & kLiteralFlag) != 0;
@@ -66,7 +66,7 @@ std::expected<Run, CpvError> ReadRun(std::span<const std::uint8_t> stream) {
     const auto source_bytes = literal ? count : std::size_t{1};
     if (count == 0) {
       // A zero count would make the original's dbf loop run 65536 times; no file has one.
-      result = std::unexpected{CpvError::kZeroRun};
+      result = std::unexpected{CpvError::ZeroRun};
     } else if (stream.size() - 1 >= source_bytes) {
       result = Run{.count = count, .literal = literal, .source = stream.subspan(1, source_bytes)};
     }
@@ -99,9 +99,9 @@ std::expected<CpvPicture, CpvError> DecodeCpv(std::span<const std::uint8_t> file
   const auto bytes = std::as_bytes(file);
   auto result = std::expected<CpvPicture, CpvError>{CpvPicture{}};
   if (file.size() < kHeaderBytes) {
-    result = std::unexpected{CpvError::kTooShort};
+    result = std::unexpected{CpvError::TooShort};
   } else if (ReadBigEndian<std::uint16_t>(bytes) != kMagic) {
-    result = std::unexpected{CpvError::kBadMagic};
+    result = std::unexpected{CpvError::BadMagic};
   } else {
     for (auto index = std::size_t{0}; index < result->palette_st.size(); ++index) {
       result->palette_st[index] = *ReadBigEndian<std::uint16_t>(bytes.subspan(2 + (2 * index)));

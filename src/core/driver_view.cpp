@@ -36,12 +36,12 @@ void DriverView::InstallPalette(EnginePalette source, ScreenPalette& upper, Scre
 }
 
 void DriverView::InstallCarColors(const Mission& mission) {
-  auto& upper = screen_.Palette(Viewport::kUpper);
+  auto& upper = screen_.Palette(Viewport::Upper);
   const auto paint = [&upper](std::size_t offset, std::size_t scheme) {
     upper.Overlay(kCarPaints[std::min(scheme, kCarPaints.size() - 1)], offset + kCarPaintFirst);
   };
   paint(0, 0);
-  const auto colors = assets_.Palette(EnginePalette::kView);
+  const auto colors = assets_.Palette(EnginePalette::View);
   const auto traffic = mission.GetTraffic();
   if (colors.size() == kViewSetCount * kColorRegisterCount) {
     for (auto index = std::size_t{0}; index < std::min(traffic.size(), kTrafficPaintCount); ++index) {
@@ -92,22 +92,22 @@ void DriverView::Draw(const Mission& mission) {
   aim_ = std::clamp(aim_ + ((progress.aiming ? ticks : -ticks) / kAimTicks), 0.0F, 1.0F);
 
   screen_.EnableSplit(kDashboardRow);
-  InstallPalette(EnginePalette::kView, screen_.Palette(Viewport::kUpper), screen_.Palette(Viewport::kLower));
+  InstallPalette(EnginePalette::View, screen_.Palette(Viewport::Upper), screen_.Palette(Viewport::Lower));
   InstallCarColors(mission);
   // The red flash (viewPaletteRed, 0:a734) waits in the shadow: it takes the screen while a contact
   // with another car flashes, and for good once the driver has been shot.
-  InstallPalette(EnginePalette::kViewRed, screen_.ShadowPalette(Viewport::kUpper),
-                 screen_.ShadowPalette(Viewport::kLower));
-  if (progress.flash_seconds > 0.0F or progress.end_reason == EndReason::kShot) {
-    screen_.SwapPalettes(Viewport::kUpper);
-    screen_.SwapPalettes(Viewport::kLower);
+  InstallPalette(EnginePalette::ViewRed, screen_.ShadowPalette(Viewport::Upper),
+                 screen_.ShadowPalette(Viewport::Lower));
+  if (progress.flash_seconds > 0.0F or progress.end_reason == EndReason::Shot) {
+    screen_.SwapPalettes(Viewport::Upper);
+    screen_.SwapPalettes(Viewport::Lower);
   }
-  DrawSkyHorizon(kDriverView, assets_.Bank(EngineBank::kBackdrop), input.heading, player.body_lift, screen_);
+  DrawSkyHorizon(kDriverView, assets_.Bank(EngineBank::Backdrop), input.heading, player.body_lift, screen_);
   projection_.Project(input, rows_);
   DrawRoadSurface(rows_, travel_, screen_);
   objects_.Draw(kDriverView, input, road_, std::span{cars}.first(car_count), assets_, screen_);
   // On the windshield: the holes of the criminal's bullets, then the sight once the gun is up.
-  const auto& gun = assets_.Bank(EngineBank::kGun);
+  const auto& gun = assets_.Bank(EngineBank::Gun);
   const auto place = [](ViewDirection direction) {
     const auto column = kDriverView.center_column - (std::tan(direction.bearing) * kDriverView.focal_length);
     const auto row = static_cast<float>(kDriverView.horizon_row) - (direction.elevation * kDriverView.focal_length);
@@ -119,10 +119,10 @@ void DriverView::Draw(const Mission& mission) {
   if (aim_ >= 1.0F) {
     DrawSight(gun, place(progress.sight), progress.shot_hit, screen_);
   }
-  const auto& cockpit = assets_.Bank(EngineBank::kCockpit);
+  const auto& cockpit = assets_.Bank(EngineBank::Cockpit);
   DrawHoodEdge(screen_);
   DrawRoofStrip(cockpit, screen_);
-  DrawRoofText(assets_.Font(EngineFont::kLettre2), assets_.Font(EngineFont::kLettre1),
+  DrawRoofText(assets_.Font(EngineFont::Lettre2), assets_.Font(EngineFont::Lettre1),
                RoofText{.player = GetCell(player.position),
                         .player_heading = player.heading,
                         .target = GetCell(mission.GetTarget().position),
@@ -133,7 +133,7 @@ void DriverView::Draw(const Mission& mission) {
   // While the car moves the wheel and the hands shake: up a pixel and back, kShakeTicks each.
   const auto shaken = player.speed != 0.0F and (mission.GetTick() / kShakeTicks) % 2 == 1;
   const auto& condition = mission.GetCondition();
-  screen_.SetViewport(Viewport::kLower);
+  screen_.SetViewport(Viewport::Lower);
   DrawDashboard(cockpit,
                 DashboardInput{.steer = player.controls.steer,
                                .speed = player.speed,
@@ -144,7 +144,7 @@ void DriverView::Draw(const Mission& mission) {
                                .aim = aim_,
                                .warning_blink = (mission.GetTick() / kShakeTicks) % 2 == 1},
                 screen_);
-  screen_.SetViewport(Viewport::kUpper);
+  screen_.SetViewport(Viewport::Upper);
 }
 
 }  // namespace hp2

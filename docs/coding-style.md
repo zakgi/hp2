@@ -16,7 +16,8 @@ Highway Patrol II is a native, multiplatform C++23 port of the 1990 Amiga game (
 | --- | --- | --- |
 | Types and member/free functions | `PascalCase` | `HunkFile`, `DecodeCpv` |
 | Variables, parameters, fields, files, namespaces | `snake_case` | `split_row`, `palette_list.cpp` |
-| Compile-time constants and enumerators | `kCamelCase` | `kColorRegisterCount`, `Viewport::kLower` |
+| Compile-time constants and unscoped enumerators | `kCamelCase` | `kColorRegisterCount`, `kLeftArrow` |
+| Scoped enum values | `PascalCase` | `Viewport::Lower` |
 | Preprocessor macros | `UPPER_SNAKE_CASE` | only when required |
 
 Descriptive names of at least three characters for variables, parameters and fields (`index`, `offset`, `count`); type names and enumerators are exempt. Include units when the type does not carry them: `delta_seconds`, `size_bytes`. Distinguish file offsets and hunk offsets.

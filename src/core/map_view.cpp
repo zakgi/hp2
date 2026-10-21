@@ -27,7 +27,7 @@ constexpr auto kMarkerRadius = std::int16_t{1};
 
 void MapView::Draw(WorldPoint player, WorldPoint target) {
   screen_.DisableSplit();
-  auto& palette = screen_.Palette(Viewport::kUpper);
+  auto& palette = screen_.Palette(Viewport::Upper);
   palette.Reset();
   for (auto index = std::size_t{0}; index < kColors.size(); ++index) {
     palette.SetColor(static_cast<std::uint8_t>(index), kColors[index]);
@@ -57,11 +57,11 @@ void MapView::DrawCell(Cell cell, SideMask exits) {
   const auto middle = kMapCellPixels / 2;
   const auto center_x = kMapLeft + (cell.x * kMapCellPixels) + middle;
   const auto center_y = ((kMapCells - 1 - cell.y) * kMapCellPixels) + middle;
-  screen_.DrawHorizontalLine(static_cast<std::int16_t>(center_x - (opens(Side::kWest) ? middle : 0)),
-                             static_cast<std::int16_t>(center_x + (opens(Side::kEast) ? middle : 0)),
+  screen_.DrawHorizontalLine(static_cast<std::int16_t>(center_x - (opens(Side::West) ? middle : 0)),
+                             static_cast<std::int16_t>(center_x + (opens(Side::East) ? middle : 0)),
                              static_cast<std::int16_t>(center_y), kMapRoad);
-  screen_.DrawVerticalLine(static_cast<std::int16_t>(center_y - (opens(Side::kNorth) ? middle : 0)),
-                           static_cast<std::int16_t>(center_y + (opens(Side::kSouth) ? middle : 0)),
+  screen_.DrawVerticalLine(static_cast<std::int16_t>(center_y - (opens(Side::North) ? middle : 0)),
+                           static_cast<std::int16_t>(center_y + (opens(Side::South) ? middle : 0)),
                            static_cast<std::int16_t>(center_x), kMapRoad);
 }
 

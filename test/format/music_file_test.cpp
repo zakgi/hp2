@@ -12,14 +12,14 @@ namespace hp2::host {
 namespace {
 
 TEST(MusicFile, RejectsBadFiles) {
-  EXPECT_EQ(DecodeMusicFile(std::vector<std::uint8_t>(0x100)).error(), MusicFileError::kTooShort);
+  EXPECT_EQ(DecodeMusicFile(std::vector<std::uint8_t>(0x100)).error(), MusicFileError::TooShort);
   auto file = std::vector<std::uint8_t>(0x3c + 0x258);
-  EXPECT_EQ(DecodeMusicFile(file).error(), MusicFileError::kBadSongLength);
+  EXPECT_EQ(DecodeMusicFile(file).error(), MusicFileError::BadSongLength);
   file[0x3c + 0x1d6] = 1;  // one position, pattern 0, which is missing
-  EXPECT_EQ(DecodeMusicFile(file).error(), MusicFileError::kPatternsOutOfFile);
+  EXPECT_EQ(DecodeMusicFile(file).error(), MusicFileError::PatternsOutOfFile);
   file.resize(file.size() + 1024);
   file[3] = 2;  // instrument 1 has two bytes, which are missing
-  EXPECT_EQ(DecodeMusicFile(file).error(), MusicFileError::kSamplesOutOfFile);
+  EXPECT_EQ(DecodeMusicFile(file).error(), MusicFileError::SamplesOutOfFile);
   file.resize(file.size() + 2);
   EXPECT_TRUE(DecodeMusicFile(file).has_value());
 }

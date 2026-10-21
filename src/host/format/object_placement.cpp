@@ -22,7 +22,7 @@ std::expected<ObjectPlacement, ObjectPlacementError> DecodeObjectPlacement(std::
   const auto bytes = std::as_bytes(file);
   auto result = std::expected<ObjectPlacement, ObjectPlacementError>{ObjectPlacement{}};
   if (file.size() < 4 * kRoadCellTypeCount) {
-    result = std::unexpected{ObjectPlacementError::kTooShort};
+    result = std::unexpected{ObjectPlacementError::TooShort};
   }
   for (auto type = std::size_t{0}; result and type < kRoadCellTypeCount; ++type) {
     const auto offset = std::size_t{*ReadBigEndian<std::uint32_t>(bytes.subspan(4 * type))};
@@ -30,7 +30,7 @@ std::expected<ObjectPlacement, ObjectPlacementError> DecodeObjectPlacement(std::
     const auto count =
         count_word and *count_word != kNoObjects ? static_cast<std::size_t>(*count_word & kCountMask) : std::size_t{0};
     if (not count_word or file.size() - offset - 2 < count * kEntryBytes) {
-      result = std::unexpected{ObjectPlacementError::kListOutOfFile};
+      result = std::unexpected{ObjectPlacementError::ListOutOfFile};
     } else {
       auto& objects = result->cell_types[type];
       for (auto index = std::size_t{0}; index < count; ++index) {

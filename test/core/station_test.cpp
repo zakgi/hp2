@@ -28,7 +28,7 @@ class StationTest : public ::testing::Test {
   }
 
   ComponentType Press(Key key) {
-    keys_.Record({.key = key, .action = KeyAction::kPress});
+    keys_.Record({.key = key, .action = KeyAction::Press});
     return station_.Step(*state_, 0.0F);
   }
 
@@ -42,20 +42,20 @@ class StationTest : public ::testing::Test {
 
 TEST_F(StationTest, FillsUpAndRepairsOnce) {
   station_.OnEnter(*state_);
-  EXPECT_EQ(Station::Cursor(*state_), Station::Item::kExit);
-  EXPECT_EQ(Press(Key::kUp), ComponentType::kStation);
-  EXPECT_EQ(Press(Key::kUp), ComponentType::kStation);
-  EXPECT_EQ(Station::Cursor(*state_), Station::Item::kFillUp);
-  EXPECT_EQ(Press(Key::kUp), ComponentType::kStation);  // stays on the first item
-  EXPECT_EQ(Press(Key::kSpace), ComponentType::kStation);
+  EXPECT_EQ(Station::Cursor(*state_), Station::Item::Exit);
+  EXPECT_EQ(Press(Key::Up), ComponentType::Station);
+  EXPECT_EQ(Press(Key::Up), ComponentType::Station);
+  EXPECT_EQ(Station::Cursor(*state_), Station::Item::FillUp);
+  EXPECT_EQ(Press(Key::Up), ComponentType::Station);  // stays on the first item
+  EXPECT_EQ(Press(Key::Space), ComponentType::Station);
   EXPECT_FLOAT_EQ(state_->mission.GetCondition().fuel, 1.0F);
-  EXPECT_FALSE(Station::Available(*state_, Station::Item::kFillUp));
-  EXPECT_EQ(Press(Key::kDown), ComponentType::kStation);
-  EXPECT_EQ(Press(Key::kEnter), ComponentType::kStation);
+  EXPECT_FALSE(Station::Available(*state_, Station::Item::FillUp));
+  EXPECT_EQ(Press(Key::Down), ComponentType::Station);
+  EXPECT_EQ(Press(Key::Enter), ComponentType::Station);
   EXPECT_EQ(state_->mission.GetCondition().tires, GameState::kFullTires);
-  EXPECT_FALSE(Station::Available(*state_, Station::Item::kRepairTire));
-  EXPECT_EQ(Press(Key::kDown), ComponentType::kStation);
-  EXPECT_EQ(Press(Key::kSpace), ComponentType::kHighway);
+  EXPECT_FALSE(Station::Available(*state_, Station::Item::RepairTire));
+  EXPECT_EQ(Press(Key::Down), ComponentType::Station);
+  EXPECT_EQ(Press(Key::Space), ComponentType::Highway);
 }
 
 TEST_F(StationTest, DrawsTheCursorUnderTheItem) {
@@ -69,19 +69,19 @@ TEST_F(StationTest, DrawsTheCursorUnderTheItem) {
 TEST_F(StationTest, ARobbedStationOffersNothing) {
   state_->mission.GetProgress().robbed.set(0);
   station_.OnEnter(*state_);
-  EXPECT_FALSE(Station::Available(*state_, Station::Item::kFillUp));
-  EXPECT_FALSE(Station::Available(*state_, Station::Item::kRepairTire));
-  EXPECT_EQ(Press(Key::kUp), ComponentType::kStation);
-  EXPECT_EQ(Press(Key::kUp), ComponentType::kStation);
-  EXPECT_EQ(Press(Key::kSpace), ComponentType::kStation);
+  EXPECT_FALSE(Station::Available(*state_, Station::Item::FillUp));
+  EXPECT_FALSE(Station::Available(*state_, Station::Item::RepairTire));
+  EXPECT_EQ(Press(Key::Up), ComponentType::Station);
+  EXPECT_EQ(Press(Key::Up), ComponentType::Station);
+  EXPECT_EQ(Press(Key::Space), ComponentType::Station);
   EXPECT_FLOAT_EQ(state_->mission.GetCondition().fuel, 0.25F);
 }
 
 TEST_F(StationTest, FullTiresNeedNoRepair) {
   state_->mission.GetCondition().tires = GameState::kFullTires;
   station_.OnEnter(*state_);
-  EXPECT_TRUE(Station::Available(*state_, Station::Item::kFillUp));
-  EXPECT_FALSE(Station::Available(*state_, Station::Item::kRepairTire));
+  EXPECT_TRUE(Station::Available(*state_, Station::Item::FillUp));
+  EXPECT_FALSE(Station::Available(*state_, Station::Item::RepairTire));
 }
 
 }  // namespace

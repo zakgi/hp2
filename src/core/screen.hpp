@@ -22,7 +22,7 @@ struct Point {
 };
 
 // The drawing areas of a split screen. Upper is the whole screen while there is no split.
-enum class Viewport : std::uint8_t { kUpper, kLower };
+enum class Viewport : std::uint8_t { Upper, Lower };
 
 // Pixels (8-bit palette indices) for the whole screen, one or two viewports and a palette per
 // viewport. The original changes colors down the screen with the copper; here a screen splits
@@ -114,7 +114,7 @@ class Screen {
   std::array<std::array<ScreenPalette, 2>, 2> palettes_;
   std::array<std::size_t, 2> shown_{};
   std::uint16_t split_row_{};  // 0: no split
-  Viewport selected_{Viewport::kUpper};
+  Viewport selected_{Viewport::Upper};
 };
 
 }  // namespace hp2

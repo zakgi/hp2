@@ -24,25 +24,25 @@ TEST(AssetManager, LoadsEveryAsset) {
   for (const auto& picture : assets.pictures) {
     EXPECT_EQ(picture.pixels.size(), 64000U);
   }
-  EXPECT_EQ(assets.Palette(EnginePalette::kTitle).size(), 2 * kColorRegisterCount);
-  EXPECT_EQ(assets.Palette(EnginePalette::kView).size(), 39 * kColorRegisterCount);
-  EXPECT_EQ(assets.Palette(EnginePalette::kLogo).size(), kColorRegisterCount);
+  EXPECT_EQ(assets.Palette(EnginePalette::Title).size(), 2 * kColorRegisterCount);
+  EXPECT_EQ(assets.Palette(EnginePalette::View).size(), 39 * kColorRegisterCount);
+  EXPECT_EQ(assets.Palette(EnginePalette::Logo).size(), kColorRegisterCount);
   for (const auto& palette : assets.palettes) {
     EXPECT_FALSE(palette.empty());
   }
-  const auto& names = assets.Bank(EngineBank::kNames);
+  const auto& names = assets.Bank(EngineBank::Names);
   ASSERT_EQ(names.sprites.size(), 3U);
   EXPECT_EQ(names.GetImage(2).width, 48);
   EXPECT_EQ(names.GetImage(2).height, 53);
-  EXPECT_EQ(assets.Bank(EngineBank::kCar1).sprites.size(), 10U);
-  EXPECT_EQ(assets.Bank(EngineBank::kScore).sprites.size(), 12U);
-  EXPECT_EQ(assets.Font(EngineFont::kLettre1).GlyphCount(), 94U);
-  EXPECT_EQ(assets.Font(EngineFont::kLettre2).GetGlyph('A').pixels.size(), 64U);
-  EXPECT_EQ(assets.Sound(EngineSound::kEngine).rate_hz, 6'628U);
-  EXPECT_EQ(assets.Sound(EngineSound::kEngine).loop_length, 0x254U);
-  EXPECT_EQ(assets.Sound(EngineSound::kSiren).rate_hz, 4'143U);
-  EXPECT_EQ(assets.Sound(EngineSound::kSiren).loop_length, assets.Sound(EngineSound::kSiren).samples.size());
-  EXPECT_EQ(assets.Sound(EngineSound::kShot).loop_length, 0U);
+  EXPECT_EQ(assets.Bank(EngineBank::Car1).sprites.size(), 10U);
+  EXPECT_EQ(assets.Bank(EngineBank::Score).sprites.size(), 12U);
+  EXPECT_EQ(assets.Font(EngineFont::Lettre1).GlyphCount(), 94U);
+  EXPECT_EQ(assets.Font(EngineFont::Lettre2).GetGlyph('A').pixels.size(), 64U);
+  EXPECT_EQ(assets.Sound(EngineSound::Engine).rate_hz, 6'628U);
+  EXPECT_EQ(assets.Sound(EngineSound::Engine).loop_length, 0x254U);
+  EXPECT_EQ(assets.Sound(EngineSound::Siren).rate_hz, 4'143U);
+  EXPECT_EQ(assets.Sound(EngineSound::Siren).loop_length, assets.Sound(EngineSound::Siren).samples.size());
+  EXPECT_EQ(assets.Sound(EngineSound::Shot).loop_length, 0U);
   EXPECT_EQ(assets.title_animation.frames.size(), 19U);
   EXPECT_EQ(assets.title_animation.steps.size(), 27U);
   EXPECT_EQ(assets.title_animation.frames[0].run_count, 54U);

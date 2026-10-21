@@ -15,8 +15,8 @@ TEST(Color, DecodesAmigaWords) {
 TEST(Color, DecodesAtariStWords) {
   EXPECT_EQ(FromAtariSt(0x777), (Rgb{.red = 0xff, .green = 0xff, .blue = 0xff}));
   EXPECT_EQ(FromAtariSt(0x257), (Rgb{.red = 73, .green = 182, .blue = 255}));
-  EXPECT_EQ(FromColorWord(0x257, ColorFormat::kAtariSt), FromAtariSt(0x257));
-  EXPECT_EQ(FromColorWord(0x257, ColorFormat::kAmiga), FromAmiga(0x257));
+  EXPECT_EQ(FromColorWord(0x257, ColorFormat::AtariSt), FromAtariSt(0x257));
+  EXPECT_EQ(FromColorWord(0x257, ColorFormat::Amiga), FromAmiga(0x257));
 }
 
 }  // namespace

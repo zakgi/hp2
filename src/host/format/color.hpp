@@ -8,7 +8,7 @@ namespace hp2::host {
 
 // How an original palette stores its colors: Amiga color registers, 4 bits per channel, or Atari
 // ST colors, 3 bits per channel (the pictures' headers and the title's palette list).
-enum class ColorFormat : std::uint8_t { kAmiga, kAtariSt };
+enum class ColorFormat : std::uint8_t { Amiga, AtariSt };
 
 // An Amiga color word, 0x0RGB with 4 bits per channel: each channel times 17, so 0xf is 0xff.
 [[nodiscard]] constexpr Rgb FromAmiga(std::uint16_t color) {
@@ -32,7 +32,7 @@ enum class ColorFormat : std::uint8_t { kAmiga, kAtariSt };
 }
 
 [[nodiscard]] constexpr Rgb FromColorWord(std::uint16_t color, ColorFormat format) {
-  return format == ColorFormat::kAtariSt ? FromAtariSt(color) : FromAmiga(color);
+  return format == ColorFormat::AtariSt ? FromAtariSt(color) : FromAmiga(color);
 }
 
 }  // namespace hp2::host
