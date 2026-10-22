@@ -9,7 +9,6 @@
 #include "sha256.hpp"
 
 namespace hp2::host {
-namespace {
 
 TEST(Font, BuildsPixelsFromTheFourPlanesOfEachRow) {
   auto file = std::vector<std::uint8_t>(32);
@@ -46,5 +45,4 @@ TEST(Font, MatchesTheReferenceDecoder) {
   EXPECT_EQ(test::Sha256Hex(font2->pixels), "0fd828ca4316f298720193fc932e0179a8bdc232e46a5081628648c5e4de01b9");
 }
 
-}  // namespace
 }  // namespace hp2::host

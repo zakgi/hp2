@@ -13,7 +13,6 @@
 #include "host/asset_manager.hpp"
 
 namespace hp2 {
-namespace {
 
 class MapViewTest : public testing::Test {
  protected:
@@ -59,5 +58,4 @@ TEST_F(MapViewTest, DrawsRoadsDesertAndTheCars) {
   EXPECT_EQ(screen_.Palette(Viewport::Upper).Color(kMapTarget), (Rgb{.red = 0xff, .green = 0x00, .blue = 0x00}));
 }
 
-}  // namespace
 }  // namespace hp2

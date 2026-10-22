@@ -24,7 +24,6 @@
 #include "host/asset_manager.hpp"
 
 namespace hp2 {
-namespace {
 
 constexpr auto kNorth = kFullTurn / 4.0F;
 constexpr auto kViewRows = std::size_t{kDashboardRow};
@@ -508,5 +507,4 @@ TEST_F(DriverViewTest, TheCarsHaveTheirPaintInThePalette) {
   EXPECT_EQ(palette.Color(static_cast<std::uint8_t>(kTrafficFirstOffset + 3)), palette.Color(3));
 }
 
-}  // namespace
 }  // namespace hp2

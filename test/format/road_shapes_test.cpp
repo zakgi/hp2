@@ -8,7 +8,6 @@
 #include <vector>
 
 namespace hp2::host {
-namespace {
 
 std::expected<std::vector<ShapePoint>, RoadShapeError> Decode(const std::vector<std::uint8_t>& bytes) {
   return DecodeRoadShape(std::as_bytes(std::span{bytes}));
@@ -47,5 +46,4 @@ TEST(RoadShape, RejectsBadOutlines) {
             RoadShapeError::NotFlat);
 }
 
-}  // namespace
 }  // namespace hp2::host

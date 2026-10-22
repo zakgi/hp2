@@ -10,13 +10,12 @@
 #include "core/engine_state.hpp"
 
 namespace hp2 {
-namespace {
 
-struct Log {
+struct EngineLog {
   std::string events;
 };
 
-auto log = Log{};
+auto log = EngineLog{};
 
 // Empty controllers keep their countdown in the shared career data for these dispatch tests.
 // Test controllers implement the same instance-based lifecycle protocol.
@@ -43,8 +42,8 @@ class Fake {
   }
 };
 
-using Title = Fake<ComponentType::Title, ComponentType::Office, 'T', 2>;
-using Office = Fake<ComponentType::Office, ComponentType::Quit, 'O', 1>;
+using FakeTitle = Fake<ComponentType::Title, ComponentType::Office, 'T', 2>;
+using FakeOffice = Fake<ComponentType::Office, ComponentType::Quit, 'O', 1>;
 using Orphan = Fake<ComponentType::Station, ComponentType::Highway, 'S', 1>;
 
 class PrivateCounter {
@@ -90,7 +89,7 @@ class EngineTest : public testing::Test {
 };
 
 TEST_F(EngineTest, RunsTransitionsAndQuits) {
-  auto engine = Engine<Title, Office>{state_};
+  auto engine = Engine<FakeTitle, FakeOffice>{state_};
   EXPECT_FALSE(engine.Running());
   ASSERT_TRUE(engine.Start(ComponentType::Title));
   EXPECT_TRUE(engine.Running());
@@ -133,8 +132,8 @@ TEST_F(EngineTest, SwitchesFromOutside) {
 
 TEST_F(EngineTest, IndependentEnginesKeepSeparateState) {
   auto other_state = EngineState{assets_, screen_, keys_, audio_, 99};
-  auto first = Engine<Title>{state_};
-  auto second = Engine<Title>{other_state};
+  auto first = Engine<FakeTitle>{state_};
+  auto second = Engine<FakeTitle>{other_state};
   ASSERT_TRUE(first.Start(ComponentType::Title));
   ASSERT_TRUE(second.Start(ComponentType::Title));
   ASSERT_TRUE(first.Step(1.0F));
@@ -182,10 +181,9 @@ TEST_F(EngineTest, ConstructsOnlyOnEntryAndDestroysOnQuit) {
 }
 
 static_assert(ComponentLike<PrivateCounter>);
-static_assert(Engine<Title, Office>::IsRegistered(ComponentType::Office));
-static_assert(not Engine<Title, Office>::IsRegistered(ComponentType::Highway));
+static_assert(Engine<FakeTitle, FakeOffice>::IsRegistered(ComponentType::Office));
+static_assert(not Engine<FakeTitle, FakeOffice>::IsRegistered(ComponentType::Highway));
 static_assert(not std::is_copy_constructible_v<EngineState>);
 static_assert(not std::is_move_constructible_v<EngineState>);
 
-}  // namespace
 }  // namespace hp2

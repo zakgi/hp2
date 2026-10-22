@@ -10,7 +10,6 @@
 #include "assets.hpp"
 
 namespace hp2::host {
-namespace {
 
 TEST(AmigaHunk, RejectsNonExecutables) {
   const auto bytes = std::vector<std::uint8_t>{0x00, 0x00, 0x03, 0xf2};
@@ -43,5 +42,4 @@ TEST(AmigaHunk, ReadsTheGameUnrelocated) {
   EXPECT_FALSE(code.Read<std::uint32_t>(0xe8a8 - 2).has_value());
 }
 
-}  // namespace
 }  // namespace hp2::host

@@ -6,7 +6,6 @@
 #include "core/screen.hpp"
 
 namespace hp2 {
-namespace {
 
 constexpr auto kWhite = Rgb{.red = 0xff, .green = 0xff, .blue = 0xff};
 
@@ -37,5 +36,4 @@ TEST(Fade, FadesOut) {
   EXPECT_EQ(palette.Color(1), Rgb{});
 }
 
-}  // namespace
 }  // namespace hp2

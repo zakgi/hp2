@@ -6,7 +6,6 @@
 #include <cstdint>
 
 namespace hp2::host {
-namespace {
 
 TEST(Planar, DeinterleavesLeftmostPixelFromBit7) {
   EXPECT_EQ(DeinterleaveShift(0b1000'0001), (std::array<std::uint8_t, 8>{1, 0, 0, 0, 0, 0, 0, 1}));
@@ -14,5 +13,4 @@ TEST(Planar, DeinterleavesLeftmostPixelFromBit7) {
   EXPECT_EQ(DeinterleaveMask(0b0000'1010, 0x05), (std::array<std::uint8_t, 8>{0, 0, 0, 0, 5, 0, 5, 0}));
 }
 
-}  // namespace
 }  // namespace hp2::host

@@ -2,11 +2,11 @@
 
 #include <array>
 #include <cstddef>
-#include <cstdint>
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Texture.hpp>
 
+#include "core/palette.hpp"
 #include "core/screen.hpp"
 
 namespace hp2::host {
@@ -22,11 +22,9 @@ class Renderer {
   void Render(Screen& screen);
 
  private:
-  static constexpr auto kChannels = std::size_t{4};
-
   sf::RenderWindow& window_;
   sf::Texture texture_;
-  std::array<std::uint8_t, std::size_t{Screen::kWidth} * Screen::kHeight * kChannels> rgba_{};
+  std::array<RgbaColor, std::size_t{Screen::kWidth} * Screen::kHeight> rgba_{};
 };
 
 }  // namespace hp2::host

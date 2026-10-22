@@ -5,7 +5,6 @@
 #include "core/palette.hpp"
 
 namespace hp2::host {
-namespace {
 
 TEST(Color, DecodesAmigaWords) {
   EXPECT_EQ(FromAmiga(0x4af), (Rgb{.red = 0x44, .green = 0xaa, .blue = 0xff}));
@@ -19,5 +18,4 @@ TEST(Color, DecodesAtariStWords) {
   EXPECT_EQ(FromColorWord(0x257, ColorFormat::Amiga), FromAmiga(0x257));
 }
 
-}  // namespace
 }  // namespace hp2::host

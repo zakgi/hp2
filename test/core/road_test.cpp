@@ -10,7 +10,6 @@
 #include "host/asset_manager.hpp"
 
 namespace hp2 {
-namespace {
 
 class RoadTest : public testing::Test {
  protected:
@@ -178,5 +177,4 @@ TEST_F(RoadTest, StationDrivewaysLoopAroundAnIsland) {
   EXPECT_FALSE(road.IsInStationArea(Inside(station, 8192, 8192)));
 }
 
-}  // namespace
 }  // namespace hp2

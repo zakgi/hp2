@@ -9,7 +9,6 @@
 #include "sha256.hpp"
 
 namespace hp2::host {
-namespace {
 
 TEST(BobBank, MapsStoredPlanesToTheChosenScreenPlanes) {
   // One 16x1 image, 2 stored planes going to screen planes 1 and 3 (flags 0x0a02).
@@ -64,5 +63,4 @@ TEST(BobBank, MatchesTheReferenceDecoder) {
   EXPECT_EQ(test::Sha256Hex((*bank)[2].pixels), "b5b077364c56f9dce0cdb163e6bdc9560a3ead30be11fdb8ae7b8336220906cf");
 }
 
-}  // namespace
 }  // namespace hp2::host

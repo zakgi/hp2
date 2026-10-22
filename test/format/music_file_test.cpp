@@ -9,7 +9,6 @@
 #include "assets.hpp"
 
 namespace hp2::host {
-namespace {
 
 TEST(MusicFile, RejectsBadFiles) {
   EXPECT_EQ(DecodeMusicFile(std::vector<std::uint8_t>(0x100)).error(), MusicFileError::TooShort);
@@ -59,5 +58,4 @@ TEST(MusicFile, DecodesTheTitleMusic) {
   EXPECT_EQ(music->notes[3].period, ModuleNote::kRelease);
 }
 
-}  // namespace
 }  // namespace hp2::host

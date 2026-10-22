@@ -18,7 +18,6 @@
 #include "host/asset_manager.hpp"
 
 namespace hp2 {
-namespace {
 
 constexpr auto kFrameSeconds = 1.0F / 60.0F;
 constexpr auto kFramesPerSecond = 60;
@@ -255,5 +254,4 @@ TEST_F(HighwayTest, ANewMissionStartsWithFreshViewHistory) {
   }
 }
 
-}  // namespace
 }  // namespace hp2

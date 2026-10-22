@@ -62,7 +62,7 @@ class Fade {
   void Show(float brightness) {
     for (auto index = std::size_t{0}; index < ScreenPalette::kColorCount; ++index) {
       const auto entry = static_cast<std::uint8_t>(index);
-      palette_.SetColor(entry, ScaleColor(colors_.Color(entry), brightness));
+      palette_.SetColor(entry, colors_.Color(entry).ScaleColor(brightness));
     }
   }
 

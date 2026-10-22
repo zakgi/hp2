@@ -5,7 +5,6 @@
 #include <string>
 
 namespace hp2 {
-namespace {
 
 struct Log {
   std::string events;
@@ -90,5 +89,4 @@ TEST(ActionStack, RefusesPushBeyondCapacity) {
   EXPECT_EQ(stack.Size(), Stack::MaxSize());
 }
 
-}  // namespace
 }  // namespace hp2

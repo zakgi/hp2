@@ -28,18 +28,14 @@ void Renderer::Render(Screen& screen) {
     const auto first = screen.FirstRow(viewport);
     for (auto row = first; row < first + screen.Rows(viewport); ++row) {
       const auto pixels = screen.ScreenRow(row);
-      const auto out =
-          std::span{rgba_}.subspan(std::size_t{row} * Screen::kWidth * kChannels, Screen::kWidth * kChannels);
+      const auto out = std::span{rgba_}.subspan(std::size_t{row} * Screen::kWidth, Screen::kWidth);
       for (auto column = std::size_t{0}; column < pixels.size(); ++column) {
         const auto color = colors[pixels[column]];
-        out[(column * kChannels) + 0] = color.red;
-        out[(column * kChannels) + 1] = color.green;
-        out[(column * kChannels) + 2] = color.blue;
-        out[(column * kChannels) + 3] = kOpaque;
+        out[column] = color.AsRgba();
       }
     }
   }
-  texture_.update(rgba_.data());
+  texture_.update(reinterpret_cast<std::uint8_t*>(rgba_.data()));
 
   const auto size = window_.getSize();
   const auto window_aspect = static_cast<float>(size.x) / static_cast<float>(size.y);

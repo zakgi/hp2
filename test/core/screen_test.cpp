@@ -8,7 +8,6 @@
 #include "core/image_view.hpp"
 
 namespace hp2 {
-namespace {
 
 TEST(Screen, SplitsIntoTwoViewports) {
   auto screen = Screen{};
@@ -205,5 +204,4 @@ TEST(ScreenPalette, OverlaysAtAnOffset) {
   EXPECT_EQ(palette.Color(0), Rgb{});
 }
 
-}  // namespace
 }  // namespace hp2

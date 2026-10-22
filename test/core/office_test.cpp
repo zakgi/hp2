@@ -15,7 +15,6 @@
 #include "host/asset_manager.hpp"
 
 namespace hp2 {
-namespace {
 
 class OfficeTest : public ::testing::Test {
  protected:
@@ -147,5 +146,4 @@ TEST_F(OfficeTest, ClicksOutsideTheDeskDoNothing) {
   EXPECT_EQ(office_.Step(*state_, 0.0F), ComponentType::Quit);
 }
 
-}  // namespace
 }  // namespace hp2

@@ -12,7 +12,6 @@
 #include "core/road_map.hpp"
 
 namespace hp2::host {
-namespace {
 
 TEST(AssetManager, LoadsEveryAsset) {
   if (not test::Executable()) {
@@ -72,5 +71,4 @@ TEST(AssetManager, ReadsTheRoadShapes) {
   EXPECT_NE(std::ranges::find(station, ShapePoint{.x = 8705, .y = 13056}), station.end());
 }
 
-}  // namespace
 }  // namespace hp2::host

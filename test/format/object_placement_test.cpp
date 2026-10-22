@@ -9,7 +9,6 @@
 #include "assets.hpp"
 
 namespace hp2::host {
-namespace {
 
 // 13 offsets to lists; every list but the first is empty (0xffff).
 std::vector<std::uint8_t> OneList(const std::vector<std::uint8_t>& list) {
@@ -72,5 +71,4 @@ TEST(ObjectPlacement, DecodesTheGamesScenery) {
   EXPECT_EQ(first.type, 1);
 }
 
-}  // namespace
 }  // namespace hp2::host

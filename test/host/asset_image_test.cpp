@@ -20,7 +20,6 @@
 #include "target/flash/digest.hpp"
 
 namespace hp2::flash {
-namespace {
 
 std::string Hex(const Digest& digest) {
   constexpr auto kDigits = std::string_view{"0123456789abcdef"};
@@ -95,5 +94,4 @@ TEST(AssetImage, MatchesTheAssetManager) {
   EXPECT_EQ(actual.road_shapes.cell_types, expected.road_shapes.cell_types);
 }
 
-}  // namespace
 }  // namespace hp2::flash

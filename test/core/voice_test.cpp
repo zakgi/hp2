@@ -12,7 +12,6 @@
 #include <vector>
 
 namespace hp2 {
-namespace {
 
 using Kernel = ResamplerKernel;
 constexpr std::size_t kTaps = Kernel::kTaps;
@@ -156,5 +155,4 @@ TEST(VoiceTest, StartTakesTheVolumeAtOnceAndChangesRamp) {
   EXPECT_NEAR(out.back(), 0.0F, kTolerance);  // silent within a few dozen milliseconds
 }
 
-}  // namespace
 }  // namespace hp2

@@ -10,7 +10,6 @@
 #include "host/asset_manager.hpp"
 
 namespace hp2 {
-namespace {
 
 constexpr auto kEyeHeight = 100.0F;
 constexpr auto kNorth = kFullTurn / 4.0F;
@@ -103,5 +102,4 @@ TEST(RoadRows, AColumnIsTheFirstWhoseMiddleIsReached) {
   EXPECT_EQ(rows.Index(72), 2U);
 }
 
-}  // namespace
 }  // namespace hp2

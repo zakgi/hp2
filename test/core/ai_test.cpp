@@ -17,7 +17,6 @@
 #include "host/asset_manager.hpp"
 
 namespace hp2 {
-namespace {
 
 constexpr auto kTickSeconds = 1.0F / 60.0F;
 constexpr auto kTicksPerSecond = 60;
@@ -237,5 +236,4 @@ TEST_F(AiTest, TheCriminalRobsOnlyUnwatched) {
   EXPECT_FALSE(LeaveWhenWatched{}.Flee(context, random));
 }
 
-}  // namespace
 }  // namespace hp2

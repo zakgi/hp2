@@ -15,7 +15,6 @@
 #include "host/asset_manager.hpp"
 
 namespace hp2 {
-namespace {
 
 class MissionEndTest : public ::testing::Test {
  protected:
@@ -99,5 +98,4 @@ TEST_F(MissionEndTest, EveryEndingHasItsPictureOrText) {
   EXPECT_TRUE(MissionEnd::GetEnding(EndReason::BountyGone).game_over);
 }
 
-}  // namespace
 }  // namespace hp2

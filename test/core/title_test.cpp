@@ -18,7 +18,6 @@
 #include "sha256.hpp"
 
 namespace hp2 {
-namespace {
 
 // Digests from scripts/reference_digests.py.
 constexpr auto kLogoRgb = "fe8dad00d4d69e51a3a2e0c1dc7c9ed1e44e1595b7791a3ab17e2fed9f174f95";
@@ -164,5 +163,4 @@ TEST(OriginalTiming, CountsThePresentationWaits) {
   EXPECT_NEAR(original_timing::AnimationStepSeconds(frame, 0x9c40), 0.1462F, 0.0001F);
 }
 
-}  // namespace
 }  // namespace hp2

@@ -16,7 +16,6 @@
 #include "host/asset_manager.hpp"
 
 namespace hp2 {
-namespace {
 
 class AudioEngineTest : public testing::Test {
  protected:
@@ -122,5 +121,4 @@ TEST(AudioEngineMusic, PlaysTheTitleMusicOnBothSides) {
   EXPECT_GT(peak_right, 1'000);
 }
 
-}  // namespace
 }  // namespace hp2

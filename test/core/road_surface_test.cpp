@@ -10,7 +10,6 @@
 #include "core/view_palette.hpp"
 
 namespace hp2 {
-namespace {
 
 // The bottom row of the view, in the colors nearest the car.
 constexpr auto kRow = std::int16_t{131};
@@ -76,5 +75,4 @@ TEST_F(RoadSurfaceTest, DrawsNoLinesFarAhead) {
   EXPECT_EQ(GetPixel(200), kAsphalt);
 }
 
-}  // namespace
 }  // namespace hp2

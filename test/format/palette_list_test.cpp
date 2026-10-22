@@ -10,7 +10,6 @@
 #include "host/format/amiga_hunk.hpp"
 
 namespace hp2::host {
-namespace {
 
 TEST(PaletteList, ReadsTheGamesLists) {
   const auto file = test::Executable();
@@ -45,5 +44,4 @@ TEST(PaletteList, ReadsTheGamesLists) {
   EXPECT_EQ(ReadPaletteList(data, 0x3f98, ColorFormat::Amiga).error(), PaletteListError::OutOfHunk);
 }
 
-}  // namespace
 }  // namespace hp2::host

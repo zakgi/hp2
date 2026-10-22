@@ -11,7 +11,6 @@
 #include "host/format/iff.hpp"
 
 namespace hp2::host {
-namespace {
 
 void AppendLong(std::vector<std::uint8_t>& data, std::uint32_t value) {
   data.insert(data.end(), {static_cast<std::uint8_t>(value >> 24), static_cast<std::uint8_t>(value >> 16),
@@ -82,5 +81,4 @@ TEST(Iff8Svx, DecodesTheGamesSounds) {
   EXPECT_FALSE(Iff8SvxAsset::FromRawData(std::as_bytes(std::span{*shot})).has_value());
 }
 
-}  // namespace
 }  // namespace hp2::host

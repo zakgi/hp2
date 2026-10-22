@@ -9,7 +9,6 @@
 #include "sha256.hpp"
 
 namespace hp2::host {
-namespace {
 
 TEST(Cpv, RejectsBadInput) {
   EXPECT_EQ(DecodeCpv(std::vector<std::uint8_t>(10)).error(), CpvError::TooShort);
@@ -63,5 +62,4 @@ TEST(Cpv, MatchesTheReferenceDecoder) {
   EXPECT_EQ(test::Sha256Hex(logo_picture->pixels), "cb7c731478865448b31898d1253cfa70a9c7ef0ba6c04c39eb69e927ab56207b");
 }
 
-}  // namespace
 }  // namespace hp2::host

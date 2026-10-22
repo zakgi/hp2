@@ -13,7 +13,6 @@
 #include "host/asset_manager.hpp"
 
 namespace hp2 {
-namespace {
 
 class StationTest : public ::testing::Test {
  protected:
@@ -84,5 +83,4 @@ TEST_F(StationTest, FullTiresNeedNoRepair) {
   EXPECT_FALSE(Station::Available(*state_, Station::Item::RepairTire));
 }
 
-}  // namespace
 }  // namespace hp2

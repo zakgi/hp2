@@ -5,7 +5,6 @@
 #include <cstddef>
 
 namespace hp2 {
-namespace {
 
 TEST(KeyEvents, KeepsArrivalOrder) {
   auto events = KeyEvents{};
@@ -44,5 +43,4 @@ TEST(KeyEvents, ClearForgetsPendingKeystrokes) {
   EXPECT_FALSE(events.Next().has_value());
 }
 
-}  // namespace
 }  // namespace hp2

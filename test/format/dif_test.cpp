@@ -12,7 +12,6 @@
 #include "sha256.hpp"
 
 namespace hp2::host {
-namespace {
 
 // A one-frame file: long count 1, long offset 8, then `frame`.
 std::vector<std::uint8_t> OneFrame(const std::vector<std::uint8_t>& frame) {
@@ -86,5 +85,4 @@ TEST(Dif, MatchesTheReferencePlayer) {
   EXPECT_EQ(test::Sha256Hex(pixels), "d3c24e325172ab28c43631b326e531981a6c1319e4e88fdf2b0977e4414c24b2");
 }
 
-}  // namespace
 }  // namespace hp2::host

@@ -5,7 +5,6 @@
 #include "assets.hpp"
 
 namespace hp2::host {
-namespace {
 
 TEST(Adf, FindsFilesWhateverTheCase) {
   auto disk = AdfImageManager{};
@@ -27,5 +26,4 @@ TEST(Adf, RefusesAMissingImage) {
   EXPECT_FALSE(disk.GetFile("hp.prg").has_value());
 }
 
-}  // namespace
 }  // namespace hp2::host

@@ -12,23 +12,33 @@
 namespace hp2 {
 
 // One color with 8-bit components.
+struct RgbaColor {
+  std::uint8_t red{};
+  std::uint8_t green{};
+  std::uint8_t blue{};
+  std::uint8_t alpha{};
+};
+
+// One color with 8-bit components.
 struct Rgb {
   std::uint8_t red{};
   std::uint8_t green{};
   std::uint8_t blue{};
 
   constexpr bool operator==(const Rgb&) const = default;
+
+  [[nodiscard]] Rgb ScaleColor(float scale) const {
+    return Rgb{.red = static_cast<std::uint8_t>(std::lround(static_cast<float>(red) * scale)),
+               .green = static_cast<std::uint8_t>(std::lround(static_cast<float>(green) * scale)),
+               .blue = static_cast<std::uint8_t>(std::lround(static_cast<float>(blue) * scale))};
+  };
+
+  [[nodiscard]] RgbaColor AsRgba() const { return RgbaColor{.red = red, .green = green, .blue = blue, .alpha = 0xFF}; }
 };
 
 static_assert(std::is_standard_layout_v<Rgb>);
 static_assert(sizeof(Rgb) == 3);
-
-// `color` with each channel scaled by `brightness`, 0 (black) to 1 (unchanged).
-[[nodiscard]] inline Rgb ScaleColor(Rgb color, float brightness) {
-  return Rgb{.red = static_cast<std::uint8_t>(std::lround(static_cast<float>(color.red) * brightness)),
-             .green = static_cast<std::uint8_t>(std::lround(static_cast<float>(color.green) * brightness)),
-             .blue = static_cast<std::uint8_t>(std::lround(static_cast<float>(color.blue) * brightness))};
-}
+static_assert(sizeof(RgbaColor) == sizeof(std::uint32_t));
 
 // The original's screen has 4 bitplanes, so its pictures use 16 color registers (InitDisplay
 // 1:0e90).

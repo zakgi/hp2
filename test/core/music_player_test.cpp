@@ -13,7 +13,6 @@
 #include "core/voice.hpp"
 
 namespace hp2 {
-namespace {
 
 constexpr auto kSampleRate = std::uint32_t{48'000};
 constexpr auto kTolerance = 1e-5F;
@@ -176,5 +175,4 @@ TEST_F(MusicPlayerTest, StopSilencesEverything) {
   EXPECT_EQ(player_.Row(), row);
 }
 
-}  // namespace
 }  // namespace hp2

@@ -12,7 +12,6 @@
 #include "core/world.hpp"
 
 namespace hp2 {
-namespace {
 
 constexpr auto kTuning = VehicleTuning{
     .top_speed = 8000.0F,
@@ -280,5 +279,4 @@ TEST_F(VehicleTest, MovesAlongItsHeading) {
   EXPECT_GT(car.position.y, kStart.y);
 }
 
-}  // namespace
 }  // namespace hp2

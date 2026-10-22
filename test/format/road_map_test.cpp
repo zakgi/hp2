@@ -9,7 +9,6 @@
 #include "assets.hpp"
 
 namespace hp2::host {
-namespace {
 
 TEST(RoadMap, RejectsBadMaps) {
   EXPECT_EQ(DecodeRoadMap(std::vector<std::uint8_t>(4095)).error(), RoadMapError::BadSize);
@@ -39,5 +38,4 @@ TEST(RoadMap, DecodesTheGamesMap) {
   EXPECT_EQ(std::ranges::count(map->cells, 0), 3'272);
 }
 
-}  // namespace
 }  // namespace hp2::host
